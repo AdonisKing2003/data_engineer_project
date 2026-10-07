@@ -1,0 +1,25 @@
+# Dữ liệu: không đẩy CSV/Parquet lên GitHub
+data/*
+!data/.gitkeep
+
+# Khóa và biến môi trường
+.env
+secrets/*
+!secrets/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
