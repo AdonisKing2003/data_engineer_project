@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: check bq-test staging dims facts load-bq test app
+.PHONY: check bq-test staging dims facts load-bq load-pg test app
 
 check:        ## 1.1b kiểm tra Spark, DuckDB, Streamlit, PostgreSQL, BigQuery
 	python scripts/check_env.py
@@ -20,6 +20,9 @@ facts:        ## 1.5 fact_vle_daily + fact_submission (chạy sau dims)
 
 load-bq:      ## 1.6 nạp mọi bảng trong data/warehouse lên BigQuery, so số dòng
 	cd etl && python 04_load_bq.py
+
+load-pg:      ## 1.7 nạp mọi bảng trong data/warehouse vào PostgreSQL, so số dòng
+	cd etl && python 05_load_pg.py
 
 test:
 	pytest -q
