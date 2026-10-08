@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: check bq-test staging dims facts test app
+.PHONY: check bq-test staging dims facts load-bq test app
 
 check:        ## 1.1b kiểm tra Spark, DuckDB, Streamlit, PostgreSQL, BigQuery
 	python scripts/check_env.py
@@ -17,6 +17,9 @@ dims:         ## 1.4 làm sạch, 5 dimension + fact_enrollment vào data/wareho
 
 facts:        ## 1.5 fact_vle_daily + fact_submission (chạy sau dims)
 	cd etl && spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} 03_facts.py
+
+load-bq:      ## 1.6 nạp mọi bảng trong data/warehouse lên BigQuery, so số dòng
+	cd etl && python 04_load_bq.py
 
 test:
 	pytest -q
