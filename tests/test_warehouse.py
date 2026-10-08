@@ -11,7 +11,7 @@ WH = ROOT / "data" / "warehouse"
 STG = ROOT / "data" / "staging"
 
 TABLES = ["dim_presentation", "dim_student", "dim_assessment", "dim_vle_site", "dim_week",
-          "fact_enrollment", "fact_vle_daily", "fact_submission"]
+          "fact_enrollment", "fact_vle_daily", "fact_submission", "fact_student_week"]
 
 
 @pytest.fixture(scope="module")
@@ -42,6 +42,7 @@ ROW_COUNTS = {
     "fact_enrollment": 32593,
     "fact_vle_daily": 8459320,
     "fact_submission": 173912,
+    "fact_student_week": 1342949,
 }
 
 
@@ -86,6 +87,9 @@ CHECKS = [
     ("fact_enrollment", "reg_date_missing", 45),
     ("fact_enrollment", "result_inconsistent", 102),
     ("fact_enrollment", "is_repeat", 4172),
+    ("fact_student_week", "is_pre_start", 130372),
+    ("fact_student_week", "is_week_inactive", 715918),
+    ("fact_student_week", "is_enrolled", 1043478),
 ]
 
 
@@ -93,6 +97,40 @@ CHECKS = [
 def test_flag_count(db, table, cond, expected):
     need(table)
     assert one(db, f"select count(*) from {table} where {cond}") == expected
+
+
+# Số ô NULL được phép của từng cột; cột không có trong danh sách thì không được có NULL.
+# None = được phép NULL nhưng không cố định số lượng.
+NULLS = {
+    ("dim_assessment", "deadline_raw"): 11,
+    ("dim_vle_site", "week_from"): 5243,
+    ("dim_vle_site", "week_to"): 5243,
+    ("fact_enrollment", "date_registration"): 45,
+    ("fact_enrollment", "date_unregistration"): 22521,
+    ("fact_submission", "score"): 173,
+    ("fact_submission", "days_late"): 1909,  # đúng bằng số bài chuyển điểm
+    ("fact_submission", "is_pass_score"): 173,
+    ("fact_student_week", "avg_score_cum"): None,  # NULL khi chưa có bài nào có điểm
+}
+
+
+@pytest.mark.parametrize("table", ROW_COUNTS)
+def test_null_counts(db, table):
+    need(table)
+    cols = [r[0] for r in db.sql(f"describe {table}").fetchall()]
+    counts = db.sql(f"select {', '.join(f'count(*) - count({c})' for c in cols)} from {table}").fetchone()
+    wrong = {c: n for c, n in zip(cols, counts)
+             if (table, c) not in NULLS and n != 0
+             or NULLS.get((table, c)) is not None and n != NULLS[(table, c)]}
+    assert wrong == {}, f"số NULL không như hợp đồng: {wrong}"
+
+
+def test_avg_score_null_only_without_scores(db):
+    need("fact_student_week")
+    assert one(db, """select count(*) from fact_student_week
+                      where avg_score_cum is null and n_submitted_cum > 0
+                        and id_student not in (select id_student from fact_submission where score_missing)""") == 0
+    assert one(db, "select count(*) from fact_student_week where n_submitted_cum = 0 and avg_score_cum is not null") == 0
 
 
 PRIMARY_KEYS = {
@@ -104,6 +142,7 @@ PRIMARY_KEYS = {
     "fact_enrollment": "id_student, code_module, code_presentation",
     "fact_vle_daily": "id_student, code_module, code_presentation, id_site, date",
     "fact_submission": "id_student, id_assessment",
+    "fact_student_week": "id_student, code_module, code_presentation, week_no",
 }
 
 
@@ -123,6 +162,9 @@ FOREIGN_KEYS = [
     ("fact_submission", "id_assessment", "dim_assessment", "id_assessment"),
     ("fact_enrollment", "id_student", "dim_student", "id_student"),
     ("fact_enrollment", "code_module || code_presentation", "dim_presentation", "code_module || code_presentation"),
+    ("fact_student_week", "week_no", "dim_week", "week_no"),
+    ("fact_student_week", "id_student || '/' || code_module || code_presentation", "fact_enrollment",
+     "id_student || '/' || code_module || code_presentation"),
 ]
 
 

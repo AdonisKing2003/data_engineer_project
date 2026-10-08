@@ -60,7 +60,10 @@ def write_table(spark: SparkSession, df: DataFrame, name: str, expected: int = N
 
 
 def save_report(report: dict, step: str) -> bool:
-    """Ghi log số dòng và thời gian của một bước ra data/warehouse/_report_<step>.json."""
-    (WAREHOUSE_DIR / f"_report_{step}.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False))
+    """Ghi log số dòng và thời gian của một bước ra data/warehouse/_report_<step>.json.
+    Gộp vào báo cáo cũ, nên chạy lại riêng một bảng không làm mất số của các bảng khác."""
+    path = WAREHOUSE_DIR / f"_report_{step}.json"
+    merged = json.loads(path.read_text()) if path.exists() else {}
+    merged.update(report)
+    path.write_text(json.dumps(merged, indent=2, ensure_ascii=False))
     return all(r["ok"] for r in report.values())
