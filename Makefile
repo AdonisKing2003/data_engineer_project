@@ -1,7 +1,13 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: check bq-test staging dims facts student-week load-bq load-pg stream test app
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream test app
+
+all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
+	python scripts/run_all.py
+
+all-local:    ## như all nhưng bỏ BigQuery (máy chưa có khóa Google Cloud)
+	python scripts/run_all.py --skip-bq
 
 check:        ## 1.1b kiểm tra Spark, DuckDB, Streamlit, PostgreSQL, BigQuery
 	python scripts/check_env.py
