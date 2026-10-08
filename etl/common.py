@@ -45,11 +45,17 @@ def mark_exists(df: DataFrame, other: DataFrame, keys: list, name: str) -> DataF
             .withColumn(name, F.coalesce(F.col(name), F.lit(False))))
 
 
-def write_table(spark: SparkSession, df: DataFrame, name: str, expected: int = None) -> dict:
-    """Ghi đè một bảng kho ra data/warehouse/<name>, đếm lại số dòng và in log.
+def scaled_dir(factor: int) -> Path:
+    """Thư mục kho của bản nhân dữ liệu: 1 -> data/warehouse, 5 -> data/warehouse_5x."""
+    return WAREHOUSE_DIR if factor == 1 else WAREHOUSE_DIR.with_name(f"warehouse_{factor}x")
+
+
+def write_table(spark: SparkSession, df: DataFrame, name: str, expected: int = None,
+                out_dir: Path = WAREHOUSE_DIR) -> dict:
+    """Ghi đè một bảng kho ra <out_dir>/<name>, đếm lại số dòng và in log.
     Ghi đè nên chạy lại không bị nhân đôi."""
     t0 = time.time()
-    out = WAREHOUSE_DIR / name
+    out = out_dir / name
     df.write.mode("overwrite").parquet(str(out))
     n = spark.read.parquet(str(out)).count()
     ok = expected is None or n == expected
@@ -59,11 +65,27 @@ def write_table(spark: SparkSession, df: DataFrame, name: str, expected: int = N
     return {"rows": n, "expected": expected, "ok": ok, "seconds": seconds}
 
 
-def save_report(report: dict, step: str) -> bool:
-    """Ghi log số dòng và thời gian của một bước ra data/warehouse/_report_<step>.json.
+def save_report(report: dict, step: str, out_dir: Path = WAREHOUSE_DIR) -> bool:
+    """Ghi log số dòng và thời gian của một bước ra <out_dir>/_report_<step>.json.
     Gộp vào báo cáo cũ, nên chạy lại riêng một bảng không làm mất số của các bảng khác."""
-    path = WAREHOUSE_DIR / f"_report_{step}.json"
+    path = out_dir / f"_report_{step}.json"
     merged = json.loads(path.read_text()) if path.exists() else {}
     merged.update(report)
     path.write_text(json.dumps(merged, indent=2, ensure_ascii=False))
     return all(r["ok"] for r in report.values())
+
+
+def give_back_to_owner(*paths: Path) -> None:
+    """Container chạy bằng root: trả quyền các file vừa sinh về cho chủ thư mục repo,
+    để trên máy thật xóa hay sửa data/ và docs/ không cần sudo."""
+    owner = ROOT.stat()
+    if os.geteuid() != 0 or owner.st_uid == 0:
+        return
+    for top in paths:
+        if not top.exists():
+            continue
+        for p in [top] + (list(top.rglob("*")) if top.is_dir() else []):
+            try:
+                os.chown(p, owner.st_uid, owner.st_gid, follow_symlinks=False)
+            except OSError:
+                pass

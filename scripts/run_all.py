@@ -18,6 +18,9 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "etl"))
+from common import give_back_to_owner  # noqa: E402
+
 STAGING = ROOT / "data" / "staging"
 WAREHOUSE = ROOT / "data" / "warehouse"
 DOC = ROOT / "docs" / "etl_timing.md"
@@ -116,23 +119,6 @@ def write_doc(timings):
     DOC.write_text("\n".join(lines) + "\n")
 
 
-def give_back_to_owner():
-    """Container chạy bằng root: trả quyền file vừa sinh về cho chủ thư mục repo,
-    để trên máy thật xóa hay sửa data/ và docs/ không cần sudo."""
-    owner = ROOT.stat()
-    if os.geteuid() != 0 or owner.st_uid == 0:
-        return
-    for top in [ROOT / "data", DOC]:
-        if not top.exists():
-            continue
-        paths = [top] + (list(top.rglob("*")) if top.is_dir() else [])
-        for p in paths:
-            try:
-                os.chown(p, owner.st_uid, owner.st_gid, follow_symlinks=False)
-            except OSError:
-                pass
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--skip-bq", action="store_true", help="bỏ bước nạp BigQuery (máy chưa có khóa)")
@@ -151,7 +137,7 @@ def main():
             break
 
     write_doc(timings)
-    give_back_to_owner()
+    give_back_to_owner(ROOT / "data", DOC)
     print("\n===== Tóm tắt =====")
     for (task, target, _), (seconds, ok) in timings.items():
         print(f"{'OK ' if ok else 'LỖI'} [{task:4s}] make {target:13s} {seconds:7.1f}s")

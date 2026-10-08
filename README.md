@@ -69,6 +69,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make test` | 1.10 | Toàn bộ pytest | ~20 s |
 | `make stream` | 1.9 | Phát lại click theo ngày qua Spark Streaming, so với batch | ~2 phút |
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
+| `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
 
 ## Kiểm thử
 
@@ -102,6 +103,22 @@ docker compose exec app python stream/compare.py                         # so v�
 | BigQuery | Dataset `oulad` trong project ở `GCP_PROJECT_ID`. Trong SQL: `` `oulad.fact_enrollment` `` |
 | PostgreSQL | Từ máy thật: `localhost:5432`, user / mật khẩu / database đều là `oulad` (DBeaver, pgAdmin...). Từ container: host `postgres` |
 | Parquet | `data/warehouse/<bảng>/`. Đọc nhanh bằng DuckDB: `select * from read_parquet('data/warehouse/dim_week/*.parquet')` |
+
+### Kho 1× và 5× cho benchmark (việc 1.12)
+
+`make scale` chép mỗi SV thành 5 bản (`id_student` của bản i = mã gốc + i × 10.000.000), kéo theo toàn bộ
+lượt đăng ký, click, bài nộp và các tuần. Bảng môn, bài, học liệu, tuần giữ nguyên. Vì chép nguyên vẹn nên mọi
+tỷ lệ trên kho 5× bằng kho 1×; dùng điều này để kiểm SQL benchmark ra đúng.
+
+| | Kho 1× | Kho 5× |
+|---|---|---|
+| BigQuery | dataset `oulad` | dataset `oulad_5x` |
+| PostgreSQL | schema `public` | schema `x5` |
+| Parquet | `data/warehouse/` | `data/warehouse_5x/` |
+
+Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, rồi chọn kho lúc chạy, để một câu SQL chạy được trên cả hai kho:
+- PostgreSQL: `SET search_path TO x5;` (hoặc `public` cho 1×).
+- BigQuery (Python): `bigquery.QueryJobConfig(default_dataset=f"{project}.oulad_5x")`.
 
 ## Thư mục
 
