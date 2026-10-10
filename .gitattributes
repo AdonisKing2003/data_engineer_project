@@ -1,0 +1,7 @@
+# Mọi file văn bản luôn xuống dòng kiểu LF, kể cả khi clone trên Windows.
+# Code chạy trong container Linux: Makefile hay script có \r sẽ lỗi ("cd etl\r: No such file").
+* text=auto eol=lf
+
+*.parquet binary
+*.zip binary
+*.png binary
