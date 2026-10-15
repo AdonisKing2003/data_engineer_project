@@ -87,9 +87,11 @@ WHERE c.id_student = 32885;  -- Thay bằng id_student của sinh viên đang tr
 
 
 -- ------------------------------------------------------------------------------
--- 3. TRUY VẤN KIỂM CHỨNG NHANH CÂU HỎI MẪU 19 (AAA 2014J TUẦN 10):
--- Kỳ vọng: n = 336; quantiles 25/50/75 = 269 / 593 / 1083
+-- 3. BỘ CÂU HỎI NGHIỆP VỤ MẪU (ĐÁNH GIÁ EFFECTIVENESS TỪ 8BR_INFO.MD)
 -- ------------------------------------------------------------------------------
+
+-- [Câu 19 - BR7]: AAA 2014J, tuần 10: trung vị tổng click từ đầu đợt của SV còn học?
+-- Đáp án chuẩn: 593 click (336 SV, Q25 = 269, Q75 = 1.083)
 SELECT
     COUNT(*) AS n_active_students,
     ROUND(QUANTILE_CONT(clicks_cum, 0.25)) AS q25,
