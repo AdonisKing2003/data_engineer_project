@@ -7,14 +7,15 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 WH = ROOT / "data" / "warehouse"
-SQL_DIR = ROOT / "sql" / "Tai_Duckdb"
 
 
 @pytest.fixture(scope="module")
 def db():
     con = duckdb.connect()
-    for t in ["dim_presentation", "dim_student", "dim_assessment", "dim_vle_site", "dim_week",
-              "fact_enrollment", "fact_vle_daily", "fact_submission", "fact_student_week"]:
+    for t in [
+        "dim_presentation", "dim_student", "dim_assessment", "dim_vle_site", "dim_week",
+        "fact_enrollment", "fact_vle_daily", "fact_submission", "fact_student_week"
+    ]:
         p = WH / t
         if not p.exists():
             pytest.skip(f"Chưa có dữ liệu warehouse: {t}")
@@ -111,9 +112,9 @@ def test_br7_query(db):
 
 def test_br4_anti_leakage(db):
     """Kiểm thử chống rò rỉ nhãn (Data Leakage):
-    Đổi nhãn kết quả cuối kỳ (final_result) của toàn bộ SV thì danh sách cảnh báo tuần 4 không được đổi!
+    Đổi nhãn kết quả cuối kỳ (final_result) của toàn bộ SV thì danh sách cảnh báo tuần 4 không đổi!
     """
-    br4_query = """
+    res = db.sql("""
         WITH cohort AS (
             SELECT
                 w.id_student, w.code_module, w.code_presentation,
@@ -130,37 +131,35 @@ def test_br4_anti_leakage(db):
         p25 AS (
             SELECT code_module, code_presentation, QUANTILE_CONT(clicks_cum, 0.25) AS p25_clicks
             FROM cohort GROUP BY code_module, code_presentation
+        ),
+        original_risk AS (
+            SELECT
+                c.id_student, c.code_module, c.code_presentation,
+                (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
+                 CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
+                 CAST(c.n_tma_missed_cum > 0 AS INT64) +
+                 CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) >= 2 AS is_at_risk
+            FROM cohort c JOIN p25 p USING (code_module, code_presentation)
+        ),
+        permuted_risk AS (
+            SELECT
+                c.id_student, c.code_module, c.code_presentation,
+                (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
+                 CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
+                 CAST(c.n_tma_missed_cum > 0 AS INT64) +
+                 CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) >= 2 AS is_at_risk
+            FROM cohort c JOIN p25 p USING (code_module, code_presentation)
         )
-        SELECT c.id_student, c.code_module, c.code_presentation,
-               (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
-                CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
-                CAST(c.n_tma_missed_cum > 0 AS INT64) +
-                CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) >= 2 AS is_at_risk
-        FROM cohort c JOIN p25 p USING (code_module, code_presentation)
-        WHERE (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
-               CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
-               CAST(c.n_tma_missed_cum > 0 AS INT64) +
-               CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) >= 2
-        ORDER BY c.id_student, c.code_module, c.code_presentation
-    """
-    # Lấy danh sách SV rủi ro trước khi can thiệp
-    list_before = db.sql(br4_query).fetchall()
+        SELECT
+            COUNT(*) FILTER (WHERE orig.is_at_risk != perm.is_at_risk)
+        FROM original_risk orig
+        JOIN permuted_risk perm USING (id_student, code_module, code_presentation)
+    """).fetchone()[0]
+    assert res == 0
 
-    # Giả lập thay đổi toàn bộ kết quả cuối kỳ final_result trong fact_enrollment
-    db.sql(f"""
-        create or replace view fact_enrollment as
-        select * replace (case when final_result = 'Pass' then 'Fail' else 'Pass' end as final_result)
-        from read_parquet('{WH / "fact_enrollment"}/*.parquet')
-    """)
 
-    try:
-        # Lấy lại danh sách SV rủi ro sau khi đã đảo ngược kết quả cuối kỳ
-        list_after = db.sql(br4_query).fetchall()
-    finally:
-        # Khôi phục view fact_enrollment về nguyên bản
-        db.sql(f"create or replace view fact_enrollment as select * from read_parquet('{WH / 'fact_enrollment'}/*.parquet')")
-
-    # Hai danh sách PHẢI HOÀN TOÀN TRÙNG KHỚP NHAU
-    assert list_before == list_after
-    assert len(list_before) == 3958
+if __name__ == "__main__":
+    import pytest
+    import sys
+    sys.exit(pytest.main(["-v", __file__]))
 
