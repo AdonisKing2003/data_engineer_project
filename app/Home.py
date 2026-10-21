@@ -609,17 +609,16 @@ def render_quality_page() -> None:
         st.image(str(chart_path), caption="So sánh thời gian thực thi theo layout, engine và quy mô")
 
 
-def render_alerts_placeholder() -> None:
-    st.title("Cảnh báo")
-    st.info("Trang này dành cho tích hợp TV2; mã TV2 hiện chưa có trong nhánh này.")
-
-
+# st.navigation disables auto-discovery of app/pages/, so TV2's page scripts
+# (BR1, BR4/BR5, BR7) are registered here explicitly.
 navigation = st.navigation(
     [
         st.Page(render_course_page, title="Học phần", icon="📚"),
-        st.Page(render_alerts_placeholder, title="Cảnh báo", icon="⚠️"),
+        st.Page("pages/1_Hoc_phan.py", title="Học phần: nộp bài & điểm (BR1)", icon="📝"),
+        st.Page("pages/2_Canh_bao.py", title="Cảnh báo", icon="⚠️"),
         st.Page(render_faculty_page, title="Khoa", icon="🏫"),
         st.Page(render_student_page, title="Sinh viên", icon="🎓"),
+        st.Page("pages/4_Sinh_vien.py", title="Sinh viên: tiến độ so với lớp (BR7)", icon="📊"),
         st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
     ],
     position="sidebar",
