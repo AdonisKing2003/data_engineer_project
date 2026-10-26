@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale test app
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize test app
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -42,6 +42,9 @@ scale:        ## 1.12 sinh kho 5× rồi nạp vào BigQuery (dataset oulad_5x) 
 	cd etl && spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} 07_scale.py --factor 5
 	cd etl && python 04_load_bq.py --scale 5
 	cd etl && python 05_load_pg.py --scale 5
+
+optimize:     ## 1.11 4 ví dụ tối ưu (phân vùng, gom cụm, mart, chỉ mục PG), ghi docs/optimization.md; cần mart: python scripts/build_tv3_marts.py --apply
+	python scripts/optimize.py
 
 test:
 	pytest -q
