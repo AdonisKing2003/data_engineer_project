@@ -197,7 +197,7 @@ Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dư�
 phân vị tính bằng `ROW_NUMBER` và nội suy tuyến tính), nên cùng một file chạy được trên BigQuery, PostgreSQL và
 DuckDB bằng `scripts/run_sql.py`. `tests/test_questions.py` kiểm cả 20 đáp án trên DuckDB.
 
-Test chống rò rỉ nhãn chạy đúng file câu 14 hai lần, lần hai với `final_result` bị đảo (Pass ↔ Withdrawn,
+Test chống rò rỉ nhãn (`tests/test_questions.py`) chạy đúng file câu 14 hai lần, lần hai với `final_result` bị đảo (Pass ↔ Withdrawn,
 Distinction ↔ Fail): danh sách nguy cơ giữ nguyên 3.958 SV, chỉ độ chính xác đổi.
 
 ## 6. Tối ưu truy vấn

@@ -82,7 +82,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Giá trị thiếu, sai định dạng | `"?"` thành NULL; `imd_band` thiếu thành `'Unknown'` kèm cờ; `10-20` thành `10-20%` | [report_tv1.md](report_tv1.md) mục 3.3 |
 | Hạn nộp thiếu | 11 bài thi lấy hạn = độ dài đợt, cờ `deadline_imputed` | [contract.md](contract.md) |
 | Dữ liệu mâu thuẫn | 102 lượt có `final_result` và ngày rút không khớp: giữ lại, đánh cờ `result_inconsistent` | [contract.md](contract.md) |
-| Rò rỉ nhãn | Bảng SV-tuần không có nhãn; test đảo toàn bộ `final_result` rồi chạy lại câu 14: danh sách 3.958 SV giữ nguyên, chỉ độ chính xác đổi | `tests/test_tv2_sql.py`, `tests/test_student_week.py` |
+| Rò rỉ nhãn | Bảng SV-tuần không có nhãn; test đảo toàn bộ `final_result` rồi chạy lại câu 14: danh sách 3.958 SV giữ nguyên, chỉ độ chính xác đổi | `tests/test_questions.py`, `tests/test_student_week.py` |
 | Chạy lại không nhân đôi | Mọi bước ghi đè; test nạp hai lần vẫn đúng số dòng | `tests/test_pipeline.py` |
 | Đúng trên nhiều engine | Cùng bộ số kiểm trên Parquet và PostgreSQL; 20 đáp án mẫu kiểm trên DuckDB | `tests/test_postgres.py`, `tests/test_questions.py` |
 | Kiểm thử tổng | 208 test: kho, phụ thuộc hàm, SQL nghiệp vụ, đáp án mẫu, app | `make test` |

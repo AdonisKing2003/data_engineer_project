@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.data import run_query  # noqa: E402
-from app.state import OFFERING_KEY, offering_label, select_offering, split_offering  # noqa: E402
+from app.state import offering_label, select_offering, split_offering  # noqa: E402
 
 
 st.set_page_config(page_title="OULAD Analytics", page_icon="📊", layout="wide")
@@ -879,12 +879,6 @@ def _rate(part: Any, whole: Any) -> float:
     return 100.0 * float(part) / float(whole) if whole else 0.0
 
 
-def _open_offering(label: str, page_key: str) -> None:
-    # Shared offering state (app/state.py) makes the target page open on this offering.
-    st.session_state[OFFERING_KEY] = label
-    st.switch_page(PAGES[page_key])
-
-
 def _attention_list(
     title: str,
     caption: str,
@@ -898,10 +892,8 @@ def _attention_list(
         st.caption(caption)
         for row in rows.itertuples():
             label = offering_label(row.code_module, row.code_presentation)
-            left, right = st.columns([3, 2], vertical_alignment="center")
-            left.markdown(f"{label} · **{getattr(row, rate_column):.1f}%**")
-            if right.button(action, key=f"{page_key}_{label}", use_container_width=True):
-                _open_offering(label, page_key)
+            st.markdown(f"{label} · **{getattr(row, rate_column):.1f}%**")
+        st.page_link(PAGES[page_key], label=action, icon=":material/arrow_forward:")
 
 
 def render_overview_page() -> None:
@@ -945,20 +937,20 @@ def render_overview_page() -> None:
     with worst_withdrawal:
         _attention_list(
             "Đợt có tỷ lệ rút cao nhất",
-            "Mở trang cảnh báo sớm để xem ai cần liên hệ ngay từ những tuần đầu.",
+            "Chọn đợt ở trang cảnh báo sớm để xem ai cần liên hệ ngay từ những tuần đầu.",
             offerings.nlargest(3, "withdrawal_rate"),
             "withdrawal_rate",
             "warning",
-            "Xem cảnh báo",
+            "Mở trang cảnh báo sớm",
         )
     with worst_pass:
         _attention_list(
             "Đợt có tỷ lệ đạt thấp nhất",
-            "Mở trang nộp bài & điểm để xem bài nào nhiều sinh viên bỏ hoặc điểm thấp.",
+            "Chọn đợt ở trang nộp bài & điểm để xem bài nào nhiều sinh viên bỏ hoặc điểm thấp.",
             offerings.nsmallest(3, "pass_rate"),
             "pass_rate",
             "submissions",
-            "Xem nộp bài",
+            "Mở trang nộp bài & điểm",
         )
 
     st.subheader("Bắt đầu theo vai trò")

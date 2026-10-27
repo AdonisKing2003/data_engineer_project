@@ -49,8 +49,9 @@ Mở app:
 docker compose exec app make app        # rồi mở http://localhost:8501
 ```
 App mặc định đọc BigQuery; đặt `DATA_BACKEND=duckdb` trong `.env` để đọc kho Parquet cục bộ. Thanh bên trái chia trang
-theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Đợt học chọn ở
-trang này được giữ khi sang trang khác. Ba trang của TV2 (`app/pages/`) hiện vẫn đọc DuckDB qua `app/db.py`.
+theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Ba trang của TV2
+(`app/pages/`: Nộp bài & điểm, Cảnh báo sớm & rút lui, Tiến độ so với lớp) giữ nguyên bản của TV2: chọn đợt ở thanh bên,
+đọc DuckDB qua `app/db.py`. Muốn dùng chung đợt với các trang khác thì gọi `select_offering` trong `app/state.py`.
 
 Lệnh `make` chạy **bên trong container**, nên dùng được trên mọi máy, kể cả Windows.
 Mở shell trong container: `docker compose exec app bash`. Tắt: `docker compose down` (dữ liệu PostgreSQL vẫn giữ).
@@ -88,9 +89,9 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_student_week.py` | `fact_student_week` ra đúng đáp án BR4, BR7 trong tài liệu đặc tả; chống rò rỉ nhãn `final_result` |
 | `tests/test_postgres.py` | Cùng bộ số đó, chạy trên PostgreSQL |
 | `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream khớp bản batch |
-| `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án; đảo nhãn `final_result` không làm đổi danh sách cảnh báo |
-| `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu |
-| `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được dùng chung giữa các trang |
+| `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án (TV2) |
+| `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu; đảo nhãn `final_result` rồi chạy lại câu 14 thì danh sách cảnh báo không đổi |
+| `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được giữ khi đổi trang |
 
 ## Demo phần stream (không dùng Kafka)
 

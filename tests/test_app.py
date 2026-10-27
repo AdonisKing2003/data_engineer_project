@@ -46,19 +46,20 @@ def test_overview_matches_contract(app):
     assert metrics["Chưa từng vào VLE"] == "3,365 lượt"  # câu 4
 
 
-def test_attention_button_opens_offering(app):
-    """Đợt rút nhiều nhất là CCC 2014B (câu 17); bấm nút thì trang cảnh báo mở đúng đợt đó."""
+def test_attention_lists_worst_offerings(app):
+    """Đợt rút nhiều nhất là CCC 2014B (câu 17), đợt đạt ít nhất cũng là CCC 2014B (34,2%)."""
     at, pages = app
     open_page(at, pages, "")
-    at.button(key="warning_CCC 2014B").click().run()
-    assert not at.exception
-    assert at.selectbox(key="br4_offering").value == "CCC 2014B"
+    lines = [m.value for m in at.markdown]
+    assert "CCC 2014B · **46.4%**" in lines
+    assert "CCC 2014B · **34.2%**" in lines
 
 
-def test_offering_is_shared_across_pages(app):
+def test_offering_is_kept_when_returning_to_page(app):
+    """Đợt chọn ở trang Hoạt động học tập được giữ khi sang trang khác rồi quay lại."""
     at, pages = app
     open_page(at, pages, "render_course_page")
     at.selectbox(key="course_offering").set_value("CCC 2014B").run()
-    for name, key in [("Hoc_phan", "br1_offering"), ("Canh_bao", "br4_offering"), ("Sinh_vien", "br7_offering")]:
-        open_page(at, pages, name)
-        assert at.selectbox(key=key).value == "CCC 2014B", name
+    open_page(at, pages, "")
+    open_page(at, pages, "render_course_page")
+    assert at.selectbox(key="course_offering").value == "CCC 2014B"

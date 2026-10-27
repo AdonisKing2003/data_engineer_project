@@ -57,3 +57,28 @@ def test_question_answer(db, number):
     rows = db.sql(path.read_text(encoding="utf-8")).fetchall()
     rows = [tuple(float(v) if isinstance(v, float) else v for v in row) for row in rows]
     assert EXPECTED[number](rows), f"q{number:02d} ra {rows[:3]}"
+
+
+def test_q14_label_flip_keeps_risk_list(db):
+    """Chống rò rỉ nhãn: đảo final_result của mọi SV (Pass <-> Withdrawn, Distinction <-> Fail) rồi chạy lại câu 14.
+
+    Danh sách cảnh báo tuần 4 phải giữ nguyên vì điểm nguy cơ chỉ dùng fact_student_week; chỉ độ chính xác
+    (bước chấm, có dùng nhãn) được phép đổi. Nếu nhãn lọt vào lúc tính điểm thì số SV vào danh sách sẽ đổi theo.
+    """
+    q14 = (QUESTIONS / "q14.sql").read_text(encoding="utf-8")
+    flipped = duckdb.connect()
+    flipped.sql(f"create view fact_student_week as select * from read_parquet('{WH / 'fact_student_week'}/*.parquet')")
+    flipped.sql(f"""
+        create view fact_enrollment as
+        select * replace (
+            case final_result
+                when 'Pass' then 'Withdrawn' when 'Withdrawn' then 'Pass'
+                when 'Distinction' then 'Fail' when 'Fail' then 'Distinction'
+            end as final_result
+        )
+        from read_parquet('{WH / 'fact_enrollment'}/*.parquet')
+    """)
+    n_enrolled, n_listed, precision, _ = db.sql(q14).fetchone()
+    n_enrolled_f, n_listed_f, precision_f, _ = flipped.sql(q14).fetchone()
+    assert (n_enrolled_f, n_listed_f) == (n_enrolled, n_listed) == (27250, 3958)
+    assert precision_f != precision  # nhãn thật sự được dùng ở bước chấm, nên đảo nhãn phải đổi độ chính xác

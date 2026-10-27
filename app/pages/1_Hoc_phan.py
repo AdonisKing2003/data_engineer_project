@@ -11,26 +11,23 @@ if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 import db
-from state import select_offering
 
 st.set_page_config(
-    page_title="Nộp bài & điểm | OULAD",
+    page_title="Trang Học phần - Nộp bài & Điểm số (BR1) | OULAD",
     page_icon="📚",
     layout="wide"
 )
 
-st.title("📚 Nộp bài, trễ hạn & phân phối điểm")
-st.caption("Dành cho trưởng môn và giảng viên (BR1).")
+st.title("📚 Phân hệ Học phần: Nộp bài, Trễ hạn & Phân phối Điểm (BR1)")
+st.caption("Phụ trách: Thành viên 2 (TV2) · Đối tượng: Module Chair & Giảng viên")
 
-# Bộ lọc chọn đợt học, dùng chung với các trang khác
+# Bộ lọc chọn đợt học
 pres_df = db.get_presentations()
 pres_labels = pres_df["presentation_label"].tolist()
 
-# Mặc định BBB 2014J nếu chưa chọn đợt nào ở trang khác
-selected_pres = select_offering(
-    pres_labels, key="br1_offering", default="BBB 2014J",
-    label="Chọn đợt học để phân tích:", container=st.sidebar,
-)
+# Đặt mặc định là BBB 2014J hoặc AAA 2013J
+default_idx = pres_labels.index("BBB 2014J") if "BBB 2014J" in pres_labels else 0
+selected_pres = st.sidebar.selectbox("Chọn đợt học để phân tích:", pres_labels, index=default_idx)
 
 mod, pres = selected_pres.split(" ")
 

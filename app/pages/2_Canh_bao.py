@@ -11,10 +11,9 @@ if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 import db
-from state import select_offering
 
 st.set_page_config(
-    page_title="Cảnh báo sớm & rút lui | OULAD",
+    page_title="Trang Cảnh báo & Rút lui (BR4 & BR5) | OULAD",
     page_icon="🚨",
     layout="wide"
 )
@@ -55,20 +54,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="page-header">🚨 Phân hệ Cảnh báo Sớm & Rút lui</div>', unsafe_allow_html=True)
-st.markdown('<div class="page-desc">Dành cho cố vấn học tập: danh sách sinh viên cần can thiệp theo tuần (BR4) và đường cong rút lui tích lũy (BR5)</div>', unsafe_allow_html=True)
+st.markdown('<div class="page-desc">Phụ trách: Thành viên 2 (TV2) · Nghiệp vụ BR4 (Cảnh báo sớm SV nguy cơ) và BR5 (Đường cong rút lui tích lũy)</div>', unsafe_allow_html=True)
 
 # Lấy danh sách đợt học
 pres_df = db.get_presentations()
 pres_options = ["Tất cả các đợt (Toàn trường)"] + pres_df["presentation_label"].tolist()
 
-# Sidebar: Bộ lọc chung, mặc định toàn trường nếu chưa chọn đợt nào ở trang khác
+# Sidebar: Bộ lọc chung
 st.sidebar.header("🔍 Bộ lọc điều khiển")
-selected_pres_label = select_offering(
-    pres_options, key="br4_offering", default=pres_options[0],
-    label="Chọn đợt học:", container=st.sidebar,
-)
+selected_pres_label = st.sidebar.selectbox("Chọn đợt học:", pres_options, index=0)
 
-tab1, tab2 = st.tabs(["🚨 Cảnh báo sớm sinh viên nguy cơ theo tuần", "📉 Đường cong rút lui tích lũy"])
+tab1, tab2 = st.tabs(["🚨 BR4: Cảnh báo sớm SV nguy cơ theo tuần", "📉 BR5: Đường cong rút lui tích lũy"])
 
 # ==============================================================================
 # TAB 1: BR4 - CẢNH BÁO SỚM THEO TUẦN (WEEKLY SNAPSHOT AS-OF)

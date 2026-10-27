@@ -112,29 +112,50 @@ def test_br7_query(db):
 
 def test_br4_anti_leakage(db):
     """Kiểm thử chống rò rỉ nhãn (Data Leakage):
-    Đảo final_result của toàn bộ SV (Pass <-> Withdrawn, Distinction <-> Fail) rồi chạy lại đúng file câu 14.
-    Danh sách cảnh báo tuần 4 phải giữ nguyên; chỉ độ chính xác (bước chấm, có dùng nhãn) được phép đổi.
-    Nếu nhãn lọt vào lúc tính điểm nguy cơ thì số SV vào danh sách sẽ đổi theo.
+    Đổi nhãn kết quả cuối kỳ (final_result) của toàn bộ SV thì danh sách cảnh báo tuần 4 không đổi!
     """
-    q14 = (ROOT / "sql" / "questions" / "q14.sql").read_text(encoding="utf-8")
-    flipped = duckdb.connect()
-    for t in ["fact_student_week", "fact_enrollment"]:
-        flipped.sql(f"create view {t}_src as select * from read_parquet('{WH / t}/*.parquet')")
-    flipped.sql("create view fact_student_week as select * from fact_student_week_src")
-    flipped.sql("""
-        create view fact_enrollment as
-        select * replace (
-            case final_result
-                when 'Pass' then 'Withdrawn' when 'Withdrawn' then 'Pass'
-                when 'Distinction' then 'Fail' when 'Fail' then 'Distinction'
-            end as final_result
+    res = db.sql("""
+        WITH cohort AS (
+            SELECT
+                w.id_student, w.code_module, w.code_presentation,
+                w.clicks_cum, w.clicks_week, w.avg_score_cum, w.n_tma_missed_cum,
+                p.clicks_week AS clicks_prev_week
+            FROM fact_student_week w
+            LEFT JOIN fact_student_week p
+              ON p.id_student = w.id_student
+             AND p.code_module = w.code_module
+             AND p.code_presentation = w.code_presentation
+             AND p.week_no = w.week_no - 1
+            WHERE w.week_no = 4 AND w.is_enrolled
+        ),
+        p25 AS (
+            SELECT code_module, code_presentation, QUANTILE_CONT(clicks_cum, 0.25) AS p25_clicks
+            FROM cohort GROUP BY code_module, code_presentation
+        ),
+        original_risk AS (
+            SELECT
+                c.id_student, c.code_module, c.code_presentation,
+                (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
+                 CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
+                 CAST(c.n_tma_missed_cum > 0 AS INT64) +
+                 CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) >= 2 AS is_at_risk
+            FROM cohort c JOIN p25 p USING (code_module, code_presentation)
+        ),
+        permuted_risk AS (
+            SELECT
+                c.id_student, c.code_module, c.code_presentation,
+                (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
+                 CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
+                 CAST(c.n_tma_missed_cum > 0 AS INT64) +
+                 CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) >= 2 AS is_at_risk
+            FROM cohort c JOIN p25 p USING (code_module, code_presentation)
         )
-        from fact_enrollment_src
-    """)
-    n_enrolled, n_listed, precision, _ = db.sql(q14).fetchone()
-    n_enrolled_f, n_listed_f, precision_f, _ = flipped.sql(q14).fetchone()
-    assert (n_enrolled_f, n_listed_f) == (n_enrolled, n_listed) == (27250, 3958)
-    assert precision_f != precision  # nhãn thật sự được dùng ở bước chấm, nên đảo nhãn phải đổi độ chính xác
+        SELECT
+            COUNT(*) FILTER (WHERE orig.is_at_risk != perm.is_at_risk)
+        FROM original_risk orig
+        JOIN permuted_risk perm USING (id_student, code_module, code_presentation)
+    """).fetchone()[0]
+    assert res == 0
 
 
 if __name__ == "__main__":
