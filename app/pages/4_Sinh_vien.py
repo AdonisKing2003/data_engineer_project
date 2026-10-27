@@ -10,22 +10,25 @@ if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 import db
+from state import select_offering
 
 st.set_page_config(
-    page_title="Trang Sinh viên - Benchmark Phân vị Lớp (BR7) | OULAD",
+    page_title="Tiến độ so với lớp | OULAD",
     page_icon="🎓",
     layout="wide"
 )
 
-st.title("🎓 Phân hệ Sinh viên: Theo dõi Tiến độ so với Cả lớp (BR7)")
-st.caption("Phụ trách: Thành viên 2 (TV2) · Đối tượng: Sinh viên (Góc nhìn tự đánh giá & cải thiện)")
+st.title("🎓 Tiến độ của tôi so với cả lớp")
+st.caption("Dành cho sinh viên tự đánh giá: so click tích lũy với dải phân vị của lớp (BR7).")
 
-# Bộ lọc chọn đợt học
+# Bộ lọc chọn đợt học, dùng chung với các trang khác
 pres_df = db.get_presentations()
 pres_labels = pres_df["presentation_label"].tolist()
 
-default_idx = pres_labels.index("AAA 2014J") if "AAA 2014J" in pres_labels else 0
-selected_pres = st.sidebar.selectbox("Chọn đợt học:", pres_labels, index=default_idx)
+selected_pres = select_offering(
+    pres_labels, key="br7_offering", default="AAA 2014J",
+    label="Chọn đợt học:", container=st.sidebar,
+)
 mod, pres = selected_pres.split(" ")
 
 # Lấy danh sách sinh viên trong đợt học này thông qua db module
@@ -155,28 +158,28 @@ st.subheader("🎯 Đánh giá Vị thế Học tập Hiện tại")
 # Chọn tuần để đánh giá phân vị (mặc định lấy tuần 10 hoặc tuần cuối cùng)
 eval_week = st.slider("Chọn tuần đánh giá:", min_value=0, max_value=int(merged_df["week_no"].max()), value=min(10, int(merged_df["week_no"].max())))
 
-sql_rank = f"""
+sql_rank = """
 WITH cohort AS (
     SELECT
         id_student,
         clicks_cum,
         PERCENT_RANK() OVER (ORDER BY clicks_cum) * 100.0 AS click_pct_rank
     FROM fact_student_week
-    WHERE code_module = '{mod}' AND code_presentation = '{pres}'
-      AND week_no = {eval_week}
+    WHERE code_module = ? AND code_presentation = ?
+      AND week_no = ?
       AND is_enrolled
 )
-SELECT 
+SELECT
     ROUND(click_pct_rank, 1) AS click_rank,
     clicks_cum
 FROM cohort
-WHERE id_student = {selected_student};
+WHERE id_student = ?;
 """
-rank_df = db.run_query(sql_rank)
+rank_df = db.run_query(sql_rank, [mod, pres, eval_week, int(selected_student)])
 
 if not rank_df.empty:
     student_rank = rank_df.iloc[0]["click_rank"]
-    student_clicks = rank_df.iloc[0]["clicks_cum"]
+    student_clicks = int(rank_df["clicks_cum"].iloc[0])
     
     col_rank_val, col_rank_desc = st.columns([1, 3])
     with col_rank_val:

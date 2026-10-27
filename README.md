@@ -44,10 +44,13 @@ Chạy lại bao nhiêu lần cũng được: mọi bước đều ghi đè, kh�
 
 Chưa có khóa Google Cloud thì dùng `make all-local` (bỏ bước BigQuery).
 
-Mở app (khi đã có `app/Home.py`, việc 3.2):
+Mở app:
 ```bash
 docker compose exec app make app        # rồi mở http://localhost:8501
 ```
+App mặc định đọc BigQuery; đặt `DATA_BACKEND=duckdb` trong `.env` để đọc kho Parquet cục bộ. Thanh bên trái chia trang
+theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Đợt học chọn ở
+trang này được giữ khi sang trang khác. Ba trang của TV2 (`app/pages/`) hiện vẫn đọc DuckDB qua `app/db.py`.
 
 Lệnh `make` chạy **bên trong container**, nên dùng được trên mọi máy, kể cả Windows.
 Mở shell trong container: `docker compose exec app bash`. Tắt: `docker compose down` (dữ liệu PostgreSQL vẫn giữ).
@@ -76,7 +79,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (194 test, gồm đáp án 20 câu hỏi mẫu). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (197 test, gồm đáp án 20 câu hỏi mẫu và test khói cho app). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
@@ -85,6 +88,9 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_student_week.py` | `fact_student_week` ra đúng đáp án BR4, BR7 trong tài liệu đặc tả; chống rò rỉ nhãn `final_result` |
 | `tests/test_postgres.py` | Cùng bộ số đó, chạy trên PostgreSQL |
 | `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream khớp bản batch |
+| `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án; đảo nhãn `final_result` không làm đổi danh sách cảnh báo |
+| `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu |
+| `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được dùng chung giữa các trang |
 
 ## Demo phần stream (không dùng Kafka)
 

@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.data import run_query  # noqa: E402
+from app.state import offering_label, select_offering, split_offering  # noqa: E402
 
 
 st.set_page_config(page_title="OULAD Analytics", page_icon="📊", layout="wide")
@@ -55,51 +56,49 @@ def show_query_error(label: str, error: Exception) -> None:
 
 
 def render_course_page() -> None:
-    st.title("Học phần")
-    analysis = st.selectbox(
-        "Phân tích",
-        ["BR2 — Click VLE theo tuần", "BR3 — Click trước hạn TMA và điểm"],
-        key="course_analysis",
-    )
-    if analysis.startswith("BR3"):
-        render_br3_analysis()
-    else:
-        render_br2_analysis()
-
-
-def render_br2_analysis() -> None:
-    st.caption("BR2 — lượt click VLE theo tuần và loại hoạt động.")
+    st.title("Hoạt động học tập")
     try:
         offerings = load_query("br2_offerings")
     except Exception as error:
-        show_query_error("danh sách học phần BR2", error)
+        show_query_error("danh sách học phần", error)
         return
     if offerings.empty:
-        st.warning("Chưa có học phần nào để hiển thị cho BR2.")
+        st.warning("Chưa có học phần nào để hiển thị.")
         return
 
     required_offering_columns = {"code_module", "code_presentation"}
     missing_offering_columns = sorted(required_offering_columns - set(offerings.columns))
     if missing_offering_columns:
         st.error(
-            "Danh sách học phần BR2 thiếu các cột theo hợp đồng: "
+            "Danh sách học phần thiếu các cột theo hợp đồng: "
             f"{', '.join(missing_offering_columns)}"
         )
         return
     offerings = offerings.dropna(subset=["code_module", "code_presentation"])
-    modules = sorted(offerings["code_module"].astype(str).unique().tolist())
-    if not modules:
-        st.warning("Chưa có học phần hợp lệ để hiển thị cho BR2.")
+    labels = sorted(
+        {
+            offering_label(row.code_module, row.code_presentation)
+            for row in offerings.itertuples()
+        }
+    )
+    if not labels:
+        st.warning("Chưa có học phần hợp lệ để hiển thị.")
         return
-    selected_module = st.selectbox("Học phần", modules, key="br2_module")
-    presentations = sorted(
-        offerings.loc[
-            offerings["code_module"].astype(str) == selected_module, "code_presentation"
-        ].astype(str).unique().tolist()
+    selected_module, selected_presentation = split_offering(
+        select_offering(labels, key="course_offering")
     )
-    selected_presentation = st.selectbox(
-        "Kỳ học", presentations, key="br2_presentation"
+
+    weekly, before_deadline = st.tabs(
+        ["Click VLE theo tuần", "Click trước hạn TMA và điểm"]
     )
+    with weekly:
+        render_br2_analysis(selected_module, selected_presentation)
+    with before_deadline:
+        render_br3_analysis(selected_module, selected_presentation)
+
+
+def render_br2_analysis(selected_module: str, selected_presentation: str) -> None:
+    st.caption("Lượt click VLE theo tuần và loại hoạt động (BR2).")
     parameters = {
         "code_module": selected_module,
         "code_presentation": selected_presentation,
@@ -265,9 +264,9 @@ def _fisher_interval(rho: float | None, n: int) -> tuple[float | None, float | N
     return tanh(z - margin), tanh(z + margin)
 
 
-def render_br3_analysis() -> None:
-    st.subheader("BR3 — Click trước hạn TMA đầu tiên và điểm bài")
+def render_br3_analysis(selected_module: str, selected_presentation: str) -> None:
     st.caption(
+        "Click trước hạn TMA đầu tiên và điểm bài (BR3). "
         "Đây là tương quan Spearman, không chứng minh click gây ra điểm số. "
         "Mẫu gồm các bài TMA đầu tiên có trọng số, không banked và có điểm."
     )
@@ -351,29 +350,18 @@ def render_br3_analysis() -> None:
     )
     st.plotly_chart(forest, use_container_width=True, key="br3_forest")
 
-    modules = sorted(summaries["code_module"].unique().tolist())
-    if "GGG" not in modules:
-        modules.append("GGG")
-    selected_module = st.selectbox("Học phần", modules, key="br3_module")
     if selected_module == "GGG":
         st.info("GGG không có TMA có trọng số, nên không có cặp hợp lệ để tính BR3.")
         return
-
-    presentations = sorted(
-        summaries.loc[
-            summaries["code_module"] == selected_module, "code_presentation"
-        ].unique().tolist()
-    )
-    if not presentations:
-        st.warning("Không tìm thấy kỳ học BR3 cho học phần đã chọn.")
-        return
-    selected_presentation = st.selectbox(
-        "Kỳ học", presentations, key="br3_presentation"
-    )
     selected_summary = summaries.loc[
         (summaries["code_module"] == selected_module)
         & (summaries["code_presentation"] == selected_presentation)
     ]
+    if selected_summary.empty:
+        st.warning(
+            f"Không có kết quả BR3 cho {selected_module} {selected_presentation}."
+        )
+        return
     try:
         selected_details = load_query(
             "br3_dashboard",
@@ -432,8 +420,8 @@ def render_br3_analysis() -> None:
 
 
 def render_faculty_page() -> None:
-    st.title("Khoa")
-    st.subheader("Khoảng cách kết quả theo nhóm IMD")
+    st.title("Khoảng cách kết quả theo nhóm IMD")
+    st.caption("BBB, DDD, FFF gộp theo kỳ; so nhóm IMD thấp nhất với cao nhất (BR6).")
     measure = st.radio(
         "Chỉ số tỷ lệ",
         ["Pass/Distinction", "Distinction"],
@@ -533,9 +521,10 @@ def render_faculty_page() -> None:
 
 
 def render_student_page() -> None:
-    st.title("Sinh viên")
-    st.subheader("BR8 — Hoạt động diễn đàn của nhóm đạt")
-    st.caption("BBB 2013J, tuần 5, loại hoạt động forumng; sinh viên không có click được tính là 0.")
+    st.title("Hoạt động diễn đàn của nhóm đạt")
+    st.caption(
+        "BBB 2013J, tuần 5, loại hoạt động forumng; sinh viên không có click được tính là 0 (BR8)."
+    )
     try:
         result = load_query("br8_forum_week5")
     except Exception as error:
@@ -585,9 +574,18 @@ def render_student_page() -> None:
     st.plotly_chart(chart, use_container_width=True, key="br8_quantiles")
 
 
+LAYOUT_LABELS = {"star": "Star (kho chính)", "3nf": "3NF", "wide": "Bảng rộng"}
+LAYOUT_COLORS = {"star": "#2a78d6", "3nf": "#eb6834", "wide": "#1baf7a"}
+ENGINE_LABELS = {"pg": "PostgreSQL", "bq": "BigQuery"}
+
+
 def render_quality_page() -> None:
     st.title("Chất lượng & benchmark")
-    st.write("Trang tổng hợp các hiện vật benchmark được bàn giao trong thư mục bench/.")
+    st.caption(
+        "Cùng một câu hỏi chạy trên ba cách tổ chức dữ liệu (star, 3NF, bảng rộng), hai engine "
+        "và hai quy mô (1× và 5×); mỗi ô là trung vị 5 lần chạy. "
+        "Cách đo và giải thích: docs/benchmark.md. Chạy lại: make bench."
+    )
     result_dirs = [PROJECT_ROOT / "sql" / "bench" / "results", PROJECT_ROOT / "bench" / "results"]
     median_candidates = sorted(
         (path for directory in result_dirs if directory.is_dir()
@@ -596,31 +594,173 @@ def render_quality_page() -> None:
         reverse=True,
     )
     if not median_candidates:
-        st.info("Chưa có CSV trung vị benchmark để hiển thị. Trang này sẽ tự nhận hiện vật sau khi runner tạo xong.")
+        st.info("Chưa có CSV trung vị benchmark để hiển thị. Chạy make bench để tạo.")
         return
     csv_path = median_candidates[0]
     try:
-        st.dataframe(pd.read_csv(csv_path), hide_index=True, use_container_width=True)
+        medians = pd.read_csv(csv_path)
     except Exception as error:
         st.error(f"Không đọc được {csv_path.relative_to(PROJECT_ROOT)}: {error}")
         return
-    chart_path = csv_path.with_name(csv_path.name.replace(".medians.csv", ".png"))
-    if chart_path.is_file():
-        st.image(str(chart_path), caption="So sánh thời gian thực thi theo layout, engine và quy mô")
+    required = {"engine", "scale", "layout", "query", "median_s"}
+    missing = sorted(required - set(medians.columns))
+    if missing:
+        st.error(f"CSV benchmark thiếu các cột: {', '.join(missing)}")
+        return
+
+    setups = (
+        medians[["engine", "scale"]].drop_duplicates().sort_values(["engine", "scale"], ascending=[False, True])
+    )
+    setup_labels = [
+        f"{ENGINE_LABELS.get(row.engine, row.engine)} {row.scale}×" for row in setups.itertuples()
+    ]
+    choice = st.radio("Engine và quy mô", setup_labels, horizontal=True, key="bench_setup")
+    setup = setups.iloc[setup_labels.index(choice)]
+    selected = medians.loc[
+        (medians["engine"] == setup["engine"]) & (medians["scale"] == setup["scale"])
+    ]
+
+    figure = go.Figure()
+    for layout, label in LAYOUT_LABELS.items():
+        rows = selected.loc[selected["layout"] == layout]
+        if rows.empty:
+            continue
+        figure.add_trace(
+            go.Bar(
+                x=rows["query"],
+                y=rows["median_s"],
+                name=label,
+                marker={"color": LAYOUT_COLORS[layout]},
+                hovertemplate="%{x}<br>" + label + ": %{y:.3f} s<extra></extra>",
+            )
+        )
+    figure.update_layout(
+        title=f"Thời gian trung vị theo câu hỏi: {choice}",
+        barmode="group",
+        bargap=0.25,
+        bargroupgap=0.08,
+        xaxis_title="Câu hỏi (yêu cầu nghiệp vụ, câu mẫu)",
+        yaxis_title="Giây (trung vị 5 lần)",
+        height=420,
+        legend={"orientation": "h", "y": 1.12, "x": 0},
+        margin={"l": 20, "r": 20, "t": 80, "b": 20},
+    )
+    st.plotly_chart(figure, use_container_width=True, key="bench_bars")
+    if "wide" not in set(selected["layout"]):
+        st.caption("Không có bảng rộng ở cấu hình này (BigQuery 5× vượt hạn mức 10 GB của Sandbox).")
+    st.dataframe(selected, hide_index=True, use_container_width=True)
 
 
-# st.navigation disables auto-discovery of app/pages/, so TV2's page scripts
-# (BR1, BR4/BR5, BR7) are registered here explicitly.
+OUTCOME_ORDER = ["Distinction", "Pass", "Fail", "Withdrawn"]
+OUTCOME_COLORS = {
+    "Distinction": "#2a78d6",
+    "Pass": "#eb6834",
+    "Fail": "#1baf7a",
+    "Withdrawn": "#eda100",
+}
+
+
+def render_overview_page() -> None:
+    st.title("Tổng quan kho dữ liệu OULAD")
+    st.caption(
+        "7 file CSV được Spark làm sạch thành 5 bảng chiều và 4 bảng sự kiện, nạp lên BigQuery "
+        "(kho chính) và PostgreSQL (đối chứng). Chọn trang theo vai trò ở thanh bên trái."
+    )
+    try:
+        stats = load_query("overview_stats")
+        outcomes = load_query("overview_outcomes")
+    except Exception as error:
+        show_query_error("số liệu tổng quan", error)
+        return
+    if stats.empty:
+        st.warning("Truy vấn tổng quan chưa trả về dữ liệu.")
+        return
+    row = stats.iloc[0]
+    tiles = st.columns(5)
+    tiles[0].metric("Sinh viên", f"{int(row['n_students']):,}")
+    tiles[1].metric("Lượt đăng ký", f"{int(row['n_enrollments']):,}")
+    tiles[2].metric("Đợt học", f"{int(row['n_offerings'])} ({int(row['n_modules'])} môn)")
+    tiles[3].metric("Bài nộp", f"{int(row['n_submissions']):,}")
+    tiles[4].metric("Lượt click VLE", f"{int(row['total_clicks']):,}")
+
+    if not outcomes.empty:
+        outcomes = outcomes.copy()
+        outcomes["offering"] = [
+            offering_label(r.code_module, r.code_presentation) for r in outcomes.itertuples()
+        ]
+        outcomes["share"] = 100 * outcomes["n_enrollments"] / outcomes.groupby("offering")[
+            "n_enrollments"
+        ].transform("sum")
+        offerings = sorted(outcomes["offering"].unique())
+        figure = go.Figure()
+        for result in OUTCOME_ORDER:
+            rows = outcomes.loc[outcomes["final_result"] == result]
+            figure.add_trace(
+                go.Bar(
+                    y=rows["offering"],
+                    x=rows["share"],
+                    name=result,
+                    orientation="h",
+                    marker={"color": OUTCOME_COLORS[result]},
+                    customdata=rows[["n_enrollments"]].to_numpy(),
+                    hovertemplate="%{y}<br>" + result + ": %{x:.1f}% (%{customdata[0]:,} lượt)<extra></extra>",
+                )
+            )
+        figure.update_layout(
+            title="Kết quả cuối kỳ theo đợt học (% lượt đăng ký)",
+            barmode="stack",
+            xaxis={"title": "% lượt đăng ký", "range": [0, 100], "ticksuffix": "%"},
+            yaxis={"title": "", "categoryorder": "array", "categoryarray": offerings[::-1]},
+            height=max(420, 22 * len(offerings) + 120),
+            legend={"orientation": "h", "y": 1.06, "x": 0, "traceorder": "normal"},
+            margin={"l": 20, "r": 20, "t": 80, "b": 20},
+        )
+        st.plotly_chart(figure, use_container_width=True, key="overview_outcomes")
+
+    st.subheader("Trang nào cho ai")
+    st.dataframe(
+        pd.DataFrame(
+            [
+                ("Giảng viên", "Hoạt động học tập", "Sinh viên học gì, tuần nào; click trước hạn có đi cùng điểm cao?", "BR2, BR3"),
+                ("Giảng viên", "Nộp bài & điểm", "Bao nhiêu % nộp, bao nhiêu % trễ, điểm phân bố ra sao?", "BR1"),
+                ("Cố vấn học tập", "Cảnh báo sớm & rút lui", "Tuần này ai cần can thiệp; sinh viên rút vào lúc nào?", "BR4, BR5"),
+                ("Lãnh đạo khoa", "Khoảng cách IMD", "Kết quả của nhóm khó khăn nhất cách nhóm thuận lợi nhất bao xa?", "BR6"),
+                ("Sinh viên", "Tiến độ so với lớp", "Mình đang ở đâu so với các bạn cùng đợt?", "BR7"),
+                ("Sinh viên", "Diễn đàn tuần 5", "Nhóm đạt dùng diễn đàn nhiều đến mức nào?", "BR8"),
+                ("Nhóm kỹ thuật", "Chất lượng & benchmark", "Bố trí bảng nào nhanh hơn, ở quy mô nào?", ""),
+            ],
+            columns=["Vai trò", "Trang", "Câu hỏi trả lời", "Yêu cầu nghiệp vụ"],
+        ),
+        hide_index=True,
+        use_container_width=True,
+    )
+
+
+# st.navigation disables auto-discovery of app/pages/, so the page scripts
+# are registered here explicitly and grouped by the role that uses them.
 navigation = st.navigation(
-    [
-        st.Page(render_course_page, title="Học phần", icon="📚"),
-        st.Page("pages/1_Hoc_phan.py", title="Học phần: nộp bài & điểm (BR1)", icon="📝"),
-        st.Page("pages/2_Canh_bao.py", title="Cảnh báo", icon="⚠️"),
-        st.Page(render_faculty_page, title="Khoa", icon="🏫"),
-        st.Page(render_student_page, title="Sinh viên", icon="🎓"),
-        st.Page("pages/4_Sinh_vien.py", title="Sinh viên: tiến độ so với lớp (BR7)", icon="📊"),
-        st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
-    ],
+    {
+        "Chung": [
+            st.Page(render_overview_page, title="Tổng quan", icon="🏠", default=True),
+        ],
+        "Giảng viên": [
+            st.Page(render_course_page, title="Hoạt động học tập", icon="📚"),
+            st.Page("pages/1_Hoc_phan.py", title="Nộp bài & điểm", icon="📝"),
+        ],
+        "Cố vấn học tập": [
+            st.Page("pages/2_Canh_bao.py", title="Cảnh báo sớm & rút lui", icon="⚠️"),
+        ],
+        "Lãnh đạo khoa": [
+            st.Page(render_faculty_page, title="Khoảng cách IMD", icon="🏫"),
+        ],
+        "Sinh viên": [
+            st.Page("pages/4_Sinh_vien.py", title="Tiến độ so với lớp", icon="🎓"),
+            st.Page(render_student_page, title="Diễn đàn tuần 5", icon="💬"),
+        ],
+        "Hệ thống": [
+            st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
+        ],
+    },
     position="sidebar",
 )
 navigation.run()

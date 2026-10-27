@@ -176,7 +176,7 @@ phát lại do người chạy chọn (`--delay`), không phản ánh tải th�
 
 ## 5. Kiểm thử
 
-`make test` chạy 194 test (169 test kho của TV1, 5 test SQL của TV2, 20 test đáp án câu hỏi mẫu), tất cả đều qua.
+`make test` chạy 197 test (169 test kho của TV1, 5 test SQL của TV2, 20 test đáp án câu hỏi mẫu, 3 test khói cho dashboard), tất cả đều qua.
 Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 169 test kho.
 
 | Nhóm kiểm tra | Nội dung | Số test |

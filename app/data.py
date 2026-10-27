@@ -11,6 +11,14 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QUERY_FILES = {
+    "overview_stats": {
+        "duckdb": PROJECT_ROOT / "sql" / "overview_stats.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "overview_stats.sql",
+    },
+    "overview_outcomes": {
+        "duckdb": PROJECT_ROOT / "sql" / "overview_outcomes.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "overview_outcomes.sql",
+    },
     "br2_offerings": {
         "duckdb": PROJECT_ROOT / "sql" / "br2_offerings.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br2_offerings.sql",
@@ -52,6 +60,8 @@ QUERY_FILES = {
 # The order is the binding contract for DuckDB's positional ``?`` markers.
 # BigQuery uses the same names as named query parameters.
 QUERY_PARAMETER_ORDER = {
+    "overview_stats": (),
+    "overview_outcomes": (),
     "br2_offerings": (),
     "br2_dashboard": ("code_module", "code_presentation"),
     "br2_tma_deadlines": ("code_module", "code_presentation"),
