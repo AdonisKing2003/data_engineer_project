@@ -46,6 +46,9 @@ nằm trong repo; máy chưa có khóa vẫn chạy được bằng `make all-lo
 
 ## 2. Mô hình kho
 
+Thiết kế đầy đủ ở 3 mức ý niệm, luận lý, vật lý (sơ đồ thực thể, star schema, kiểu dữ liệu, kích thước và cách
+lưu trên từng engine) ở [design_levels.md](design_levels.md). Mục này tóm tắt mức luận lý.
+
 Kho theo mô hình chiều của Kimball, dạng constellation: 4 bảng fact dùng chung 5 dimension. Giữ khóa gốc của OULAD
 (`id_student`, `id_assessment`, `id_site`, cặp `code_module` + `code_presentation`), không tạo khóa thay thế, để SQL
 của nhóm và đáp án mẫu dùng chung được một bộ khóa. Tên bảng, cột, kiểu và định nghĩa từng cờ được chốt trong
