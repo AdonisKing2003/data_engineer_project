@@ -176,8 +176,8 @@ phát lại do người chạy chọn (`--delay`), không phản ánh tải th�
 
 ## 5. Kiểm thử
 
-`make test` chạy 197 test (169 test kho của TV1, 5 test SQL của TV2, 20 test đáp án câu hỏi mẫu, 3 test khói cho dashboard), tất cả đều qua.
-Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 169 test kho.
+`make test` chạy 208 test (180 test kho của TV1, gồm 11 test phụ thuộc hàm; 5 test SQL của TV2; 20 test đáp án câu hỏi mẫu; 3 test khói cho dashboard), tất cả đều qua.
+Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 180 test kho.
 
 | Nhóm kiểm tra | Nội dung | Số test |
 |---|---|---:|
@@ -185,6 +185,7 @@ Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dư�
 | Cờ | Số dòng TRUE của từng cờ đúng hợp đồng, trên Parquet và PostgreSQL | 75 |
 | Khóa | Khóa chính không trùng; không có khóa ngoại mồ côi | 19 |
 | NULL | Tỷ lệ NULL từng cột đúng dự kiến; NULL giữ nguyên qua `COPY` | 10 |
+| Phụ thuộc hàm | `id_student` xác định thuộc tính SV, `id_site` và `id_assessment` xác định đợt, `age_band` đổi theo lượt; `studentVle` gốc có dòng trùng khóa. Căn cứ chuẩn hóa ở [design_levels.md](design_levels.md) mục 2.4 | 11 |
 | Đối soát tổng | Tổng `sum_click`, tổng điểm giữa nguồn và kho; tổng click của bảng SV-tuần | 4 |
 | Quy tắc | Cột ngày là số nguyên; tuần tính bằng `FLOOR`; grain bảng SV-tuần đủ các tuần; cột lũy kế không giảm; `avg_score_cum` chỉ NULL khi chưa có điểm; bài TMA đầu tiên của BBB 2014J | 6 |
 | Đáp án BR | Tỷ lệ trễ TMA 16,8% (BR1); danh sách nguy cơ BR4 (DDD 2014J tuần 4, mọi đợt); phân vị BR7 | 6 |

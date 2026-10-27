@@ -226,8 +226,45 @@ Sơ đồ chỉ ghi các cột tiêu biểu; danh sách đủ cột, kiểu và 
 | `fact_student_week` không có `final_result` | Chống rò rỉ nhãn: dữ liệu dùng để cảnh báo ở tuần `w` không được biết kết quả cuối kỳ |
 | Bốn dấu hiệu nguy cơ BR4 tính lúc truy vấn, không lưu vào bảng | Ngưỡng (P25, điểm < 40) còn có thể đổi; lưu sẵn thì phải nạp lại kho mỗi lần đổi |
 
-Ở cùng mức luận lý, TV3 dựng thêm hai bố trí khác của cùng dữ liệu để so với star: chuẩn hóa 3NF và bảng rộng
-phi chuẩn hóa (xem [layouts.md](layouts.md)). So sánh các mô hình ở [data_models.md](data_models.md).
+### 2.4 Chuẩn hóa: từ dữ liệu nguồn lên 3NF, rồi phi chuẩn hóa có chủ đích
+
+"Chuẩn hóa" trong project có hai nghĩa:
+
+| Nghĩa | Làm gì | Ở đâu |
+|---|---|---|
+| Chuẩn hóa **giá trị** (làm sạch) | `"?"` và ô trống thành NULL, `10-20` thành `10-20%`, đặt kiểu, gộp dòng trùng | ETL: [report_tv1.md](report_tv1.md) mục 3.3 |
+| Chuẩn hóa **lược đồ** (dạng chuẩn) | Tách bảng theo phụ thuộc hàm để mỗi dữ kiện chỉ lưu một chỗ | Mục này |
+
+Các phụ thuộc hàm dưới đây không chỉ suy ra từ tên cột mà được kiểm trên dữ liệu staging. Mỗi dòng có một test
+trong [tests/test_staging.py](../tests/test_staging.py), nên dữ liệu đổi thì test báo.
+
+| Bảng nguồn | Phụ thuộc hàm | Kiểm trên dữ liệu | Dạng chuẩn bị vi phạm | Xử lý |
+|---|---|---|---|---|
+| `studentVle` | Không có khóa: (`code_module`, `code_presentation`, `id_student`, `id_site`, `date`) lặp lại | 3.810.465 dòng trùng khóa, gom được 1.614.505 nhóm | **1NF**: quan hệ phải có khóa, không có bộ trùng | Gộp thành một dòng mỗi khóa, cộng `sum_click`, ghi `n_records` (10.655.280 → 8.459.320 dòng) |
+| `studentInfo` | `id_student` → `gender`, `region`, `highest_education`, `imd_band`, `disability` | 0 SV có hơn một giá trị, trong 3.538 SV học nhiều đợt | **2NF**: phụ thuộc vào một phần của khóa (`id_student`, `code_module`, `code_presentation`) | Tách ra `dim_student` |
+| `studentInfo` | (`id_student`, `code_module`, `code_presentation`) → `age_band`, `num_of_prev_attempts`, `studied_credits`, `final_result` | `age_band` đổi ở 72 SV, `num_of_prev_attempts` ở 1.403, `studied_credits` ở 1.149 | Không vi phạm: phụ thuộc vào toàn bộ khóa | Giữ ở `fact_enrollment`. Đưa `age_band` sang `dim_student` là sai với 72 SV |
+| `studentVle` | `id_site` → `code_module`, `code_presentation` | 0 học liệu thuộc hơn một đợt | **2NF**: khóa tối thiểu là (`id_student`, `id_site`, `date`), mã đợt chỉ phụ thuộc vào `id_site` | 3NF: bỏ mã đợt khỏi bảng click. Star: giữ lại (dưới đây) |
+| `studentAssessment` | `id_assessment` → `code_module`, `code_presentation` (qua `assessments`) | 0 bài thuộc hơn một đợt | Nguồn đã đạt 3NF | Star thêm mã đợt vào `fact_submission` (dưới đây) |
+| Cột suy ra | `date` → `week_no`; (`code_module`, `code_presentation`) → `length_days` → `deadline` của bài thiếu ngày | Công thức trong [contract.md](contract.md) | **3NF**: phụ thuộc bắc cầu qua cột không phải khóa | 3NF: tính lại trong view. Star: lưu sẵn |
+
+Tách hết theo bảng trên thì được đúng bố trí `three_nf` của TV3 ([layouts.md](layouts.md)): `fact_vle_daily_n`
+và `fact_submission_n` không còn mã đợt và `week_no`, mọi thứ khác tra qua dimension.
+
+**Star = 3NF cộng 3 chỗ phi chuẩn hóa có chủ đích:**
+
+1. Mã đợt nằm thẳng trong `fact_vle_daily` và `fact_submission`, để lọc một đợt mà không phải nối, và để
+   gom cụm bảng click theo đợt (giảm bytes quét 25,5×, [optimization.md](optimization.md) ví dụ 2).
+2. `week_no` lưu sẵn ở mọi fact, để gom theo tuần và phân vùng `fact_student_week` theo tuần (giảm 16,8×, ví dụ 1).
+3. Cột tổng hợp sẵn: `total_clicks`, `active_days`, `n_submissions` ở `fact_enrollment`, và cả bảng `fact_student_week`.
+
+Cái giá là dữ liệu dư thừa: bảng click của star lớn hơn bản 3NF 24% ([benchmark.md](benchmark.md)). Dư thừa thường
+gây lệch khi sửa (update anomaly), nhưng ở đây an toàn vì kho chỉ đọc và mỗi lần nạp là ghi đè toàn bộ từ nguồn.
+`tests/test_warehouse.py` còn kiểm các cột dư khớp với nguồn (tổng click, khóa ngoại không mồ côi). Đổi lại, trên
+PostgreSQL star nhanh hơn 3NF 8–16% ở BR1, BR2, vì view 3NF phải nối lại dimension để có mã đợt. Trên BigQuery
+(lưu theo cột) hai bố trí quét cùng số bytes, nên phần dư của star gần như không tốn gì khi đọc.
+
+Bảng rộng của TV3 đi tiếp một bước: nhập luôn các dimension vào fact, bỏ hết phép nối. So sánh cả ba bố trí ở
+[benchmark.md](benchmark.md), các mô hình phi quan hệ ở [data_models.md](data_models.md).
 
 ---
 

@@ -79,11 +79,11 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (197 test, gồm đáp án 20 câu hỏi mẫu và test khói cho app). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (208 test, gồm đáp án 20 câu hỏi mẫu và test khói cho app). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
-| `tests/test_staging.py` | Số dòng 7 bảng staging, cột ngày là số nguyên |
+| `tests/test_staging.py` | Số dòng 7 bảng staging, cột ngày là số nguyên; các phụ thuộc hàm làm căn cứ chuẩn hóa ([docs/design_levels.md](docs/design_levels.md) mục 2.4) |
 | `tests/test_warehouse.py` | Mọi con số ở cột **Kiểm** của `docs/contract.md`, số NULL từng cột, khóa chính không trùng, khóa ngoại không mồ côi, tổng click và tổng điểm khớp nguồn |
 | `tests/test_student_week.py` | `fact_student_week` ra đúng đáp án BR4, BR7 trong tài liệu đặc tả; chống rò rỉ nhãn `final_result` |
 | `tests/test_postgres.py` | Cùng bộ số đó, chạy trên PostgreSQL |
@@ -140,7 +140,7 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
 | `app/` | Streamlit |
 | `tests/` | pytest |
 | `bench/` | Benchmark |
-| `docs/` | `contract.md` (hợp đồng tên bảng), `etl_timing.md` (thời gian ETL), ghi chú tối ưu |
+| `docs/` | `contract.md` (hợp đồng tên bảng), `etl_timing.md` (thời gian ETL), ghi chú tối ưu; `lo_traceability.md` (chuẩn đầu ra → bằng chứng) |
 | `data/` | CSV gốc, Parquet, dữ liệu stream: **không commit** |
 | `secrets/` | Khóa Google Cloud: **không commit** |
 
