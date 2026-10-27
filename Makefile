@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models bench test app
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -49,11 +49,13 @@ optimize:     ## 1.11 4 ví dụ tối ưu (phân vùng, gom cụm, mart, chỉ 
 models:       ## mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) so với bảng phẳng, ghi docs/data_models.md
 	python scripts/data_models.py
 
-bench:        ## 3.9 benchmark star / 3NF / bảng rộng, PostgreSQL và BigQuery, 1× và 5×; ghi bench/results/ và docs/benchmark.md (cần make scale + build_layouts trước)
-	python scripts/run_bench.py
-
 test:
 	pytest -q
+
+RUNS ?= 5
+bench: ## 3.9 benchmark layouts; requires explicit CONFIRM_M3=1 after group M3 confirmation
+	@test "$(CONFIRM_M3)" = "1" || { echo "Refusing benchmark: set CONFIRM_M3=1 only after the group confirms M3."; exit 2; }
+	python scripts/benchmark_layouts.py run --confirm-m3 --runs $(RUNS)
 
 app:
 	streamlit run app/Home.py --server.address 0.0.0.0 --server.port 8501

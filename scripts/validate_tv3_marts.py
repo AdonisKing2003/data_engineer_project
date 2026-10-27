@@ -1,4 +1,4 @@
-"""Compare TV3 dashboard marts with raw BR2/BR3 results before benchmarking.
+"""Check TV3 dashboard queries, BR2/BR3 marts, and cross-backend parity.
 
 The script is read-only. BigQuery queries disable result cache and run a dry-run
 bytes preflight before reading any rows. Reports contain counts and hashes only;
@@ -55,6 +55,9 @@ BR2_APP_COLUMNS = (
     "activity_type",
     "activity_type_click_share",
     "activity_type_total_clicks",
+    "enrolled_students",
+    "avg_clicks_per_enrolled_student",
+    "activity_type_avg_clicks_per_enrolled_student",
 )
 BR3_APP_COLUMNS = (
     "code_module",
@@ -301,6 +304,15 @@ def validate_engine(engine: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
 
     app_br2_rows = 0
     offerings = br2_raw[["code_module", "code_presentation"]].drop_duplicates()
+    actual_offerings, _ = _run(engine, query_id="br2_offerings")
+    offering_columns = ("code_module", "code_presentation")
+    assert_frames_equal(
+        offerings, actual_offerings, columns=offering_columns,
+        keys=offering_columns, unique_keys=True,
+    )
+    _record(records, "BR2 offering selector", engine, actual_offerings,
+            offering_columns, offering_columns)
+    deadline_rows: list[dict[str, Any]] = []
     for row in offerings.sort_values(["code_module", "code_presentation"]).itertuples(index=False):
         module, presentation = str(row.code_module), str(row.code_presentation)
         expected = br2_raw.loc[
@@ -324,7 +336,22 @@ def validate_engine(engine: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         weeks = deadlines["week_no"].astype(int).tolist()
         if weeks != sorted(set(weeks)):
             raise AssertionError(f"BR2 TMA weeks are not unique and ordered for {module} {presentation}")
+        expected_weeks = {
+            ("FFF", "2014J"): [3, 7, 13, 19, 28],
+            ("BBB", "2014J"): [2, 7, 15, 21, 28],
+        }.get((module, presentation))
+        if expected_weeks is not None and weeks != expected_weeks:
+            raise AssertionError(f"BR2 TMA weeks differ from the demo oracle for {module} {presentation}")
+        deadline_rows.extend(
+            {"code_module": module, "code_presentation": presentation, "week_no": week}
+            for week in weeks
+        )
         app_br2_rows += len(actual)
+    deadline_columns = ("code_module", "code_presentation", "week_no")
+    all_deadlines = pd.DataFrame(deadline_rows, columns=deadline_columns)
+    snapshots["br2_tma_deadlines"] = all_deadlines
+    _record(records, "BR2 selected-offering TMA markers", engine, all_deadlines,
+            deadline_columns, deadline_columns)
     records.append({
         "check": "BR2 selected-offering dashboard slices",
         "backend": engine,
@@ -385,11 +412,22 @@ def validate_engine(engine: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         "row_count": app_br3_rows,
         "sha256": "not emitted: per-offering hashes are intentionally omitted",
     })
+    for query_id, keys in (
+        ("br6_imd_gap", ("code_presentation",)),
+        ("br8_forum_week5", ()),
+    ):
+        frame, _ = _run(engine, query_id=query_id)
+        if frame.empty or (keys and frame.duplicated(list(keys)).any()):
+            raise AssertionError(f"{query_id} must have rows at its declared grain")
+        if not keys and len(frame) != 1:
+            raise AssertionError(f"{query_id} must return exactly one aggregate row")
+        snapshots[query_id] = frame
+        _record(records, query_id, engine, frame, tuple(frame.columns), keys)
     return records, snapshots
 
 
 def _preflight_bigquery(max_bytes: int) -> None:
-    required = ["br2_vle_weekly", "br3_spearman"]
+    required = ["br2_vle_weekly", "br3_spearman", "br6_imd_gap", "br8_forum_week5"]
     estimates: list[tuple[str, int]] = []
     for query_id in required:
         _, metrics = _run("bq", query_id=query_id, dry_run=True)
@@ -398,7 +436,7 @@ def _preflight_bigquery(max_bytes: int) -> None:
             raise RuntimeError(f"BigQuery did not return a dry-run estimate for {query_id}")
         estimates.append((query_id, int(estimate)))
     total = sum(estimate for _, estimate in estimates)
-    print("BigQuery dry-run scan estimates:")
+    print("BigQuery dry-run estimates for source queries (dashboard reads are additional):")
     for query_id, estimate in estimates:
         print(f"  {query_id}: {estimate:,} bytes")
     print(f"  total: {total:,} bytes (limit {max_bytes:,})")
@@ -492,6 +530,9 @@ def validate(*, engine: str, max_bq_bytes: int) -> tuple[list[dict[str, Any]], d
             ("br2", BR2_COLUMNS, BR2_KEY),
             ("br3", BR3_COLUMNS, BR3_KEY),
             ("br3_summary", ("code_module", "code_presentation", "n", "rho"), ("code_module", "code_presentation")),
+            ("br2_tma_deadlines", ("code_module", "code_presentation", "week_no"), ("code_module", "code_presentation", "week_no")),
+            ("br6_imd_gap", tuple(snapshots["duckdb"]["br6_imd_gap"].columns), ("code_presentation",)),
+            ("br8_forum_week5", tuple(snapshots["duckdb"]["br8_forum_week5"].columns), ()),
         ):
             assert_frames_equal(
                 snapshots["duckdb"][workload],
@@ -513,7 +554,10 @@ def validate(*, engine: str, max_bq_bytes: int) -> tuple[list[dict[str, Any]], d
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--engine", choices=("duckdb", "bq", "both"), default="both")
-    parser.add_argument("--max-bq-bytes", type=int, default=5_000_000_000)
+    parser.add_argument(
+        "--max-bq-bytes", type=int, default=5_000_000_000,
+        help="limit the combined dry-run estimate of source queries; dashboard reads are additional",
+    )
     parser.add_argument("--measure", action="store_true", help="run one warm-up plus three no-cache dashboard measurements")
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--report", default="data/exports/tv3_mart_parity.csv")
