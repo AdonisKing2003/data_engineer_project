@@ -176,8 +176,8 @@ phát lại do người chạy chọn (`--delay`), không phản ánh tải th�
 
 ## 5. Kiểm thử
 
-`make test` chạy 174 test (169 test của TV1 và 5 test SQL của TV2), tất cả đều qua. Bảng nào chưa dựng thì test của
-bảng đó tự bỏ qua.
+`make test` chạy 194 test (169 test kho của TV1, 5 test SQL của TV2, 20 test đáp án câu hỏi mẫu), tất cả đều qua.
+Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 169 test kho.
 
 | Nhóm kiểm tra | Nội dung | Số test |
 |---|---|---:|
@@ -192,8 +192,12 @@ bảng đó tự bỏ qua.
 | Chạy lại, stream | Nạp lại không nhân đôi; Spark ghi overwrite; stream khớp batch | 3 |
 | Kho 5× | Số dòng gấp đúng 5; mỗi bản đủ 28.785 SV; tỷ lệ và phân bố click không đổi; đã nạp BigQuery và PostgreSQL | 19 |
 
-Ngoài pytest, các câu hỏi mẫu trong `sql/questions/` chạy bằng `scripts/run_sql.py` trên cả BigQuery, PostgreSQL
-và DuckDB để kiểm ba engine ra cùng đáp án.
+20 câu hỏi mẫu trong `sql/questions/` được viết bằng SQL chung (không dùng hàm riêng của engine nào; trung vị và
+phân vị tính bằng `ROW_NUMBER` và nội suy tuyến tính), nên cùng một file chạy được trên BigQuery, PostgreSQL và
+DuckDB bằng `scripts/run_sql.py`. `tests/test_questions.py` kiểm cả 20 đáp án trên DuckDB.
+
+Test chống rò rỉ nhãn chạy đúng file câu 14 hai lần, lần hai với `final_result` bị đảo (Pass ↔ Withdrawn,
+Distinction ↔ Fail): danh sách nguy cơ giữ nguyên 3.958 SV, chỉ độ chính xác đổi.
 
 ## 6. Tối ưu truy vấn
 

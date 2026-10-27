@@ -153,7 +153,8 @@ def _validate_mart(client: Any, bigquery: Any, project: str, dataset: str,
     grain_fields = ", ".join(f"{column} AS {column}" for column in mart.grain)
     sql = (
         "SELECT COUNT(*) AS row_count, "
-        f"COUNT(DISTINCT STRUCT({grain_fields})) AS grain_count, "
+        # BigQuery rejects COUNT(DISTINCT STRUCT(...)); a JSON string keeps the same key identity.
+        f"COUNT(DISTINCT TO_JSON_STRING(STRUCT({grain_fields}))) AS grain_count, "
         "MIN(mart_created_at) AS mart_created_at "
         f"FROM `{table_id}`"
     )

@@ -76,7 +76,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (174 test). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (194 test, gồm đáp án 20 câu hỏi mẫu). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|

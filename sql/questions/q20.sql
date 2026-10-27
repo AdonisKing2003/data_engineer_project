@@ -1,6 +1,8 @@
 -- Q20 / BR8: Among BBB 2013J students whose final result is Pass/Distinction,
 -- what is the median number of forumng clicks in week 5 (including zero-click students)?
 -- Expected: n=1,072; Q1=0; median=5; Q3=22.
+-- Quartiles use hand-written linear interpolation (same as PERCENTILE_CONT) so the query
+-- runs unchanged on BigQuery, PostgreSQL and DuckDB.
 WITH cohort AS (
     SELECT id_student
     FROM fact_enrollment
@@ -23,17 +25,33 @@ WITH cohort AS (
 ), student_clicks AS (
     SELECT cohort.id_student, COALESCE(clicks.forum_clicks, 0) AS forum_clicks
     FROM cohort
-    LEFT JOIN clicks_by_student AS clicks USING (id_student)
-), quantiles AS (
-    SELECT DISTINCT
-        PERCENTILE_CONT(forum_clicks, 0.25) OVER () AS q25_forum_clicks,
-        PERCENTILE_CONT(forum_clicks, 0.5) OVER () AS median_forum_clicks,
-        PERCENTILE_CONT(forum_clicks, 0.75) OVER () AS q75_forum_clicks
+    LEFT JOIN clicks_by_student AS clicks ON clicks.id_student = cohort.id_student
+), ranked AS (
+    SELECT forum_clicks,
+           ROW_NUMBER() OVER (ORDER BY forum_clicks) AS rn,
+           COUNT(*) OVER () AS n
     FROM student_clicks
+), positions AS (
+    SELECT DISTINCT n,
+           1 + 0.25 * (n - 1) AS p25,
+           1 + 0.50 * (n - 1) AS p50,
+           1 + 0.75 * (n - 1) AS p75
+    FROM ranked
 )
 SELECT
-    (SELECT COUNT(*) FROM student_clicks) AS n_students,
-    quantiles.q25_forum_clicks,
-    quantiles.median_forum_clicks,
-    quantiles.q75_forum_clicks
-FROM quantiles;
+    pos.n AS n_students,
+    MAX(CASE WHEN r.rn = FLOOR(pos.p25) THEN r.forum_clicks END)
+        + (pos.p25 - FLOOR(pos.p25))
+          * (MAX(CASE WHEN r.rn = CEIL(pos.p25) THEN r.forum_clicks END)
+             - MAX(CASE WHEN r.rn = FLOOR(pos.p25) THEN r.forum_clicks END)) AS q25_forum_clicks,
+    MAX(CASE WHEN r.rn = FLOOR(pos.p50) THEN r.forum_clicks END)
+        + (pos.p50 - FLOOR(pos.p50))
+          * (MAX(CASE WHEN r.rn = CEIL(pos.p50) THEN r.forum_clicks END)
+             - MAX(CASE WHEN r.rn = FLOOR(pos.p50) THEN r.forum_clicks END)) AS median_forum_clicks,
+    MAX(CASE WHEN r.rn = FLOOR(pos.p75) THEN r.forum_clicks END)
+        + (pos.p75 - FLOOR(pos.p75))
+          * (MAX(CASE WHEN r.rn = CEIL(pos.p75) THEN r.forum_clicks END)
+             - MAX(CASE WHEN r.rn = FLOOR(pos.p75) THEN r.forum_clicks END)) AS q75_forum_clicks
+FROM ranked AS r
+CROSS JOIN positions AS pos
+GROUP BY pos.n, pos.p25, pos.p50, pos.p75
