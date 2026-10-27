@@ -613,7 +613,12 @@ def test_make_bench_requires_operator_m3_flag_and_passes_runs():
     assert "RUNS ?= 5" in makefile
 
 
-def test_run_refuses_incomplete_question_gate_before_any_database_work(tmp_path):
+def test_run_refuses_incomplete_question_gate_before_any_database_work(monkeypatch, tmp_path):
+    # Simulate a missing question file instead of relying on the checkout: once all
+    # 20 files exist the gate passes and the runner would go on to real database work.
+    monkeypatch.setattr(
+        benchmark, "missing_question_files", lambda: [benchmark.QUESTIONS_DIR / "q05.sql"]
+    )
     with pytest.raises(RuntimeError, match="question-file gate is incomplete"):
         benchmark.run_benchmark(tmp_path, runs=5)
 

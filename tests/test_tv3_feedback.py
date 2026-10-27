@@ -169,6 +169,23 @@ def _choose(app_test, key: str, value: str) -> None:
     control.set_value(value)
 
 
+def _open_course_page(app_test) -> None:
+    # The app opens on the overview; the course page is a callable page, which
+    # AppTest.switch_page cannot target, so select it by its registered hash.
+    app_test._page_hash = next(
+        page_hash
+        for page_hash, info in app_test._registered_pages.items()
+        if info["url_pathname"] == "render_course_page"
+    )
+    app_test.run(timeout=20)
+
+
+def _open_br3_tab(app_test) -> None:
+    # The course tabs rerun on change and only the open tab renders.
+    app_test.session_state["course_tab"] = "Click trước hạn TMA và điểm"
+    app_test.run(timeout=20)
+
+
 def _br2_heatmap_tma_weeks(app_test) -> list[int]:
     heatmap = next(
         chart
@@ -192,12 +209,15 @@ def test_course_page_switches_to_br3_and_ggg_explains_missing_tma(monkeypatch):
 
     monkeypatch.setenv("DATA_BACKEND", "duckdb")
     app_test = AppTest.from_file(str(ROOT / "app" / "Home.py")).run(timeout=20)
-    _choose(app_test, "course_analysis", "BR3 — Click trước hạn TMA và điểm")
-    app_test.run(timeout=20)
+    _open_course_page(app_test)
+    _open_br3_tab(app_test)
     assert not app_test.exception
+    assert len(app_test.get("plotly_chart")) >= 1  # BR3 forest plot
 
-    _choose(app_test, "br3_module", "GGG")
-    app_test.run(timeout=20)
+    _choose(app_test, "course_offering", "GGG 2014J")
+    # AppTest does not carry the selected tab into the next run (a browser does,
+    # checked by hand), so reopen the BR3 tab before rerunning.
+    _open_br3_tab(app_test)
     assert not app_test.exception
     assert any("GGG không có TMA có trọng số" in element.value for element in app_test.info)
 
@@ -212,15 +232,12 @@ def test_br2_course_page_uses_selected_tma_weeks_and_updates_heatmap_markers(
 
     monkeypatch.setenv("DATA_BACKEND", "duckdb")
     app_test = AppTest.from_file(str(ROOT / "app" / "Home.py")).run(timeout=20)
-    _choose(app_test, "br2_module", "FFF")
-    app_test.run(timeout=20)
-    _choose(app_test, "br2_presentation", "2014J")
+    _open_course_page(app_test)
+    _choose(app_test, "course_offering", "FFF 2014J")
     app_test.run(timeout=20)
     assert _br2_heatmap_tma_weeks(app_test) == [3, 7, 13, 19, 28]
 
-    _choose(app_test, "br2_module", "BBB")
-    app_test.run(timeout=20)
-    _choose(app_test, "br2_presentation", "2014J")
+    _choose(app_test, "course_offering", "BBB 2014J")
     app_test.run(timeout=20)
     assert not app_test.exception
     assert _br2_heatmap_tma_weeks(app_test) == [2, 7, 15, 21, 28]
@@ -255,6 +272,8 @@ def test_br2_week_selector_defaults_to_zero_and_updates_week_metrics(monkeypatch
             )
 
     def fake_run_query(query_id, parameters=None):
+        if query_id == "overview_offerings":
+            return pd.DataFrame()  # the overview page opens first; this test checks the course page
         if query_id == "br2_offerings":
             return pd.DataFrame(
                 [{"code_module": "ZZZ", "code_presentation": "9999X"}]
@@ -269,6 +288,7 @@ def test_br2_week_selector_defaults_to_zero_and_updates_week_metrics(monkeypatch
     monkeypatch.setattr(app_data, "run_query", fake_run_query)
     st.cache_data.clear()
     app_test = AppTest.from_file(str(ROOT / "app" / "Home.py")).run(timeout=20)
+    _open_course_page(app_test)
 
     assert not app_test.exception
     week_selector = next(

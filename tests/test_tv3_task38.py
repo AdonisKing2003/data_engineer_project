@@ -77,9 +77,19 @@ def _open_page(app_test, page_name: str):
     return app_test
 
 
-def _select(app_test, key: str, value: str) -> None:
-    control = next(control for control in app_test.selectbox if control.key == key)
-    control.set_value(value)
+BR3_TAB = "Click trước hạn TMA và điểm"
+
+
+def _select_offering(app_test, label: str, *, tab: str | None = None) -> None:
+    """Pick an offering in the course page's single selector, optionally keeping a tab open.
+
+    AppTest does not carry the selected tab into the next run (a browser does), so
+    the tab is set again in session state before each rerun.
+    """
+    control = next(control for control in app_test.selectbox if control.key == "course_offering")
+    control.set_value(label)
+    if tab is not None:
+        app_test.session_state["course_tab"] = tab
     app_test.run(timeout=120)
     _assert_rendered(app_test)
 
@@ -155,9 +165,8 @@ def test_br2_bigquery_app_demo_matches_week_zero_and_renders_heatmap_top_five(
     expected_due_weeks = deadlines["week_no"].astype(int).tolist()
     assert expected_due_weeks == [3, 7, 13, 19, 28]
 
-    app_test = _run_home()
-    _select(app_test, "br2_module", "FFF")
-    _select(app_test, "br2_presentation", "2014J")
+    app_test = _open_page(_run_home(), "render_course_page")
+    _select_offering(app_test, "FFF 2014J")
     assert _metrics(app_test)["Sinh viên còn học cuối tuần"] == "2,140"
     assert _metrics(app_test)["Trung bình toàn tuần"] == "119.2 click/sinh viên"
     assert _metrics(app_test)["Forumng"] == "38.5 click/sinh viên"
@@ -220,10 +229,8 @@ def test_br3_bigquery_app_demo_shows_log_scatter_forest_warning_and_ggg(
     # The documented 186 zero-click pairs are aggregated across all presentations.
     assert zero_click_count > 0
 
-    app_test = _run_home()
-    _select(app_test, "course_analysis", "BR3 — Click trước hạn TMA và điểm")
-    _select(app_test, "br3_module", "AAA")
-    _select(app_test, "br3_presentation", "2013J")
+    app_test = _open_page(_run_home(), "render_course_page")
+    _select_offering(app_test, "AAA 2013J", tab=BR3_TAB)
     assert any(
         "tương quan, không phải nhân quả" in caption.value.lower()
         for caption in app_test.caption
@@ -258,7 +265,7 @@ def test_br3_bigquery_app_demo_shows_log_scatter_forest_warning_and_ggg(
     )
     np.testing.assert_allclose(np.asarray(ci_line.x, dtype=float), expected_ci, atol=1e-12)
 
-    _select(app_test, "br3_module", "GGG")
+    _select_offering(app_test, "GGG 2014J", tab=BR3_TAB)
     assert any("GGG không có TMA có trọng số" in info.value for info in app_test.info)
     assert not any(
         chart.proto.id.endswith("-br3_scatter")

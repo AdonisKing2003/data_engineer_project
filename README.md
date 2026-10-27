@@ -80,7 +80,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (208 test, gồm đáp án 20 câu hỏi mẫu và test khói cho app). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (261 test, gồm đáp án 20 câu hỏi mẫu, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
@@ -91,6 +91,8 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream khớp bản batch |
 | `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án (TV2) |
 | `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu; đảo nhãn `final_result` rồi chạy lại câu 14 thì danh sách cảnh báo không đổi |
+| `tests/test_tv3_*.py` | Mart BR2, BR3; các trang Học phần, Khoa, Sinh viên ra đúng đáp án BR2, BR3, BR6, BR8 (TV3). `RUN_TV3_BIGQUERY_DEMO=1` để chạy trên BigQuery |
+| `tests/test_benchmark_*.py` | Runner benchmark mới: ma trận 44/48 ô, cổng câu hỏi, kiểm đáp án từng lượt; trang Chất lượng chỉ hiện lượt chạy thành công (TV3) |
 | `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được giữ khi đổi trang |
 
 ## Demo phần stream (không dùng Kafka)
