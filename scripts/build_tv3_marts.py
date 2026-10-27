@@ -153,7 +153,9 @@ def _validate_mart(client: Any, bigquery: Any, project: str, dataset: str,
     grain_fields = ", ".join(f"{column} AS {column}" for column in mart.grain)
     sql = (
         "SELECT COUNT(*) AS row_count, "
-        f"COUNT(DISTINCT STRUCT({grain_fields})) AS grain_count, "
+        # Serialize the composite key because BigQuery does not accept STRUCT
+        # values in COUNT(DISTINCT ...).
+        f"COUNT(DISTINCT TO_JSON_STRING(STRUCT({grain_fields}))) AS grain_count, "
         "MIN(mart_created_at) AS mart_created_at "
         f"FROM `{table_id}`"
     )
@@ -174,7 +176,7 @@ def _validate_mart(client: Any, bigquery: Any, project: str, dataset: str,
     mart_created_text = (
         mart_created.astimezone(timezone.utc).isoformat() if mart_created else "unknown"
     )
-    ok = row_count == grain_count and row_count == metadata_count
+    ok = row_count > 0 and row_count == grain_count and row_count == metadata_count
     print(
         f"{'OK' if ok else 'FAIL'} {dataset}.{mart.table}: "
         f"rows={row_count:,}, unique_grain={grain_count:,}, "
@@ -183,7 +185,7 @@ def _validate_mart(client: Any, bigquery: Any, project: str, dataset: str,
         f"validation_bytes={_format_bytes(job.total_bytes_processed)}"
     )
     if not ok:
-        raise RuntimeError(f"Row-count or grain validation failed for {dataset}.{mart.table}")
+        raise RuntimeError(f"Non-empty row-count or grain validation failed for {dataset}.{mart.table}")
 
 
 def refresh(*, apply: bool) -> None:

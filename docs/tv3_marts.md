@@ -2,6 +2,8 @@
 
 Tài liệu này mô tả hai mart phục vụ dashboard TV3, hợp đồng truy vấn của Home và cách làm mới thủ công trên BigQuery.
 
+**Bằng chứng ngày 27/10/2026:** đã refresh hai mart BigQuery, kiểm hàng/grain và đạt 24 kiểm tra parity DuckDB–BigQuery, cùng 4 kịch bản AppTest BigQuery cho BR2/BR3/BR6/BR8. Chi tiết, lệnh chạy lại và kịch bản demo bàn giao nằm trong [báo cáo task 3.8](task_3_8_validation.md). Bước demo do thành viên khác thực hiện vẫn chờ ký duyệt.
+
 ## Mart và grain
 
 | Bảng | Grain | Các cột |
@@ -44,3 +46,5 @@ Trước khi áp dụng, script dry-run cả hai truy vấn nguồn. Khi có `--
 Log gồm ước lượng bytes trước khi áp dụng; thời điểm bắt đầu, thời điểm job và thời điểm kết thúc; thời gian chạy, bytes xử lý và bytes tính phí; timestamp nằm trong mart; row count; số grain duy nhất; số dòng metadata; và thống kê đọc phục vụ kiểm tra grain. Lệnh dry-run không thay đổi bảng.
 
 Không chạy `--apply` trong môi trường chưa được phép ghi BigQuery. Việc tạo hoặc thay thế mart là thao tác có ghi dữ liệu; các bước dry-run và kiểm tra SQL cục bộ không cần quyền đó.
+
+Refresh mart và kiểm chứng các trang TV3 là đầu vào nghiệm thu task 3.8 và phần demo của M3. Việc hoàn tất riêng phần này chưa đóng cổng M3 của toàn nhóm.

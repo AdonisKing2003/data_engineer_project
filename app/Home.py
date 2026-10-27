@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from math import atanh, isfinite, sqrt, tanh
@@ -268,7 +269,7 @@ def _fisher_interval(rho: float | None, n: int) -> tuple[float | None, float | N
 def render_br3_analysis() -> None:
     st.subheader("BR3 — Click trước hạn TMA đầu tiên và điểm bài")
     st.caption(
-        "Đây là tương quan Spearman, không chứng minh click gây ra điểm số. "
+        "Tương quan, không phải nhân quả: hệ số Spearman không chứng minh click gây ra điểm số. "
         "Mẫu gồm các bài TMA đầu tiên có trọng số, không banked và có điểm."
     )
     try:
@@ -562,7 +563,7 @@ def render_student_page() -> None:
             mode="lines",
             line={"color": "#60a5fa", "width": 24},
             name="Khoảng tứ phân vị",
-            hovertemplate="Q1=%{x}<extra></extra>",
+            hovertemplate="Click: %{x}<extra></extra>",
         )
     )
     chart.add_trace(
@@ -587,26 +588,295 @@ def render_student_page() -> None:
 
 def render_quality_page() -> None:
     st.title("Chất lượng & benchmark")
-    st.write("Trang tổng hợp các hiện vật benchmark được bàn giao trong thư mục bench/.")
-    result_dirs = [PROJECT_ROOT / "sql" / "bench" / "results", PROJECT_ROOT / "bench" / "results"]
-    median_candidates = sorted(
-        (path for directory in result_dirs if directory.is_dir()
-         for path in directory.glob("*.medians.csv")),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    if not median_candidates:
-        st.info("Chưa có CSV trung vị benchmark để hiển thị. Trang này sẽ tự nhận hiện vật sau khi runner tạo xong.")
+    st.write("Kết quả chỉ được hiển thị khi runner công bố một lượt benchmark thành công.")
+
+    results_dir = PROJECT_ROOT / "bench" / "results"
+    success_pointer = results_dir / "latest_success.json"
+    if not success_pointer.is_file():
+        st.info(
+            "Chưa có lượt benchmark thành công được công bố. Sau khi nhóm xác nhận M3, "
+            "hoàn tất preflight và chạy runner, kết quả sẽ xuất hiện tại đây."
+        )
         return
-    csv_path = median_candidates[0]
+
     try:
-        st.dataframe(pd.read_csv(csv_path), hide_index=True, use_container_width=True)
+        pointer = json.loads(success_pointer.read_text(encoding="utf-8"))
     except Exception as error:
-        st.error(f"Không đọc được {csv_path.relative_to(PROJECT_ROOT)}: {error}")
+        st.error(f"Không đọc được `bench/results/latest_success.json`: {error}")
         return
-    chart_path = csv_path.with_name(csv_path.name.replace(".medians.csv", ".png"))
-    if chart_path.is_file():
-        st.image(str(chart_path), caption="So sánh thời gian thực thi theo layout, engine và quy mô")
+
+    run_id = pointer.get("run_id") if isinstance(pointer, dict) else None
+    if (
+        not isinstance(run_id, str)
+        or not run_id.strip()
+        or run_id in {".", ".."}
+        or Path(run_id).name != run_id
+    ):
+        st.error("Con trỏ benchmark không có `run_id` hợp lệ.")
+        return
+
+    run_dir = results_dir / run_id
+    try:
+        run_root = run_dir.resolve()
+        run_root.relative_to(results_dir.resolve())
+    except (OSError, ValueError):
+        st.error(f"Đường dẫn lượt benchmark `{run_id}` nằm ngoài thư mục kết quả.")
+        return
+    manifest_path = run_dir / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as error:
+        st.error(f"Không đọc được manifest cho lượt `{run_id}`: {error}")
+        return
+    if not isinstance(manifest, dict) or manifest.get("status") != "success":
+        st.info(f"Lượt `{run_id}` chưa được đánh dấu thành công; không hiển thị kết quả.")
+        return
+    if manifest.get("run_id") != run_id:
+        st.error(f"`run_id` trong manifest không khớp với con trỏ `{run_id}`.")
+        return
+
+    artifacts = manifest.get("artifacts")
+    median_name = artifacts.get("medians_csv") if isinstance(artifacts, dict) else None
+    if not isinstance(median_name, str) or not median_name.strip():
+        st.error(f"Manifest của lượt `{run_id}` không chỉ định `artifacts.medians_csv`.")
+        return
+    try:
+        csv_path = (run_dir / median_name).resolve()
+        csv_path.relative_to(run_root)
+    except (OSError, ValueError):
+        st.error(f"Đường dẫn CSV trung vị trong manifest không hợp lệ cho lượt `{run_id}`.")
+        return
+    if not csv_path.is_file():
+        st.error(f"Không tìm thấy CSV trung vị được manifest chỉ định: {csv_path.name}")
+        return
+    try:
+        medians = pd.read_csv(csv_path)
+    except Exception as error:
+        st.error(f"Không đọc được CSV trung vị của lượt `{run_id}`: {error}")
+        return
+
+    median_column = next(
+        (column for column in ("median_s", "median_elapsed_seconds", "median_seconds")
+         if column in medians.columns),
+        None,
+    )
+    runs_column = next(
+        (column for column in ("runs", "measured_runs") if column in medians.columns),
+        None,
+    )
+    chart_columns = {"engine", "scale", "layout", "workload"}
+    missing_columns = sorted(chart_columns - set(medians.columns))
+    if median_column is None or runs_column is None or missing_columns:
+        missing = missing_columns[:]
+        if median_column is None:
+            missing.append("median_s/median_elapsed_seconds")
+        if runs_column is None:
+            missing.append("runs/measured_runs")
+        st.error("CSV trung vị thiếu các cột cần thiết: " + ", ".join(missing))
+        return
+
+    coverage = manifest.get("coverage")
+    if not isinstance(coverage, dict):
+        st.error(f"Manifest của lượt `{run_id}` không có phạm vi `coverage` hợp lệ.")
+        return
+    try:
+        planned = int(coverage["planned"])
+        selected = int(coverage["selected"])
+    except (KeyError, TypeError, ValueError):
+        st.error(f"Manifest của lượt `{run_id}` thiếu số tổ hợp trong `coverage`.")
+        return
+    excluded = coverage.get("excluded")
+    if isinstance(excluded, dict):
+        excluded_items = [
+            {"combination": combination, "reason": reason}
+            for combination, reason in excluded.items()
+        ]
+    elif isinstance(excluded, list):
+        excluded_items = excluded
+    else:
+        st.error(f"Manifest của lượt `{run_id}` không có danh sách `coverage.excluded` hợp lệ.")
+        return
+    if selected != len(medians) or selected + len(excluded_items) != planned:
+        st.error(
+            f"Phạm vi trong manifest của lượt `{run_id}` không khớp với CSV trung vị."
+        )
+        return
+
+    workloads = {"br1_q07", "br2_q09", "br4_q14", "br6_q18"}
+    expected_cells = {
+        (engine, scale, layout, workload)
+        for engine in ("bq", "pg")
+        for scale in (1, 5)
+        for layout in ("star", "3nf", "wide")
+        for workload in workloads
+    }
+    expected_excluded = {
+        ("bq", 5, "wide", workload) for workload in workloads
+    }
+
+    def scope_key(engine: object, scale: object, layout: object, workload: object):
+        try:
+            normalized_scale = int(str(scale).lower().removesuffix("x").strip())
+        except (TypeError, ValueError):
+            return None
+        normalized_layout = "3nf" if str(layout) == "three_nf" else str(layout)
+        return str(engine), normalized_scale, normalized_layout, str(workload)
+
+    selected_cells = {
+        scope_key(row.engine, row.scale, row.layout, row.workload)
+        for row in medians.itertuples(index=False)
+    }
+    excluded_cells = set()
+    for item in excluded_items:
+        if not isinstance(item, dict):
+            continue
+        combination = item.get("combination")
+        if not isinstance(combination, dict):
+            combination = item
+        key = scope_key(
+            combination.get("engine"),
+            combination.get("scale"),
+            combination.get("layout"),
+            combination.get("workload"),
+        )
+        if key is not None:
+            excluded_cells.add(key)
+    if (
+        planned != 48
+        or selected != 44
+        or len(excluded_items) != 4
+        or None in selected_cells
+        or selected_cells != expected_cells - expected_excluded
+        or excluded_cells != expected_excluded
+    ):
+        st.error(
+            f"Run `{run_id}` không khớp ma trận benchmark 44/48 đã chốt."
+        )
+        return
+
+    measured_runs = pd.to_numeric(medians[runs_column], errors="coerce").dropna()
+    if measured_runs.empty:
+        run_count_label = "—"
+    else:
+        run_counts = sorted({int(value) if float(value).is_integer() else float(value)
+                             for value in measured_runs})
+        if len(run_counts) == 1:
+            run_count_label = f"{run_counts[0]} / tổ hợp"
+        else:
+            run_count_label = f"{run_counts[0]}–{run_counts[-1]} / tổ hợp"
+
+    st.caption(f"Run ID: `{run_id}`")
+    completed_at_utc = manifest.get("completed_at_utc")
+    if completed_at_utc:
+        st.caption(f"Thời điểm run thành công gần nhất: {completed_at_utc}")
+    scope_col, excluded_col, repetitions_col = st.columns(3)
+    scope_col.metric("Phạm vi", f"{selected}/{planned}")
+    excluded_col.metric("Tổ hợp loại trừ", len(excluded_items))
+    repetitions_col.metric("Lượt đo theo CSV", run_count_label)
+
+    chart_name = artifacts.get("chart_html") if isinstance(artifacts, dict) else None
+    if isinstance(chart_name, str) and chart_name.strip():
+        try:
+            chart_path = (run_dir / chart_name).resolve()
+            chart_path.relative_to(run_root)
+        except (OSError, ValueError):
+            chart_path = None
+        if chart_path is not None and chart_path.is_file():
+            st.download_button(
+                "Tải biểu đồ HTML tương tác",
+                data=chart_path.read_bytes(),
+                file_name=f"benchmark-{run_id}.html",
+                mime="text/html",
+            )
+
+    st.subheader("Tổ hợp bị loại trừ")
+    if excluded_items:
+        exclusion_rows = []
+        for item in excluded_items:
+            if isinstance(item, dict):
+                combination = item.get("combination")
+                if combination is None:
+                    combination = {
+                        field: item[field]
+                        for field in ("engine", "scale", "layout", "workload")
+                        if field in item
+                    }
+                if isinstance(combination, dict):
+                    parts = []
+                    for field in ("engine", "scale", "layout", "workload"):
+                        value = combination.get(field)
+                        if value is not None:
+                            label = str(value)
+                            if field == "scale" and not label.lower().endswith("x"):
+                                label += "x"
+                            parts.append(label)
+                    combination_label = " · ".join(parts) or str(combination)
+                else:
+                    combination_label = str(combination or item.get("id") or "—")
+                reason = item.get("reason") or item.get("exclusion_reason") or "Không ghi lý do trong manifest"
+            else:
+                combination_label = str(item)
+                reason = "Không ghi lý do trong manifest"
+            exclusion_rows.append({"Tổ hợp": combination_label, "Lý do": reason})
+        st.dataframe(pd.DataFrame(exclusion_rows), hide_index=True, use_container_width=True)
+    else:
+        st.info("Manifest không ghi chi tiết các tổ hợp bị loại trừ.")
+
+    median_values = pd.to_numeric(medians[median_column], errors="coerce")
+    chart_data = medians.copy()
+    chart_data["_median_seconds"] = median_values
+    chart_data["_scale"] = pd.to_numeric(
+        chart_data["scale"].astype(str).str.replace("x", "", regex=False).str.strip(),
+        errors="coerce",
+    )
+    chart_data = chart_data.dropna(subset=["_median_seconds", "_scale"])
+    if chart_data.empty:
+        st.error("CSV trung vị không có thời lượng số hợp lệ để vẽ biểu đồ.")
+        return
+
+    st.subheader("Trung vị thời gian theo layout")
+    workloads = sorted(chart_data["workload"].astype(str).unique())
+    scales = sorted(chart_data["_scale"].astype(int).unique())
+    selector_workload, selector_scale = st.columns(2)
+    selected_workload = selector_workload.selectbox(
+        "Workload", workloads, key="quality_benchmark_workload"
+    )
+    selected_scale = selector_scale.selectbox(
+        "Quy mô", scales, format_func=lambda value: f"{value}x", key="quality_benchmark_scale"
+    )
+    selected_rows = chart_data.loc[
+        (chart_data["workload"].astype(str) == selected_workload)
+        & (chart_data["_scale"] == selected_scale)
+    ]
+    layout_names = {"3nf": "partial normalization", "three_nf": "partial normalization"}
+    engine_names = {"bq": "BigQuery", "pg": "PostgreSQL"}
+    figure = go.Figure()
+    for engine in sorted(selected_rows["engine"].astype(str).unique()):
+        engine_rows = selected_rows.loc[selected_rows["engine"].astype(str) == engine]
+        layouts = engine_rows["layout"].astype(str)
+        figure.add_trace(
+            go.Bar(
+                name=engine_names.get(engine, engine),
+                x=[layout_names.get(layout, layout) for layout in layouts],
+                y=engine_rows["_median_seconds"],
+                customdata=engine_rows[runs_column],
+                hovertemplate="%{x}<br>Median: %{y:.3f} s<br>Runs: %{customdata}<extra>%{fullData.name}</extra>",
+            )
+        )
+    figure.update_layout(
+        title=f"{selected_workload} · {selected_scale}x",
+        barmode="group",
+        xaxis_title="Layout",
+        yaxis_title="Median time (seconds)",
+        template="plotly_white",
+        margin={"l": 20, "r": 20, "t": 55, "b": 20},
+        legend_title_text="Engine",
+    )
+    st.plotly_chart(figure, use_container_width=True, key="quality_benchmark_medians")
+
+    st.subheader("Bảng trung vị")
+    visible_columns = ["engine", "scale", "layout", "workload", median_column, runs_column]
+    st.dataframe(medians[visible_columns], hide_index=True, use_container_width=True)
 
 
 # st.navigation disables auto-discovery of app/pages/, so TV2's page scripts

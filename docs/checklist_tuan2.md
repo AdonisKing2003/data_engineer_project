@@ -7,6 +7,13 @@
 Mọi lệnh chạy ở thư mục repo trên máy thật. Đáp án lấy từ tài liệu "OULAD – Giai đoạn 2: Đặc tả 8 BR".
 Số thập phân: tài liệu ghi dấu phẩy (96,5%), máy in dấu chấm (96.5) — coi là như nhau.
 
+## Cập nhật task 3.8 — 27/10/2026
+
+- Đã refresh hai mart BR2/BR3 trên BigQuery và kiểm hàng/grain: 16.340 và 21.693 dòng.
+- Đã chạy parity toàn bộ offering trên DuckDB–BigQuery: **24 kiểm tra đạt**, bao gồm chỉ số dashboard BR2, mốc TMA, BR3, BR6 và BR8.
+- Kiểm thử giao diện tự động trên `Home.py` thật: **26 passed** cho local/regression TV3 và **4 passed** cho BigQuery; thêm **4 passed** kiểm guard snapshot mart. Đây là các lượt focused task 3.8, không phải kết quả toàn bộ bộ test của nhóm sau merge.
+- Task 3.8 đạt phần triển khai và demo tự động; demo thủ công do thành viên khác và nghiệm thu M3 của cả nhóm vẫn chờ xác nhận. [Báo cáo, CSV và JUnit](task_3_8_validation.md).
+
 ---
 
 ## 0. Chuẩn bị (TV1)
@@ -105,7 +112,7 @@ Kịch bản demo cần ra đúng số:
 | 3.5 BR2, BR3, BR6 trên BigQuery | 14/10 | Câu 9–13, 18 ở mục 2 | Đúng hết. Thêm BR3: BBB 2014J n = 1.585, ρ = 0,16, khoảng tin cậy 0,11–0,21, bài 15021; EEE 2014J n = 911, ρ = 0,41; tổng 19 đợt, 21.693 SV. BR6: bảng 4 kỳ ở mục dưới | [ ] |
 | 3.6 BR8 (nếu giữ) | 15/10 | Câu 20 | BBB 2013J: 1.072 SV; tuần 5 forumng trung vị / 25% / 75% = 5 / 0 / 22. Không có cụm từ "để đạt", "giúp bạn", "làm tăng", "do đó" | [ ] |
 | 3.7 3NF + bảng rộng trên PostgreSQL | 17/10 | `docker compose exec postgres psql -U oulad -d oulad -c '\dn'` rồi chạy 4 truy vấn trong `sql/bench/` | Có 2 schema mới (ngoài `public`, `x5`). BR1, BR2, BR4, BR6 chạy được trên cả 3 schema (star, 3NF, bảng rộng) và **ra cùng kết quả** | [ ] |
-| 3.8 Trang Học phần, Khoa, Sinh viên | 18/10 | Mục 5 bên dưới | Chạy được kịch bản demo BR2, BR3, BR6 (BR8 nếu giữ), đọc từ BigQuery | [ ] |
+| 3.8 Trang Học phần, Khoa, Sinh viên | 18/10 | [Bằng chứng 27/10](task_3_8_validation.md) và mục 5 bên dưới | Kịch bản BR2, BR3, BR6, BR8 đọc BigQuery đã đạt AppTest; demo thủ công do thành viên khác còn chờ xác nhận | [x] kỹ thuật; [ ] bàn giao thủ công |
 
 BR6 (BBB, DDD, FFF; bỏ SV rút trước khai giảng):
 

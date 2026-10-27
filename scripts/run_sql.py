@@ -120,6 +120,142 @@ def execute_sql(
     return runner(sql, scale, layout)
 
 
+class BenchmarkExecutor:
+    """Execute benchmark queries through clients prepared before timing starts.
+
+    PostgreSQL uses one persistent autocommit connection. BigQuery uses one
+    persistent client. The shared client metric starts immediately before the
+    query is executed/submitted and ends after the full result has been fetched
+    and converted to a DataFrame. BigQuery job time is retained separately.
+    """
+
+    def __init__(
+        self,
+        *,
+        project: str | None = None,
+        location: str | None = None,
+        bigquery_client=None,
+        postgres_connection=None,
+        bigquery_module=None,
+    ) -> None:
+        self.project = (project or os.getenv("GCP_PROJECT_ID", "")).strip()
+        if not self.project or self.project.lower() in {
+            "dien-project-id-vao-day",
+            "your-project-id",
+        }:
+            raise RuntimeError("GCP_PROJECT_ID is missing or still has the example value")
+
+        self.location = location or os.getenv("BQ_LOCATION", "US")
+        if bigquery_module is None:
+            from google.cloud import bigquery as bigquery_module
+        self.bigquery_module = bigquery_module
+        self.bigquery_client = (
+            bigquery_client
+            if bigquery_client is not None
+            else bigquery_module.Client(project=self.project, location=self.location)
+        )
+
+        if postgres_connection is None:
+            conninfo = (
+                f"host={os.getenv('POSTGRES_HOST', 'postgres')} "
+                f"port={os.getenv('POSTGRES_PORT', '5432')} "
+                f"user={os.getenv('POSTGRES_USER', 'oulad')} "
+                f"password={os.getenv('POSTGRES_PASSWORD', 'oulad')} "
+                f"dbname={os.getenv('POSTGRES_DB', 'oulad')}"
+            )
+            try:
+                import psycopg
+
+                postgres_connection = psycopg.connect(conninfo, autocommit=True)
+            except Exception:
+                close_client = getattr(self.bigquery_client, "close", None)
+                if close_client is not None:
+                    close_client()
+                raise
+        self.postgres_connection = postgres_connection
+
+    def execute_sql(
+        self,
+        sql: str,
+        *,
+        engine: str,
+        scale: int,
+        layout: str,
+        use_query_cache: bool = False,
+    ):
+        if engine not in {"bq", "pg"}:
+            raise ValueError(f"Unsupported benchmark engine {engine!r}")
+
+        if engine == "pg":
+            schema = _target("pg", layout, scale)
+            # Target selection is client setup, not part of query elapsed time.
+            self.postgres_connection.execute(f'SET search_path TO "{schema}"')
+            started = time.perf_counter()
+            cursor = self.postgres_connection.execute(sql)
+            rows = cursor.fetchall()
+            frame = pd.DataFrame(rows, columns=[column.name for column in cursor.description])
+            client_elapsed = time.perf_counter() - started
+            return frame, f"PostgreSQL schema {schema}", {
+                "client_elapsed_seconds": client_elapsed,
+                "elapsed_seconds": client_elapsed,
+                "server_elapsed_seconds": None,
+                "bytes_processed": None,
+                "bytes_billed": None,
+                "cache_hit": None,
+                "job_id": None,
+            }
+
+        dataset = _target("bq", layout, scale)
+        job_config = self.bigquery_module.QueryJobConfig(
+            default_dataset=f"{self.project}.{dataset}",
+            use_query_cache=use_query_cache,
+            use_legacy_sql=False,
+        )
+        # Creating a query config and preparing the client are outside the
+        # measured interval; submission through full result fetch is included.
+        started = time.perf_counter()
+        job = self.bigquery_client.query(sql, job_config=job_config)
+        result = job.result()
+        frame = result.to_dataframe(create_bqstorage_client=False)
+        client_elapsed = time.perf_counter() - started
+        server_elapsed = (
+            (job.ended - job.started).total_seconds()
+            if job.ended is not None and job.started is not None
+            else None
+        )
+        return frame, f"BigQuery {self.project}.{dataset}", {
+            "client_elapsed_seconds": client_elapsed,
+            "elapsed_seconds": client_elapsed,
+            "server_elapsed_seconds": server_elapsed,
+            "bytes_processed": job.total_bytes_processed,
+            "bytes_billed": job.total_bytes_billed,
+            "cache_hit": job.cache_hit,
+            "job_id": job.job_id,
+        }
+
+    def execute(self, sql: str, **kwargs):
+        """Alias for callers that already scope the executor to benchmarks."""
+        return self.execute_sql(sql, **kwargs)
+
+    def close(self) -> None:
+        errors = []
+        for resource in (self.postgres_connection, self.bigquery_client):
+            close = getattr(resource, "close", None)
+            if close is not None:
+                try:
+                    close()
+                except Exception as exc:
+                    errors.append(exc)
+        if errors:
+            raise RuntimeError("Failed to close a prepared benchmark client") from errors[0]
+
+    def __enter__(self) -> "BenchmarkExecutor":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", help="one SQL file containing a SELECT query")
