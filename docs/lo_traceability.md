@@ -48,7 +48,7 @@ Kết luận của nhóm: chọn mô hình theo cách truy cập. Câu hỏi t�
 lưu theo cột. Hồ sơ trọn vẹn một sinh viên hợp với tài liệu hoặc dạng lồng. Cập nhật theo khóa hợp với khóa-giá trị.
 Mô hình đồ thị không dùng vì không câu hỏi nào cần duyệt quan hệ nhiều bước.
 
-Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / star / bảng rộng).
+Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / star / bảng rộng, runner mới của TV3). Số liệu 3NF / star / bảng rộng ở bảng trên là của lần đo 26/10 (`bench/results/historical_2026-10-26/`).
 
 ## 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn
 
@@ -71,7 +71,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Bảng ảnh chụp theo thời gian | `fact_student_week` (1.342.949 dòng): tuần `w` chỉ dùng dữ liệu tới hết tuần `w`, không chứa `final_result` |
 | Chất lượng dữ liệu trong kho | Cờ `BOOL` thay vì xóa dòng (`deadline_imputed`, `is_late`, `result_inconsistent`...), số dòng TRUE của từng cờ có trong hợp đồng và được test |
 | Tổng hợp sẵn cho app | Mart BR2, BR3 trên BigQuery ([tv3_marts.md](tv3_marts.md)); mart BR2 giảm bytes quét 330× ([optimization.md](optimization.md) ví dụ 3) |
-| So sánh thiết kế | Star / 3NF / bảng rộng, 2 engine, 1× và 5×, 5 lần chạy mỗi ô ([benchmark.md](benchmark.md)). Nhóm giữ star vì không bao giờ chậm hơn nhiều và dễ viết SQL nhất |
+| So sánh thiết kế | Star / 3NF / bảng rộng, 2 engine, 1× và 5×, 5 lần chạy mỗi ô ([benchmark.md](benchmark.md)). Không bố trí nào thắng ở mọi ô: trên BigQuery 5× star chậm hơn 3NF 2,5–4,5× về thời gian dù quét cùng bytes. Nhóm giữ star vì dễ viết SQL nhất và trên PostgreSQL nhanh hơn 3NF |
 | Mở rộng quy mô | Kho 5× (`make scale`): mọi tỷ lệ giữ nguyên, nên dùng để kiểm SQL benchmark ra đúng |
 
 ## 3.1 Quản lý dữ liệu phức tạp
@@ -118,7 +118,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Chuẩn | Slide nên có | Một con số để nói | Trang demo |
 |---|---|---|---|
 | 2.1 | Sơ đồ luồng dữ liệu 4 tầng, 3 nơi lưu | 20 câu hỏi ra cùng đáp án trên 3 engine | Tổng quan (đổi `DATA_BACKEND`) |
-| 2.2 | Sơ đồ constellation, grain 4 fact, bảng ảnh chụp SV-tuần | Ở 5× trên PostgreSQL, bảng rộng chậm gấp 1,56 lần star ở BR2 vì gấp đôi dung lượng | Chất lượng & benchmark |
+| 2.2 | Sơ đồ constellation, grain 4 fact, bảng ảnh chụp SV-tuần | Ở 5× trên PostgreSQL, bảng rộng gấp đôi dung lượng và chậm gấp 1,56 lần star ở BR2 | Chất lượng & benchmark |
 | 3.1 | Bảng vấn đề dữ liệu → cách xử lý; test chống rò rỉ nhãn | Đảo nhãn, danh sách cảnh báo vẫn 3.958 SV | Cảnh báo sớm & rút lui |
 | 3.2 | Batch và stream; 4 ví dụ tối ưu | Stream lệch 0 dòng so với batch; mart giảm 330× | Hoạt động học tập (đọc mart BR2) |
 

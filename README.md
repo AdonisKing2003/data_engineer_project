@@ -74,7 +74,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
 | `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
 | `make optimize` | 1.11 | 4 ví dụ tối ưu có số đo, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all` và `python scripts/build_tv3_marts.py --apply`) | ~1 phút |
-| `make bench` | 3.9 | Benchmark star / 3NF / bảng rộng trên PostgreSQL và BigQuery, 1× và 5×, ghi `bench/results/` và [docs/benchmark.md](docs/benchmark.md) (cần `make scale` và dựng bố trí theo [docs/layouts.md](docs/layouts.md)) | ~10 phút |
+| `make bench` | 3.9 | Benchmark star / 3NF / bảng rộng trên PostgreSQL và BigQuery, 1× và 5×, có kiểm đáp án từng lượt; ghi `bench/results/<run_id>/`. Phải đặt `CONFIRM_M3=1` (sau mốc kiểm tra cuối tuần 2): `docker compose exec -e CONFIRM_M3=1 app make bench`. Quy trình ở [docs/benchmark.md](docs/benchmark.md), cần `make scale` và dựng bố trí theo [docs/layouts.md](docs/layouts.md) | ~10 phút |
 | `make models` | | Dựng 2 mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) và đo so với bảng phẳng, ghi [docs/data_models.md](docs/data_models.md) | ~1 phút |
 
 ## Kiểm thử

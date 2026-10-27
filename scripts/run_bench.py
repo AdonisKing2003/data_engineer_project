@@ -1,20 +1,24 @@
-"""Việc 3.9: benchmark star / 3NF / bảng rộng trên PostgreSQL và BigQuery, ở 1× và 5×.
+"""Runner benchmark cũ của TV1 (lần đo 26/10/2026): star / 3NF / bảng rộng trên PostgreSQL và BigQuery, 1× và 5×.
+
+Runner chính thức của việc 3.9 là scripts/benchmark_layouts.py (make bench), có kiểm đáp án và hash từng lượt.
+Script này giữ lại để tái lập bộ số liệu lịch sử trong bench/results/historical_2026-10-26/; nó ghi vào
+bench/results/tv1_runner/ và không đụng tới docs/benchmark.md.
 
 Chạy 4 truy vấn trong sql/bench/{pg,bq}/{star,3nf,wide}/ (BR1 câu 7, BR2 câu 9, BR4 câu 14, BR6 câu 18).
 Mỗi ô engine × quy mô × bố trí × truy vấn chạy --runs lần, lấy trung vị; PostgreSQL chạy nóng một lần
 trước khi đo, BigQuery tắt cache. Ba bố trí của cùng engine và quy mô phải ra cùng kết quả.
 
-Kết quả:
-    bench/results/benchmark.raw.csv       mọi lần chạy
-    bench/results/benchmark.medians.csv   trung vị mỗi ô (trang Chất lượng & benchmark của app đọc file này)
-    bench/results/benchmark.html          biểu đồ (mở bằng trình duyệt, chụp vào báo cáo)
-    docs/benchmark.md                     cấu hình, bảng số, giải thích
+Kết quả, trong bench/results/tv1_runner/:
+    benchmark.raw.csv       mọi lần chạy
+    benchmark.medians.csv   trung vị mỗi ô
+    benchmark.html          biểu đồ
+    benchmark.md            cấu hình, bảng số
 
 Cần dựng trước: make all, make scale, và scripts/build_layouts.py cho từng engine/quy mô (xem docs/layouts.md).
 BigQuery 5× bỏ bố trí bảng rộng: dataset oulad_wide_5x (~8 GB) vượt hạn mức 10 GB của Sandbox.
 
 Chạy trong container:
-    python scripts/run_bench.py               # cũng chính là: make bench
+    python scripts/run_bench.py
     python scripts/run_bench.py --skip-bq     # chỉ PostgreSQL
     python scripts/run_bench.py --runs 3
 """
@@ -34,8 +38,8 @@ from run_sql import _target, execute_sql
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH_SQL = ROOT / "sql" / "bench"
-OUT_DIR = ROOT / "bench" / "results"
-DOC = ROOT / "docs" / "benchmark.md"
+OUT_DIR = ROOT / "bench" / "results" / "tv1_runner"
+DOC = OUT_DIR / "benchmark.md"
 EXPLAIN_HEADING = "## Giải thích (viết tay, script giữ nguyên khi chạy lại)"
 
 QUERIES = {  # file -> (BR, mô tả)
@@ -157,8 +161,8 @@ def write_doc(medians, runs, started_at, seconds_total, pg_settings):
         "# Benchmark star / 3NF / bảng rộng (việc 3.9)",
         "",
         f"Đo lúc {started_at}, chạy hết {seconds_total / 60:.1f} phút. File này do `scripts/run_bench.py` tự sinh;",
-        "chạy lại `make bench` để cập nhật. Số liệu thô: `bench/results/benchmark.raw.csv`, trung vị:",
-        "`bench/results/benchmark.medians.csv`, biểu đồ: `bench/results/benchmark.html`.",
+        "chạy lại `python scripts/run_bench.py` để cập nhật. Số liệu thô: `benchmark.raw.csv`, trung vị:",
+        "`benchmark.medians.csv`, biểu đồ: `benchmark.html`, cùng thư mục với file này.",
         "",
         "## Cấu hình",
         "",
