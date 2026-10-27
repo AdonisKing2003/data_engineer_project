@@ -79,8 +79,8 @@ def choose_sidebar_offering(at, label):
 
 def q01(d):
     at = open_page(d, "")
-    assert metrics(at)["Sinh viên"] == "28,785"
-    assert "32,593" in metric_help(at, "Sinh viên")
+    shown = metrics(at)
+    assert (shown["Sinh viên"], shown["Lượt đăng ký"]) == ("28,785", "32,593")
 
 
 def q02(d):
@@ -217,7 +217,6 @@ def q20(d):
 
 
 NOT_ANSWERED = {
-    2: "Trang Tổng quan chỉ có tỷ lệ đạt (Pass + Distinction gộp) và tỷ lệ rút",
     7: "Trang Nộp bài & điểm chỉ xem từng đợt; không có tỷ lệ trễ chung mọi TMA",
     8: "Trang Nộp bài & điểm chỉ xem từng đợt; không có điểm TMA trung bình theo môn",
     9: "Trang Hoạt động học tập chỉ xem từng đợt; không có tổng click toàn trường theo loại",

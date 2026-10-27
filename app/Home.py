@@ -924,13 +924,23 @@ def render_overview_page() -> None:
         f"{int(school['n_students']):,}",
         help=f"{int(enrollments):,} lượt đăng ký; một sinh viên có thể học nhiều đợt.",
     )
-    tiles[1].metric("Tỷ lệ đạt", f"{_rate(school['n_passed'], enrollments):.1f}%", help="Pass hoặc Distinction, trên lượt đăng ký.")
-    tiles[2].metric("Tỷ lệ rút", f"{_rate(school['n_withdrawn'], enrollments):.1f}%", help="Kết quả Withdrawn, trên lượt đăng ký.")
+    tiles[1].metric("Lượt đăng ký", f"{int(enrollments):,}", help="Một dòng cho một sinh viên trong một đợt.")
+    tiles[2].metric("Tỷ lệ đạt", f"{_rate(school['n_passed'], enrollments):.1f}%", help="Pass hoặc Distinction, trên lượt đăng ký.")
     tiles[3].metric(
         "Chưa từng vào VLE",
         f"{int(school['n_no_vle_activity']):,} lượt",
         help=f"{_rate(school['n_no_vle_activity'], enrollments):.1f}% lượt đăng ký không có click nào cả đợt.",
     )
+
+    st.markdown("**Kết quả cuối kỳ** (trên lượt đăng ký)")
+    outcomes = {
+        "Distinction": school["n_distinction"],
+        "Pass": school["n_passed"] - school["n_distinction"],
+        "Fail": school["n_failed"],
+        "Withdrawn": school["n_withdrawn"],
+    }
+    for column, (result, count) in zip(st.columns(4, border=True), outcomes.items()):
+        column.metric(result, f"{_rate(count, enrollments):.1f}%", help=f"{int(count):,} lượt")
 
     st.subheader("Cần chú ý")
     worst_withdrawal, worst_pass = st.columns(2)

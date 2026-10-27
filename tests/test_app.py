@@ -42,7 +42,8 @@ def test_overview_matches_contract(app):
     metrics = {m.label: m.value for m in at.metric}
     assert metrics["Sinh viên"] == "28,785"
     assert metrics["Tỷ lệ đạt"] == "47.2%"  # 15.385 / 32.593 lượt Pass + Distinction
-    assert metrics["Tỷ lệ rút"] == "31.2%"  # câu 2
+    assert metrics["Lượt đăng ký"] == "32,593"  # câu 1
+    assert metrics["Withdrawn"] == "31.2%"  # câu 2
     assert metrics["Chưa từng vào VLE"] == "3,365 lượt"  # câu 4
 
 
