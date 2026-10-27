@@ -14,7 +14,7 @@ mục cuối gợi ý slide và trang demo cho từng chuẩn.
 | 1.2 Mô hình hóa từ quan hệ đến phi quan hệ | [data_models.md](data_models.md), [benchmark.md](benchmark.md) | 7 mô hình; bảng lồng quét ít hơn 33% nhưng tốn công tính toán gấp 14,4×; JSONB nhỏ hơn 7,4× nhưng chậm 2,9× ở câu hỏi cắt ngang |
 | 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn | [report_tv1.md](report_tv1.md) mục 1, 3 | 7 nguồn CSV, 4 tầng, 3 nơi lưu, 2 đường nạp batch và stream; `make all` 303 s |
 | 2.2 Thiết kế kho dữ liệu | [design_levels.md](design_levels.md) mục 2, [benchmark.md](benchmark.md) | Constellation 4 fact; bảng ảnh chụp SV-tuần 1.342.949 dòng; star / 3NF / bảng rộng ở 1× và 5× |
-| 3.1 Quản lý dữ liệu phức tạp | [report_tv1.md](report_tv1.md) mục 3, 5 | 3.810.465 dòng click trùng được gộp; 261 test; đảo nhãn không đổi danh sách cảnh báo 3.958 SV |
+| 3.1 Quản lý dữ liệu phức tạp | [report_tv1.md](report_tv1.md) mục 3, 5 | 3.810.465 dòng click trùng được gộp; 281 test; đảo nhãn không đổi danh sách cảnh báo 3.958 SV |
 | 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại | [report_tv1.md](report_tv1.md) mục 4, 6, [optimization.md](optimization.md) | Stream khớp batch 0 lệch trên 1.342.949 dòng; tối ưu giảm 5,4× đến 330× |
 
 ---
@@ -85,7 +85,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Rò rỉ nhãn | Bảng SV-tuần không có nhãn; test đảo toàn bộ `final_result` rồi chạy lại câu 14: danh sách 3.958 SV giữ nguyên, chỉ độ chính xác đổi | `tests/test_questions.py`, `tests/test_student_week.py` |
 | Chạy lại không nhân đôi | Mọi bước ghi đè; test nạp hai lần vẫn đúng số dòng | `tests/test_pipeline.py` |
 | Đúng trên nhiều engine | Cùng bộ số kiểm trên Parquet và PostgreSQL; 20 đáp án mẫu kiểm trên DuckDB | `tests/test_postgres.py`, `tests/test_questions.py` |
-| Kiểm thử tổng | 261 test: kho, phụ thuộc hàm, SQL nghiệp vụ, đáp án mẫu, app, mart, benchmark | `make test` |
+| Kiểm thử tổng | 281 test: kho, phụ thuộc hàm, SQL nghiệp vụ, đáp án mẫu, app, mart, benchmark | `make test` |
 
 ## 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại
 
