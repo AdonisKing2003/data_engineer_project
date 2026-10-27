@@ -87,9 +87,12 @@ def render_course_page() -> None:
     if not labels:
         st.warning("Chưa có học phần hợp lệ để hiển thị.")
         return
-    selected_module, selected_presentation = split_offering(
-        select_offering(labels, key="course_offering")
-    )
+    # "Toàn trường" is listed first but the page still opens on the first offering.
+    choice = select_offering([SCHOOL_WIDE, *labels], key="course_offering", default=labels[0])
+    if choice == SCHOOL_WIDE:
+        selected_module = selected_presentation = None
+    else:
+        selected_module, selected_presentation = split_offering(choice)
 
     # on_change="rerun" tracks the selected tab, so only the open tab runs its queries.
     weekly, before_deadline = st.tabs(
@@ -99,10 +102,96 @@ def render_course_page() -> None:
     )
     if weekly.open:
         with weekly:
-            render_br2_analysis(selected_module, selected_presentation)
+            if selected_module is None:
+                render_br2_school_analysis()
+            else:
+                render_br2_analysis(selected_module, selected_presentation)
     if before_deadline.open:
         with before_deadline:
             render_br3_analysis(selected_module, selected_presentation)
+
+
+SCHOOL_WIDE = "Toàn trường"
+
+
+def render_br2_school_analysis() -> None:
+    st.caption(
+        "Tổng click VLE của mọi lượt đăng ký trên 22 đợt, kể cả sinh viên đã rút (BR2). "
+        "Khi chọn một đợt, trang chỉ đếm sinh viên còn học vào cuối tuần, nên tổng ở đây lớn hơn "
+        "tổng của các đợt cộng lại."
+    )
+    try:
+        totals = load_query("br2_school_totals")
+    except Exception as error:
+        show_query_error("tổng click toàn trường", error)
+        return
+    if totals.empty:
+        st.warning("Truy vấn tổng click toàn trường chưa trả về dữ liệu.")
+        return
+
+    by_type = (
+        totals.groupby("activity_type", as_index=False)["total_clicks"].sum()
+        .sort_values(["total_clicks", "activity_type"], ascending=[False, True])
+    )
+    by_week = totals.groupby("week_no", as_index=False)["total_clicks"].sum().sort_values("week_no")
+    grand_total = int(by_type["total_clicks"].sum())
+    top_type = by_type.iloc[0]
+    # On a tie the earliest week wins, as in sample question 10.
+    peak_week = by_week.sort_values(["total_clicks", "week_no"], ascending=[False, True]).iloc[0]
+
+    total_metric, type_metric, week_metric = st.columns(3)
+    total_metric.metric("Tổng click VLE", f"{grand_total:,}")
+    type_metric.metric(
+        "Loại học liệu nhiều click nhất",
+        str(top_type["activity_type"]),
+        help=(
+            f"{int(top_type['total_clicks']):,} click, "
+            f"{100 * top_type['total_clicks'] / grand_total:.1f}% tổng click."
+        ),
+    )
+    week_metric.metric(
+        "Tuần nhiều click nhất",
+        f"Tuần {int(peak_week['week_no'])}",
+        help=f"{int(peak_week['total_clicks']):,} click.",
+    )
+
+    types_chart = go.Figure(
+        go.Bar(
+            x=by_type["total_clicks"],
+            y=by_type["activity_type"],
+            orientation="h",
+            marker={"color": "#2a78d6"},
+            customdata=100 * by_type[["total_clicks"]].to_numpy() / grand_total,
+            hovertemplate="%{y}<br>%{x:,} click (%{customdata[0]:.1f}%)<extra></extra>",
+        )
+    )
+    types_chart.update_layout(
+        title="Tổng click theo loại học liệu",
+        xaxis_title="Tổng lượt click",
+        yaxis={"title": "", "autorange": "reversed"},
+        height=max(420, 24 * len(by_type) + 100),
+        margin={"l": 20, "r": 20, "t": 60, "b": 20},
+    )
+    st.plotly_chart(types_chart, use_container_width=True, key="br2_school_types")
+
+    weeks_chart = go.Figure(
+        go.Scatter(
+            x=by_week["week_no"],
+            y=by_week["total_clicks"],
+            mode="lines+markers",
+            line={"color": "#2a78d6", "width": 2},
+            hovertemplate="Tuần %{x}<br>%{y:,} click<extra></extra>",
+        )
+    )
+    weeks_chart.add_vline(x=0, line_dash="dot", line_color="#9aa4b2")
+    weeks_chart.update_layout(
+        title="Tổng click theo tuần (tuần 0 là tuần khai giảng)",
+        xaxis_title="Tuần",
+        yaxis_title="Tổng lượt click",
+        height=380,
+        margin={"l": 20, "r": 20, "t": 60, "b": 20},
+    )
+    st.plotly_chart(weeks_chart, use_container_width=True, key="br2_school_weeks")
 
 
 def render_br2_analysis(selected_module: str, selected_presentation: str) -> None:
@@ -272,7 +361,7 @@ def _fisher_interval(rho: float | None, n: int) -> tuple[float | None, float | N
     return tanh(z - margin), tanh(z + margin)
 
 
-def render_br3_analysis(selected_module: str, selected_presentation: str) -> None:
+def render_br3_analysis(selected_module: str | None, selected_presentation: str | None) -> None:
     st.caption(
         "Click trước hạn TMA đầu tiên và điểm bài (BR3). "
         "Tương quan, không phải nhân quả: hệ số Spearman không chứng minh click gây ra điểm số. "
@@ -358,6 +447,9 @@ def render_br3_analysis(selected_module: str, selected_presentation: str) -> Non
     )
     st.plotly_chart(forest, use_container_width=True, key="br3_forest")
 
+    if selected_module is None:
+        st.info("Chọn một đợt ở ô Đợt học để xem từng cặp click và điểm của sinh viên.")
+        return
     if selected_module == "GGG":
         st.info("GGG không có TMA có trọng số, nên không có cặp hợp lệ để tính BR3.")
         return

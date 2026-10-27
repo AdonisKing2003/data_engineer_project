@@ -49,7 +49,8 @@ Mở app:
 docker compose exec app make app        # rồi mở http://localhost:8501
 ```
 App mặc định đọc BigQuery; đặt `DATA_BACKEND=duckdb` trong `.env` để đọc kho Parquet cục bộ. Thanh bên trái chia trang
-theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Ba trang của TV2
+theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Trang Hoạt động học tập
+có thêm lựa chọn Toàn trường: tổng click của mọi lượt đăng ký theo loại học liệu và theo tuần. Ba trang của TV2
 (`app/pages/`: Nộp bài & điểm, Cảnh báo sớm & rút lui, Tiến độ so với lớp) giữ nguyên bản của TV2: chọn đợt ở thanh bên,
 đọc DuckDB qua `app/db.py`. Muốn dùng chung đợt với các trang khác thì gọi `select_offering` trong `app/state.py`.
 

@@ -24,6 +24,10 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br2_dashboard.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br2_dashboard.sql",
     },
+    "br2_school_totals": {
+        "duckdb": PROJECT_ROOT / "sql" / "br2_school_totals.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br2_school_totals.sql",
+    },
     "br2_tma_deadlines": {
         "duckdb": PROJECT_ROOT / "sql" / "br2_tma_deadlines.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br2_tma_deadlines.sql",
@@ -60,6 +64,7 @@ QUERY_PARAMETER_ORDER = {
     "overview_offerings": (),
     "br2_offerings": (),
     "br2_dashboard": ("code_module", "code_presentation"),
+    "br2_school_totals": (),
     "br2_tma_deadlines": ("code_module", "code_presentation"),
     "br2_vle_weekly": (),
     "br3_dashboard": ("code_module", "code_presentation"),

@@ -219,8 +219,6 @@ def q20(d):
 NOT_ANSWERED = {
     7: "Trang Nộp bài & điểm chỉ xem từng đợt; không có tỷ lệ trễ chung mọi TMA",
     8: "Trang Nộp bài & điểm chỉ xem từng đợt; không có điểm TMA trung bình theo môn",
-    9: "Trang Hoạt động học tập chỉ xem từng đợt; không có tổng click toàn trường theo loại",
-    10: "Trang Hoạt động học tập chỉ xem từng đợt; không có tổng click toàn trường theo tuần",
 }
 QUESTIONS = {number: globals()[f"q{number:02d}"] for number in range(1, 21)}
 
