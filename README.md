@@ -71,6 +71,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
 | `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
 | `make optimize` | 1.11 | 4 ví dụ tối ưu có số đo, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all` và `python scripts/build_tv3_marts.py --apply`) | ~1 phút |
+| `make models` | | Dựng 2 mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) và đo so với bảng phẳng, ghi [docs/data_models.md](docs/data_models.md) | ~1 phút |
 
 ## Kiểm thử
 
