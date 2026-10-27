@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.data import run_query  # noqa: E402
-from app.state import offering_label, select_offering, split_offering  # noqa: E402
+from app.state import OFFERING_KEY, offering_label, select_offering, split_offering  # noqa: E402
 
 
 st.set_page_config(page_title="OULAD Analytics", page_icon="📊", layout="wide")
@@ -32,7 +32,9 @@ def load_query(
     return _load_query_cached(query_id, parameters, backend)
 
 
-@st.cache_data(ttl=300)
+# The warehouse only changes when it is reloaded (make load-bq), so results are
+# kept for 6 hours; the quality page has a button to clear them after a reload.
+@st.cache_data(ttl="6h", show_spinner="Đang tải dữ liệu…")
 def _load_query_cached(
     query_id: str,
     parameters: Mapping[str, Any] | Sequence[Any] | None,
@@ -88,13 +90,18 @@ def render_course_page() -> None:
         select_offering(labels, key="course_offering")
     )
 
+    # on_change="rerun" tracks the selected tab, so only the open tab runs its queries.
     weekly, before_deadline = st.tabs(
-        ["Click VLE theo tuần", "Click trước hạn TMA và điểm"]
+        ["Click VLE theo tuần", "Click trước hạn TMA và điểm"],
+        key="course_tab",
+        on_change="rerun",
     )
-    with weekly:
-        render_br2_analysis(selected_module, selected_presentation)
-    with before_deadline:
-        render_br3_analysis(selected_module, selected_presentation)
+    if weekly.open:
+        with weekly:
+            render_br2_analysis(selected_module, selected_presentation)
+    if before_deadline.open:
+        with before_deadline:
+            render_br3_analysis(selected_module, selected_presentation)
 
 
 def render_br2_analysis(selected_module: str, selected_presentation: str) -> None:
@@ -650,116 +657,165 @@ def render_quality_page() -> None:
         st.caption("Không có bảng rộng ở cấu hình này (BigQuery 5× vượt hạn mức 10 GB của Sandbox).")
     st.dataframe(selected, hide_index=True, use_container_width=True)
 
+    st.subheader("Dữ liệu của app")
+    st.caption(
+        "Kết quả truy vấn được lưu tạm 6 giờ để trang mở nhanh. Sau khi nạp lại kho (make load-bq), "
+        "bấm nút dưới để app đọc lại từ kho."
+    )
+    if st.button("Tải lại dữ liệu từ kho", key="clear_cache"):
+        st.cache_data.clear()
+        st.toast("Đã xóa dữ liệu lưu tạm. Các trang sẽ đọc lại từ kho.")
 
-OUTCOME_ORDER = ["Distinction", "Pass", "Fail", "Withdrawn"]
-OUTCOME_COLORS = {
-    "Distinction": "#2a78d6",
-    "Pass": "#eb6834",
-    "Fail": "#1baf7a",
-    "Withdrawn": "#eda100",
-}
+
+def _rate(part: Any, whole: Any) -> float:
+    return 100.0 * float(part) / float(whole) if whole else 0.0
+
+
+def _open_offering(label: str, page_key: str) -> None:
+    # Shared offering state (app/state.py) makes the target page open on this offering.
+    st.session_state[OFFERING_KEY] = label
+    st.switch_page(PAGES[page_key])
+
+
+def _attention_list(
+    title: str,
+    caption: str,
+    rows: pd.DataFrame,
+    rate_column: str,
+    page_key: str,
+    action: str,
+) -> None:
+    with st.container(border=True):
+        st.markdown(f"**{title}**")
+        st.caption(caption)
+        for row in rows.itertuples():
+            label = offering_label(row.code_module, row.code_presentation)
+            left, right = st.columns([3, 2], vertical_alignment="center")
+            left.markdown(f"{label} · **{getattr(row, rate_column):.1f}%**")
+            if right.button(action, key=f"{page_key}_{label}", use_container_width=True):
+                _open_offering(label, page_key)
 
 
 def render_overview_page() -> None:
-    st.title("Tổng quan kho dữ liệu OULAD")
-    st.caption(
-        "7 file CSV được Spark làm sạch thành 5 bảng chiều và 4 bảng sự kiện, nạp lên BigQuery "
-        "(kho chính) và PostgreSQL (đối chứng). Chọn trang theo vai trò ở thanh bên trái."
+    st.title("OULAD Analytics")
+    st.markdown(
+        "Theo dõi việc học, nộp bài và nguy cơ bỏ học của sinh viên trên 22 đợt học, "
+        "7 môn của Open University (2013–2014)."
     )
     try:
-        stats = load_query("overview_stats")
-        outcomes = load_query("overview_outcomes")
+        summary = load_query("overview_offerings")
     except Exception as error:
         show_query_error("số liệu tổng quan", error)
         return
-    if stats.empty:
-        st.warning("Truy vấn tổng quan chưa trả về dữ liệu.")
+    if summary.empty:
+        st.warning("Chưa có dữ liệu để hiển thị.")
         return
-    row = stats.iloc[0]
-    tiles = st.columns(5)
-    tiles[0].metric("Sinh viên", f"{int(row['n_students']):,}")
-    tiles[1].metric("Lượt đăng ký", f"{int(row['n_enrollments']):,}")
-    tiles[2].metric("Đợt học", f"{int(row['n_offerings'])} ({int(row['n_modules'])} môn)")
-    tiles[3].metric("Bài nộp", f"{int(row['n_submissions']):,}")
-    tiles[4].metric("Lượt click VLE", f"{int(row['total_clicks']):,}")
 
-    if not outcomes.empty:
-        outcomes = outcomes.copy()
-        outcomes["offering"] = [
-            offering_label(r.code_module, r.code_presentation) for r in outcomes.itertuples()
-        ]
-        outcomes["share"] = 100 * outcomes["n_enrollments"] / outcomes.groupby("offering")[
-            "n_enrollments"
-        ].transform("sum")
-        offerings = sorted(outcomes["offering"].unique())
-        figure = go.Figure()
-        for result in OUTCOME_ORDER:
-            rows = outcomes.loc[outcomes["final_result"] == result]
-            figure.add_trace(
-                go.Bar(
-                    y=rows["offering"],
-                    x=rows["share"],
-                    name=result,
-                    orientation="h",
-                    marker={"color": OUTCOME_COLORS[result]},
-                    customdata=rows[["n_enrollments"]].to_numpy(),
-                    hovertemplate="%{y}<br>" + result + ": %{x:.1f}% (%{customdata[0]:,} lượt)<extra></extra>",
-                )
-            )
-        figure.update_layout(
-            title="Kết quả cuối kỳ theo đợt học (% lượt đăng ký)",
-            barmode="stack",
-            xaxis={"title": "% lượt đăng ký", "range": [0, 100], "ticksuffix": "%"},
-            yaxis={"title": "", "categoryorder": "array", "categoryarray": offerings[::-1]},
-            height=max(420, 22 * len(offerings) + 120),
-            legend={"orientation": "h", "y": 1.06, "x": 0, "traceorder": "normal"},
-            margin={"l": 20, "r": 20, "t": 80, "b": 20},
+    school = summary.loc[summary["code_module"].isna()].iloc[0]
+    offerings = summary.loc[summary["code_module"].notna()].copy()
+    offerings["pass_rate"] = 100.0 * offerings["n_passed"] / offerings["n_enrollments"]
+    offerings["withdrawal_rate"] = 100.0 * offerings["n_withdrawn"] / offerings["n_enrollments"]
+    offerings["clicks_per_enrollment"] = offerings["total_clicks"] / offerings["n_enrollments"]
+
+    enrollments = school["n_enrollments"]
+    tiles = st.columns(4, border=True)
+    tiles[0].metric(
+        "Sinh viên",
+        f"{int(school['n_students']):,}",
+        help=f"{int(enrollments):,} lượt đăng ký; một sinh viên có thể học nhiều đợt.",
+    )
+    tiles[1].metric("Tỷ lệ đạt", f"{_rate(school['n_passed'], enrollments):.1f}%", help="Pass hoặc Distinction, trên lượt đăng ký.")
+    tiles[2].metric("Tỷ lệ rút", f"{_rate(school['n_withdrawn'], enrollments):.1f}%", help="Kết quả Withdrawn, trên lượt đăng ký.")
+    tiles[3].metric(
+        "Chưa từng vào VLE",
+        f"{int(school['n_no_vle_activity']):,} lượt",
+        help=f"{_rate(school['n_no_vle_activity'], enrollments):.1f}% lượt đăng ký không có click nào cả đợt.",
+    )
+
+    st.subheader("Cần chú ý")
+    worst_withdrawal, worst_pass = st.columns(2)
+    with worst_withdrawal:
+        _attention_list(
+            "Đợt có tỷ lệ rút cao nhất",
+            "Mở trang cảnh báo sớm để xem ai cần liên hệ ngay từ những tuần đầu.",
+            offerings.nlargest(3, "withdrawal_rate"),
+            "withdrawal_rate",
+            "warning",
+            "Xem cảnh báo",
         )
-        st.plotly_chart(figure, use_container_width=True, key="overview_outcomes")
+    with worst_pass:
+        _attention_list(
+            "Đợt có tỷ lệ đạt thấp nhất",
+            "Mở trang nộp bài & điểm để xem bài nào nhiều sinh viên bỏ hoặc điểm thấp.",
+            offerings.nsmallest(3, "pass_rate"),
+            "pass_rate",
+            "submissions",
+            "Xem nộp bài",
+        )
 
-    st.subheader("Trang nào cho ai")
+    st.subheader("Bắt đầu theo vai trò")
+    roles = [
+        ("📚 Giảng viên", "Sinh viên học gì theo từng tuần, nộp bài có đúng hạn, điểm phân bố ra sao.", ["course", "submissions"]),
+        ("⚠️ Cố vấn học tập", "Danh sách sinh viên cần liên hệ mỗi tuần và thời điểm sinh viên hay rút.", ["warning"]),
+        ("🏫 Lãnh đạo khoa", "Kết quả của nhóm sinh viên khó khăn nhất cách nhóm thuận lợi nhất bao xa.", ["faculty"]),
+        ("🎓 Sinh viên", "Tiến độ của mình so với cả lớp, và nhóm đạt dùng diễn đàn thế nào.", ["progress", "forum"]),
+    ]
+    for column, (title, description, page_keys) in zip(st.columns(4), roles):
+        with column.container(border=True, height="stretch"):
+            st.markdown(f"**{title}**")
+            st.caption(description)
+            for page_key in page_keys:
+                st.page_link(PAGES[page_key], label=PAGES[page_key].title, icon=":material/arrow_forward:")
+
+    st.subheader("Các đợt học")
+    table = offerings.assign(
+        offering=[
+            offering_label(row.code_module, row.code_presentation) for row in offerings.itertuples()
+        ]
+    )[["offering", "n_enrollments", "pass_rate", "withdrawal_rate", "clicks_per_enrollment"]]
     st.dataframe(
-        pd.DataFrame(
-            [
-                ("Giảng viên", "Hoạt động học tập", "Sinh viên học gì, tuần nào; click trước hạn có đi cùng điểm cao?", "BR2, BR3"),
-                ("Giảng viên", "Nộp bài & điểm", "Bao nhiêu % nộp, bao nhiêu % trễ, điểm phân bố ra sao?", "BR1"),
-                ("Cố vấn học tập", "Cảnh báo sớm & rút lui", "Tuần này ai cần can thiệp; sinh viên rút vào lúc nào?", "BR4, BR5"),
-                ("Lãnh đạo khoa", "Khoảng cách IMD", "Kết quả của nhóm khó khăn nhất cách nhóm thuận lợi nhất bao xa?", "BR6"),
-                ("Sinh viên", "Tiến độ so với lớp", "Mình đang ở đâu so với các bạn cùng đợt?", "BR7"),
-                ("Sinh viên", "Diễn đàn tuần 5", "Nhóm đạt dùng diễn đàn nhiều đến mức nào?", "BR8"),
-                ("Nhóm kỹ thuật", "Chất lượng & benchmark", "Bố trí bảng nào nhanh hơn, ở quy mô nào?", ""),
-            ],
-            columns=["Vai trò", "Trang", "Câu hỏi trả lời", "Yêu cầu nghiệp vụ"],
-        ),
+        table,
         hide_index=True,
         use_container_width=True,
+        height=35 * (len(table) + 1) + 3,  # every offering visible, no inner scroll
+        column_config={
+            "offering": st.column_config.TextColumn("Đợt học"),
+            "n_enrollments": st.column_config.NumberColumn("Lượt đăng ký", format="localized"),
+            "pass_rate": st.column_config.ProgressColumn(
+                "Tỷ lệ đạt", format="%.1f%%", min_value=0, max_value=100, color="#2a78d6"
+            ),
+            "withdrawal_rate": st.column_config.ProgressColumn(
+                "Tỷ lệ rút", format="%.1f%%", min_value=0, max_value=100, color="#eb6834"
+            ),
+            "clicks_per_enrollment": st.column_config.NumberColumn("Click VLE trung bình", format="%.0f"),
+        },
+    )
+    st.caption(
+        "Nguồn: Open University Learning Analytics Dataset (CC BY 4.0). "
+        "Số liệu được lưu tạm 6 giờ; làm mới ở trang Chất lượng & benchmark."
     )
 
 
 # st.navigation disables auto-discovery of app/pages/, so the page scripts
 # are registered here explicitly and grouped by the role that uses them.
+PAGES = {
+    "overview": st.Page(render_overview_page, title="Tổng quan", icon="🏠", default=True),
+    "course": st.Page(render_course_page, title="Hoạt động học tập", icon="📚"),
+    "submissions": st.Page("pages/1_Hoc_phan.py", title="Nộp bài & điểm", icon="📝"),
+    "warning": st.Page("pages/2_Canh_bao.py", title="Cảnh báo sớm & rút lui", icon="⚠️"),
+    "faculty": st.Page(render_faculty_page, title="Khoảng cách IMD", icon="🏫"),
+    "progress": st.Page("pages/4_Sinh_vien.py", title="Tiến độ so với lớp", icon="🎓"),
+    "forum": st.Page(render_student_page, title="Diễn đàn tuần 5", icon="💬"),
+    "quality": st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
+}
 navigation = st.navigation(
     {
-        "Chung": [
-            st.Page(render_overview_page, title="Tổng quan", icon="🏠", default=True),
-        ],
-        "Giảng viên": [
-            st.Page(render_course_page, title="Hoạt động học tập", icon="📚"),
-            st.Page("pages/1_Hoc_phan.py", title="Nộp bài & điểm", icon="📝"),
-        ],
-        "Cố vấn học tập": [
-            st.Page("pages/2_Canh_bao.py", title="Cảnh báo sớm & rút lui", icon="⚠️"),
-        ],
-        "Lãnh đạo khoa": [
-            st.Page(render_faculty_page, title="Khoảng cách IMD", icon="🏫"),
-        ],
-        "Sinh viên": [
-            st.Page("pages/4_Sinh_vien.py", title="Tiến độ so với lớp", icon="🎓"),
-            st.Page(render_student_page, title="Diễn đàn tuần 5", icon="💬"),
-        ],
-        "Hệ thống": [
-            st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
-        ],
+        "Chung": [PAGES["overview"]],
+        "Giảng viên": [PAGES["course"], PAGES["submissions"]],
+        "Cố vấn học tập": [PAGES["warning"]],
+        "Lãnh đạo khoa": [PAGES["faculty"]],
+        "Sinh viên": [PAGES["progress"], PAGES["forum"]],
+        "Hệ thống": [PAGES["quality"]],
     },
     position="sidebar",
 )

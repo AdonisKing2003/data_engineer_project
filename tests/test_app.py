@@ -41,8 +41,18 @@ def test_overview_matches_contract(app):
     open_page(at, pages, "")
     metrics = {m.label: m.value for m in at.metric}
     assert metrics["Sinh viên"] == "28,785"
-    assert metrics["Lượt đăng ký"] == "32,593"
-    assert metrics["Lượt click VLE"] == "39,605,099"
+    assert metrics["Tỷ lệ đạt"] == "47.2%"  # 15.385 / 32.593 lượt Pass + Distinction
+    assert metrics["Tỷ lệ rút"] == "31.2%"  # câu 2
+    assert metrics["Chưa từng vào VLE"] == "3,365 lượt"  # câu 4
+
+
+def test_attention_button_opens_offering(app):
+    """Đợt rút nhiều nhất là CCC 2014B (câu 17); bấm nút thì trang cảnh báo mở đúng đợt đó."""
+    at, pages = app
+    open_page(at, pages, "")
+    at.button(key="warning_CCC 2014B").click().run()
+    assert not at.exception
+    assert at.selectbox(key="br4_offering").value == "CCC 2014B"
 
 
 def test_offering_is_shared_across_pages(app):
