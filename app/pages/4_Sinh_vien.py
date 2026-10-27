@@ -12,13 +12,13 @@ if str(APP_DIR) not in sys.path:
 import db
 
 st.set_page_config(
-    page_title="Trang Sinh viên - Benchmark Phân vị Lớp (BR7) | OULAD",
+    page_title="Sinh viên - Theo dõi Tiến độ so với Lớp | OULAD",
     page_icon="🎓",
     layout="wide"
 )
 
-st.title("🎓 Phân hệ Sinh viên: Theo dõi Tiến độ so với Cả lớp (BR7)")
-st.caption("Phụ trách: Thành viên 2 (TV2) · Đối tượng: Sinh viên (Góc nhìn tự đánh giá & cải thiện)")
+st.title("🎓 Sinh viên: Theo dõi Tiến độ so với Cả lớp")
+st.caption("Góc nhìn tự đánh giá: So sánh mức độ tương tác học tập cá nhân với dải phân vị của cả lớp")
 
 # Bộ lọc chọn đợt học
 pres_df = db.get_presentations()

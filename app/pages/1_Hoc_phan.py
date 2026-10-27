@@ -13,13 +13,13 @@ if str(APP_DIR) not in sys.path:
 import db
 
 st.set_page_config(
-    page_title="Trang Học phần - Nộp bài & Điểm số (BR1) | OULAD",
+    page_title="Học phần - Nộp bài & Điểm số | OULAD",
     page_icon="📚",
     layout="wide"
 )
 
-st.title("📚 Phân hệ Học phần: Nộp bài, Trễ hạn & Phân phối Điểm (BR1)")
-st.caption("Phụ trách: Thành viên 2 (TV2) · Đối tượng: Module Chair & Giảng viên")
+st.title("📚 Học phần: Nộp bài, Trễ hạn & Phân phối Điểm")
+st.caption("Đối tượng phục vụ: Giảng viên & Ban quản lý học phần")
 
 # Bộ lọc chọn đợt học
 pres_df = db.get_presentations()
