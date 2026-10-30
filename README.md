@@ -44,10 +44,15 @@ Chạy lại bao nhiêu lần cũng được: mọi bước đều ghi đè, kh�
 
 Chưa có khóa Google Cloud thì dùng `make all-local` (bỏ bước BigQuery).
 
-Mở app (khi đã có `app/Home.py`, việc 3.2):
+Mở app:
 ```bash
 docker compose exec app make app        # rồi mở http://localhost:8501
 ```
+App mặc định đọc BigQuery; đặt `DATA_BACKEND=duckdb` trong `.env` để đọc kho Parquet cục bộ. Thanh bên trái chia trang
+theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Trang Hoạt động học tập
+có thêm lựa chọn Toàn trường: tổng click của mọi lượt đăng ký theo loại học liệu và theo tuần. Ba trang của TV2
+(`app/pages/`: Nộp bài & điểm, Cảnh báo sớm & rút lui, Tiến độ so với lớp) giữ nguyên bản của TV2: chọn đợt ở thanh bên,
+đọc DuckDB qua `app/db.py`. Muốn dùng chung đợt với các trang khác thì gọi `select_offering` trong `app/state.py`.
 
 Lệnh `make` chạy **bên trong container**, nên dùng được trên mọi máy, kể cả Windows.
 Mở shell trong container: `docker compose exec app bash`. Tắt: `docker compose down` (dữ liệu PostgreSQL vẫn giữ).
@@ -71,18 +76,26 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
 | `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
 | `make optimize` | 1.11 | 4 ví dụ tối ưu có số đo, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all` và `python scripts/build_tv3_marts.py --apply`) | ~1 phút |
+| `make bench` | 3.9 | Benchmark star / 3NF / bảng rộng trên PostgreSQL và BigQuery, 1× và 5×, có kiểm đáp án từng lượt; ghi `bench/results/<run_id>/`. Phải đặt `CONFIRM_M3=1` (sau mốc kiểm tra cuối tuần 2): `docker compose exec -e CONFIRM_M3=1 app make bench`. Quy trình ở [docs/benchmark.md](docs/benchmark.md), cần `make scale` và dựng bố trí theo [docs/layouts.md](docs/layouts.md) | ~10 phút |
+| `make models` | | Dựng 2 mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) và đo so với bảng phẳng, ghi [docs/data_models.md](docs/data_models.md) | ~1 phút |
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (174 test). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (281 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
-| `tests/test_staging.py` | Số dòng 7 bảng staging, cột ngày là số nguyên |
+| `tests/test_staging.py` | Số dòng 7 bảng staging, cột ngày là số nguyên; các phụ thuộc hàm làm căn cứ chuẩn hóa ([docs/design_levels.md](docs/design_levels.md) mục 2.4) |
 | `tests/test_warehouse.py` | Mọi con số ở cột **Kiểm** của `docs/contract.md`, số NULL từng cột, khóa chính không trùng, khóa ngoại không mồ côi, tổng click và tổng điểm khớp nguồn |
 | `tests/test_student_week.py` | `fact_student_week` ra đúng đáp án BR4, BR7 trong tài liệu đặc tả; chống rò rỉ nhãn `final_result` |
 | `tests/test_postgres.py` | Cùng bộ số đó, chạy trên PostgreSQL |
 | `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream khớp bản batch |
+| `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án (TV2) |
+| `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu; đảo nhãn `final_result` rồi chạy lại câu 14 thì danh sách cảnh báo không đổi |
+| `tests/test_tv3_*.py` | Mart BR2, BR3; các trang Học phần, Khoa, Sinh viên ra đúng đáp án BR2, BR3, BR6, BR8 (TV3). `RUN_TV3_BIGQUERY_DEMO=1` để chạy trên BigQuery |
+| `tests/test_benchmark_*.py` | Runner benchmark mới: ma trận 44/48 ô, cổng câu hỏi, kiểm đáp án từng lượt; trang Chất lượng chỉ hiện lượt chạy thành công (TV3) |
+| `tests/test_dashboard_questions.py` | Chấm 20 câu hỏi mẫu qua dashboard: mở đúng trang, chọn đợt/tuần như đề hỏi, tìm đáp án trong nội dung trang. Câu dashboard chưa trả lời được đánh dấu xfail; xem bằng `pytest -rx` |
+| `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được giữ khi đổi trang |
 
 ## Demo phần stream (không dùng Kafka)
 
@@ -132,7 +145,7 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
 | `app/` | Streamlit |
 | `tests/` | pytest |
 | `bench/` | Benchmark |
-| `docs/` | `contract.md` (hợp đồng tên bảng), `etl_timing.md` (thời gian ETL), ghi chú tối ưu |
+| `docs/` | `contract.md` (hợp đồng tên bảng), `etl_timing.md` (thời gian ETL), ghi chú tối ưu; `lo_traceability.md` (chuẩn đầu ra → bằng chứng) |
 | `data/` | CSV gốc, Parquet, dữ liệu stream: **không commit** |
 | `secrets/` | Khóa Google Cloud: **không commit** |
 

@@ -139,7 +139,16 @@ def test_dashboard_course_page_renders_with_local_duckdb(monkeypatch):
     app_test = streamlit_testing.AppTest.from_file(str(ROOT / "app" / "Home.py")).run(
         timeout=20
     )
+    # The app opens on the overview; the course page is a callable page, which
+    # AppTest.switch_page cannot target, so select it by its registered hash.
+    app_test._page_hash = next(
+        page_hash
+        for page_hash, info in app_test._registered_pages.items()
+        if info["url_pathname"] == "render_course_page"
+    )
+    app_test.run(timeout=20)
     assert not app_test.exception
+    # Only the open tab (BR2) renders: heatmap and top-five trend.
     assert len(app_test.get("plotly_chart")) == 2
 
 

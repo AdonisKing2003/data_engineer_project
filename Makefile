@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize test bench app
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -45,6 +45,9 @@ scale:        ## 1.12 sinh kho 5× rồi nạp vào BigQuery (dataset oulad_5x) 
 
 optimize:     ## 1.11 4 ví dụ tối ưu (phân vùng, gom cụm, mart, chỉ mục PG), ghi docs/optimization.md; cần mart: python scripts/build_tv3_marts.py --apply
 	python scripts/optimize.py
+
+models:       ## mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) so với bảng phẳng, ghi docs/data_models.md
+	python scripts/data_models.py
 
 test:
 	pytest -q
