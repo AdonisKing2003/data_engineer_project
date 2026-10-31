@@ -14,8 +14,8 @@ mục cuối gợi ý slide và trang demo cho từng chuẩn.
 | 1.2 Mô hình hóa từ quan hệ đến phi quan hệ | [data_models.md](data_models.md), [benchmark.md](benchmark.md) | 7 mô hình; bảng lồng quét ít hơn 33% nhưng tốn công tính toán gấp 14,4×; JSONB nhỏ hơn 7,4× nhưng chậm 2,9× ở câu hỏi cắt ngang |
 | 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn | [report_tv1.md](report_tv1.md) mục 1, 3 | 7 nguồn CSV, 4 tầng, 3 nơi lưu, 2 đường nạp batch và stream; `make all` 303 s |
 | 2.2 Thiết kế kho dữ liệu | [design_levels.md](design_levels.md) mục 2, [benchmark.md](benchmark.md) | Constellation 4 fact; bảng ảnh chụp SV-tuần 1.342.949 dòng; star / 3NF / bảng rộng ở 1× và 5× |
-| 3.1 Quản lý dữ liệu phức tạp | [report_tv1.md](report_tv1.md) mục 3, 5 | 3.810.465 dòng click trùng được gộp; 281 test; đảo nhãn không đổi danh sách cảnh báo 3.958 SV |
-| 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại | [report_tv1.md](report_tv1.md) mục 4, 6, [optimization.md](optimization.md) | Stream khớp batch 0 lệch trên 1.342.949 dòng; tối ưu giảm 5,4× đến 330× |
+| 3.1 Quản lý dữ liệu phức tạp | [report_tv1.md](report_tv1.md) mục 3, 5 | 3.810.465 dòng click trùng được gộp; 282 test; đảo nhãn không đổi danh sách cảnh báo 3.958 SV |
+| 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại | [report_tv1.md](report_tv1.md) mục 4, 6, [optimization.md](optimization.md) | Stream từ Kafka có watermark khớp batch 0 lệch trên 1.342.949 dòng, trạng thái lúc lớn nhất nhỏ hơn ~10× so với không có watermark; tối ưu giảm 5,4× đến 330× |
 
 ---
 
@@ -42,7 +42,7 @@ Code: `etl/02_clean_dims.py`, `etl/03_facts.py` (mức luận lý thành bảng)
 | Lưu trữ theo cột | Parquet, BigQuery | BigQuery chỉ quét cột cần: star và 3NF quét đúng cùng số bytes |
 | Dạng lồng | BigQuery `nested_student_timeline` (`ARRAY<STRUCT>`) | 97,7 MB so với 123,9 MB bảng phẳng; BR4 quét 53,0 MB so với 79,2 MB, nhưng slot ms tăng 14,4× |
 | Tài liệu | PostgreSQL `doc.student_timeline` (JSONB) | 33,3 MB so với 247,3 MB; câu hỏi cắt ngang chậm 2,9× |
-| Khóa-giá trị | State store của Spark Structured Streaming (khóa SV × đợt × tuần) | 885.466 lần cập nhật qua 44 micro-batch |
+| Khóa-giá trị | State store của Spark Structured Streaming (khóa SV × đợt × tuần) | Không watermark: 627.031 khóa giữ tới cuối. Có watermark (nguồn Kafka): lớn nhất 65.274 khóa, cuối còn 4.803 |
 
 Kết luận của nhóm: chọn mô hình theo cách truy cập. Câu hỏi tổng hợp cắt ngang (6/8 yêu cầu nghiệp vụ) dùng star
 lưu theo cột. Hồ sơ trọn vẹn một sinh viên hợp với tài liệu hoặc dạng lồng. Cập nhật theo khóa hợp với khóa-giá trị.
@@ -57,7 +57,8 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Nhiều nguồn có khóa và quy tắc khác nhau | 7 CSV: khóa ghép ở `studentInfo`, không có khóa ở `studentVle`, `"?"` là thiếu ở `imd_band`, ngày tương đối từ khai giảng ([report_tv1.md](report_tv1.md) mục 3.3) |
 | Phân tầng | raw (CSV) → staging (Parquet, đặt kiểu) → kho (star) → phục vụ (BigQuery, mart cho app) ([report_tv1.md](report_tv1.md) mục 1.2) |
 | Nhiều nơi lưu, mỗi nơi một vai trò | BigQuery là kho chính, PostgreSQL là kho đối chứng, Parquet + DuckDB để chạy tại máy |
-| Hai đường nạp | Batch bằng Spark; stream bằng Spark Structured Streaming đọc click phát lại theo ngày |
+| Hai đường nạp | Batch bằng Spark; stream bằng Spark Structured Streaming đọc click phát lại theo ngày, từ thư mục hoặc từ Kafka |
+| Tách bên gửi khỏi bên xử lý | Kafka topic `oulad.clicks`, 4 partition, key `id_student`; Spark đọc theo offset, lưu offset vào checkpoint nên dừng rồi chạy lại vẫn đọc tiếp đúng chỗ ([report_tv1.md](report_tv1.md) mục 4.2) |
 | Đối soát giữa các nơi lưu | Số dòng khớp ở mọi bảng; 20 câu hỏi mẫu viết bằng SQL chung, ra cùng đáp án trên BigQuery, PostgreSQL, DuckDB |
 | Tầng phục vụ tách khỏi nơi lưu | App đọc qua `app/data.py`, đổi BigQuery / DuckDB bằng một biến môi trường `DATA_BACKEND` |
 | Chạy lại được ở mọi máy | Docker Compose; `make all` dựng lại toàn bộ trong 303 s ([etl_timing.md](etl_timing.md)) |
@@ -85,14 +86,15 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Rò rỉ nhãn | Bảng SV-tuần không có nhãn; test đảo toàn bộ `final_result` rồi chạy lại câu 14: danh sách 3.958 SV giữ nguyên, chỉ độ chính xác đổi | `tests/test_questions.py`, `tests/test_student_week.py` |
 | Chạy lại không nhân đôi | Mọi bước ghi đè; test nạp hai lần vẫn đúng số dòng | `tests/test_pipeline.py` |
 | Đúng trên nhiều engine | Cùng bộ số kiểm trên Parquet và PostgreSQL; 20 đáp án mẫu kiểm trên DuckDB | `tests/test_postgres.py`, `tests/test_questions.py` |
-| Kiểm thử tổng | 281 test: kho, phụ thuộc hàm, SQL nghiệp vụ, đáp án mẫu, app, mart, benchmark | `make test` |
+| Kiểm thử tổng | 282 test: kho, phụ thuộc hàm, SQL nghiệp vụ, đáp án mẫu, app, mart, benchmark | `make test` |
 
 ## 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại
 
 | Kiểu mẫu | Bằng chứng |
 |---|---|
 | Xử lý phân tán | Spark 3.5 cho toàn bộ ETL batch và sinh kho 5× |
-| Stream | Spark Structured Streaming, micro-batch, có trạng thái, `outputMode("update")`: 295 file ngày, 44 micro-batch, 97,5 s; so với batch lệch 0 trên 1.342.949 dòng ([report_tv1.md](report_tv1.md) mục 4) |
+| Stream, nguồn thư mục | Spark Structured Streaming, micro-batch, có trạng thái, `outputMode("update")`: 295 file ngày, 44 micro-batch, 97,5 s; so với batch lệch 0 trên 1.342.949 dòng ([report_tv1.md](report_tv1.md) mục 4.1) |
+| Stream, nguồn Kafka | Kafka làm hàng đợi sự kiện; cửa sổ 7 ngày theo thời gian sự kiện, watermark 7 ngày: 10.655.280 message, 63 micro-batch, 130,3 s, 0 dòng bị watermark bỏ, lệch 0 so với batch; trạng thái lớn nhất 65.274 khóa so với 627.031 khi không có watermark. Không trùng, không mất nhờ producer idempotent + checkpoint + ghi đè theo `batch_id` ([report_tv1.md](report_tv1.md) mục 4.2) |
 | Kho dữ liệu đám mây không máy chủ | BigQuery, tính tiền theo bytes quét |
 | Lưu trữ theo cột | Parquet, BigQuery; DuckDB chạy SQL thẳng trên Parquet |
 | Tối ưu có số đo | Phân vùng 16,8×, gom cụm 25,5×, bảng tổng hợp sẵn 330× (bytes quét BigQuery); chỉ mục 5,4× (thời gian PostgreSQL) ([optimization.md](optimization.md)) |
@@ -105,7 +107,9 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 
 | Hạn chế | Ảnh hưởng tới chuẩn | Cách trả lời |
 |---|---|---|
-| Stream là phát lại dữ liệu lịch sử, không phải luồng thật; nguồn chỉ có ngày, không có giờ | 3.2 | Vẫn là xử lý stream thật (micro-batch, trạng thái, ghi tăng dần); không dùng Kafka để bớt một hệ thống phải vận hành |
+| Stream là phát lại dữ liệu lịch sử, không phải luồng thật; nguồn chỉ có ngày, không có giờ | 3.2 | Nguồn là Kafka, xử lý theo thời gian sự kiện có watermark, đúng như với luồng thật; chỉ phần gửi là phát lại. Lệnh `--late` minh họa dữ liệu đến trễ bị bỏ |
+| Kafka chạy 1 broker, không có bản sao | 3.2 | Đủ để minh họa; production cần ít nhất 3 broker, replication factor 3 |
+| Kết quả stream chưa có trang dashboard đọc | 2.1, 3.2 | Đã đối chiếu từng dòng với batch; bước tiếp theo là nạp lên BigQuery và thêm trang |
 | 7 nguồn đều thuộc một bộ dữ liệu | 2.1 | Các file có khóa, chất lượng và quy tắc ngày khác nhau, nên vẫn phải hợp nhất như nhiều nguồn |
 | BigQuery Sandbox: bảng tự xóa sau 60 ngày, không cho `INSERT`/`UPDATE` | 2.1, 3.2 | Nạp lại toàn bộ mỗi lần, chưa nạp tăng dần |
 | Bảng rộng 5× không dựng được trên BigQuery vì vượt hạn mức 10 GB | 1.2, 2.2 | So bảng rộng ở 1× trên BigQuery và ở 5× trên PostgreSQL |
@@ -120,7 +124,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | 2.1 | Sơ đồ luồng dữ liệu 4 tầng, 3 nơi lưu | 20 câu hỏi ra cùng đáp án trên 3 engine | Tổng quan (đổi `DATA_BACKEND`) |
 | 2.2 | Sơ đồ constellation, grain 4 fact, bảng ảnh chụp SV-tuần | Ở 5× trên PostgreSQL, bảng rộng gấp đôi dung lượng và chậm gấp 1,56 lần star ở BR2 | Chất lượng & benchmark |
 | 3.1 | Bảng vấn đề dữ liệu → cách xử lý; test chống rò rỉ nhãn | Đảo nhãn, danh sách cảnh báo vẫn 3.958 SV | Cảnh báo sớm & rút lui |
-| 3.2 | Batch và stream; 4 ví dụ tối ưu | Stream lệch 0 dòng so với batch; mart giảm 330× | Hoạt động học tập (đọc mart BR2) |
+| 3.2 | Batch và stream (thư mục, Kafka có watermark); 4 ví dụ tối ưu | Stream lệch 0 dòng so với batch; watermark giữ trạng thái nhỏ hơn ~10×; mart giảm 330× | Hoạt động học tập (đọc mart BR2); Spark UI tab Structured Streaming khi chạy `make stream-kafka` |
 
 ## Câu hỏi thi nên ôn, và chỗ có ví dụ trong project
 
@@ -134,3 +138,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Rò rỉ nhãn là gì, kiểm bằng cách nào? | [report_tv1.md](report_tv1.md) mục 3.4 |
 | Phân vùng, gom cụm, chỉ mục khác nhau thế nào; hợp với engine nào? | [optimization.md](optimization.md) |
 | Batch khác stream thế nào; micro-batch, trạng thái, `outputMode`? | [report_tv1.md](report_tv1.md) mục 4 |
+| Thời gian sự kiện khác thời gian xử lý thế nào; watermark là gì, đánh đổi gì? | [report_tv1.md](report_tv1.md) mục 4.2 |
+| Vì sao dùng `update` mà không dùng `append` khi có watermark? | [report_tv1.md](report_tv1.md) mục 4.2 |
+| Làm sao để stream không trùng, không mất (exactly-once)? | [report_tv1.md](report_tv1.md) mục 4.2 |
+| Kafka partition và key dùng để làm gì? | [report_tv1.md](report_tv1.md) mục 4.2 |

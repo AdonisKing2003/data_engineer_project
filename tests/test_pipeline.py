@@ -61,3 +61,14 @@ def test_stream_matches_batch():
     assert r["clicks_cum_mismatch"] == 0
     assert r["stream_rows_not_in_batch"] == 0
     assert r["total_clicks_stream"] == r["total_clicks_batch"] == 39605099
+
+def test_kafka_stream_matches_batch():
+    """Lần chạy stream Kafka gần nhất: không dòng nào bị watermark bỏ, và khớp batch."""
+    cmp_path = ROOT / "data" / "stream" / "_compare_kafka.json"
+    run_path = ROOT / "data" / "stream" / "_run_kafka.json"
+    if not cmp_path.exists():
+        pytest.skip("chưa chạy make stream-kafka")
+    r, run = json.loads(cmp_path.read_text()), json.loads(run_path.read_text())
+    assert run["input_rows"] == 10655280
+    assert run["rows_dropped_by_watermark"] == 0
+    assert r["clicks_week_mismatch"] == r["clicks_cum_mismatch"] == r["stream_rows_not_in_batch"] == 0

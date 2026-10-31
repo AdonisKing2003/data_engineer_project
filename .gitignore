@@ -23,3 +23,5 @@ derby.log
 .vscode/
 .idea/
 .DS_Store
+
+.ivy2/

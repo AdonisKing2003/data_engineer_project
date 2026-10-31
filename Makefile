@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app stream-kafka
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -37,6 +37,15 @@ stream:       ## 1.9 chia click theo ngày, phát lại qua Spark Streaming, so 
 	python stream/split_days.py
 	spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} stream/stream_weekly.py --replay
 	python stream/compare.py
+
+KAFKA_PKG = org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3
+STREAM_ARGS ?= --produce
+
+stream-kafka: ## stream từ Kafka có watermark; cần: docker compose --profile stream up -d
+	python stream/split_days.py
+	spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} --packages $(KAFKA_PKG) --conf spark.jars.ivy=/work/.ivy2 stream/stream_kafka.py $(STREAM_ARGS)
+	python stream/compare.py --source kafka
+
 
 scale:        ## 1.12 sinh kho 5× rồi nạp vào BigQuery (dataset oulad_5x) và PostgreSQL (schema x5); chạy sau all
 	cd etl && spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} 07_scale.py --factor 5
