@@ -28,7 +28,7 @@ from google.cloud import bigquery  # noqa: E402
 from pyspark.sql import functions as F  # noqa: E402
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType  # noqa: E402
 
-from common import get_spark  # noqa: E402
+from common import get_spark, give_back_to_owner  # noqa: E402
 from produce_kafka import BOOTSTRAP, DONE, TOPIC, produce, recreate_topic  # noqa: E402
 
 STREAM_DIR = ROOT / "data" / "stream"
@@ -157,6 +157,7 @@ def main():
     (STREAM_DIR / "_run_kafka.json").write_text(json.dumps(run, indent=2))
     print(json.dumps(run, indent=2))
 
+    give_back_to_owner(STREAM_DIR)
 
 if __name__ == "__main__":
     main()
