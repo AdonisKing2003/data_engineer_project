@@ -7,9 +7,10 @@ Mỗi task gọi đúng một mục Makefile, giống make all, nên logic ETL k
 lập lịch, thứ tự, chạy song song bước không phụ thuộc nhau, chạy lại khi lỗi, log và thời gian từng bước.
 Mọi bước đều ghi đè, chạy lại không nhân đôi dữ liệu, nên bật retries là an toàn.
 
-Khác make all ở hai chỗ:
+Khác make all ở ba chỗ:
 - quality_gate kiểm kho trên Parquet TRƯỚC khi nạp, lỗi thì dừng, không đẩy dữ liệu sai lên BigQuery;
-- wait_raw_csv chờ đủ 7 file nguồn thay vì báo lỗi ngay khi thiếu.
+- wait_raw_csv chờ đủ 7 file nguồn thay vì báo lỗi ngay khi thiếu;
+- task lỗi hẳn thì báo lỗi (dags/alerts.py): ghi data/airflow_alerts.jsonl, gửi webhook nếu có ALERT_WEBHOOK_URL.
 """
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -18,6 +19,8 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.sensors.python import PythonSensor
 from airflow.utils.trigger_rule import TriggerRule
+
+from alerts import notify_failure  # dags/alerts.py; Airflow tự thêm thư mục dags vào sys.path
 
 REPO = "/work"
 RAW = Path(REPO) / "data" / "raw"
@@ -48,6 +51,7 @@ with DAG(
         "retries": 1,
         "retry_delay": timedelta(minutes=2),
         "execution_timeout": timedelta(minutes=20),
+        "on_failure_callback": notify_failure,  # chỉ gọi khi task lỗi hẳn, sau khi hết lượt chạy lại
     },
     tags=["oulad", "batch"],
 ) as dag:
