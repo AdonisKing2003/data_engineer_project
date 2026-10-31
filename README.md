@@ -140,12 +140,13 @@ docker compose exec app python stream/compare.py --source kafka                 
 
 Ghi kết quả lên BigQuery và xem trên dashboard: thêm `--to-bq`. Mỗi micro-batch được nạp vào bảng
 `stream_student_week_updates`, view `stream_student_week_latest` lấy bản mới nhất. Trang **Hệ thống → Click thời gian thực**
-đọc view đó và tự tải lại mỗi 10 giây, nên mở trang trước rồi chạy stream sẽ thấy đường stream dâng dần lên khớp batch:
+đọc view đó. Mở trang, bật nút **Tự tải lại mỗi 10 giây** (mặc định tắt), rồi chạy stream sẽ thấy đường stream dâng dần
+lên khớp batch:
 ```bash
 docker compose exec app make app                                                    # terminal 1, mở http://localhost:8501
 docker compose exec app make stream-kafka STREAM_ARGS="--produce --to-bq --delay 1" # terminal 2, khoảng 6 phút
 ```
-Mỗi lần trang tự tải lại quét khoảng 48 MB trên BigQuery. Xem xong thì tắt nút "Tự tải lại" hoặc đóng trang.
+Mỗi lần trang tải lại quét khoảng 48 MB trên BigQuery, nên nút tự tải lại mặc định tắt. Xem xong thì tắt lại.
 
 Thử dữ liệu đến trễ: `make stream-kafka STREAM_ARGS="--produce --late 0.001"` giữ lại 0,1% số click và gửi sau cùng.
 Spark bỏ các click đã quá watermark và đếm ở `rows_dropped_by_watermark` trong `data/stream/_run_kafka.json`, nên

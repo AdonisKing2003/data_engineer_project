@@ -286,14 +286,14 @@ Kết quả lần chạy ngày 31/10/2026 có ghi BigQuery (mỗi ngày cách nh
 - Độ trễ từ lúc click vào Kafka tới lúc hiện trên dashboard vì vậy cỡ 5–10 s, đủ cho bảng theo dõi nhưng không phải thời
   gian thực tính bằng mili giây. Muốn nhanh hơn thì cần streaming insert hoặc Storage Write API, phải bật billing.
 
-**Trang dashboard** đọc view mới nhất và tự tải lại mỗi 10 giây. Trang hiện:
+**Trang dashboard** đọc view mới nhất. Khi bật nút tự tải lại, trang đọc lại mỗi 10 giây. Trang hiện:
 - micro-batch cuối, tuần mới nhất, số click đã xử lý so với batch, và micro-batch cuối được ghi cách đây bao lâu;
 - biểu đồ tổng click theo tuần: đường stream dâng dần lên trùng đường batch (đứt nét).
 
-Mở trang trước rồi chạy stream với `--delay 1` là có cảnh demo cho thuyết trình. Trang lấy số mới thẳng từ kho, không
-qua bộ nhớ đệm 6 giờ của các trang khác. Đổi lại, mỗi lần tải lại quét khoảng 48 MB, tức khoảng 17 GB mỗi giờ nếu để
-trang mở, nên trang có nút tắt tự tải lại. Khi chạy tại máy (`DATA_BACKEND=duckdb`), trang đọc thẳng thư mục Parquet
-của stream.
+Mở trang, bật tự tải lại, rồi chạy stream với `--delay 1` là có cảnh demo cho thuyết trình. Trang lấy số mới thẳng từ
+kho, không qua bộ nhớ đệm 6 giờ của các trang khác. Đổi lại, mỗi lần tải lại quét khoảng 48 MB, tức khoảng 17 GB mỗi giờ
+nếu để tự tải lại liên tục, nên nút này mặc định tắt. Khi chạy tại máy (`DATA_BACKEND=duckdb`), trang đọc thẳng thư mục
+Parquet của stream.
 
 `tests/test_pipeline.py` kiểm lần chạy có `--to-bq`: số dòng trong log bằng số dòng đã nạp và bằng bản Parquet, view mới
 nhất có đúng 627.031 dòng và 39.605.099 click. Số này được `stream_kafka.py` truy vấn một lần ngay sau khi chạy, ghi vào

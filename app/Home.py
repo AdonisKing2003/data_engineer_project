@@ -1179,8 +1179,13 @@ def render_stream_page() -> None:
         "Đường đứt nét là kết quả của bản batch để đối chiếu."
     )
     # Each refresh scans the stream log table again (about 48 MB on BigQuery, so ~17 GB per
-    # hour at a 10 s interval), so the page refreshes on its own only while the toggle is on.
-    auto = st.toggle("Tự tải lại mỗi 10 giây", value=True, key="stream_auto_refresh")
+    # hour at a 10 s interval). Off by default: turn it on only while watching a stream run.
+    auto = st.toggle(
+        "Tự tải lại mỗi 10 giây",
+        value=False,
+        key="stream_auto_refresh",
+        help="Mỗi lần tải lại quét khoảng 48 MB trên BigQuery. Chỉ bật khi đang xem stream chạy.",
+    )
     st.fragment(run_every="10s" if auto else None)(render_stream_live)()
 
 

@@ -100,7 +100,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Lưu trữ theo cột | Parquet, BigQuery; DuckDB chạy SQL thẳng trên Parquet |
 | Tối ưu có số đo | Phân vùng 16,8×, gom cụm 25,5×, bảng tổng hợp sẵn 330× (bytes quét BigQuery); chỉ mục 5,4× (thời gian PostgreSQL) ([optimization.md](optimization.md)) |
 | Container, chạy một lệnh | Docker Compose; Makefile; `scripts/run_all.py` dừng ở bước lỗi đầu tiên và ghi thời gian từng bước |
-| Phục vụ người dùng | Dashboard Streamlit chia theo vai trò, đọc BigQuery; test khói `tests/test_app.py`. Trang Click thời gian thực tự tải lại mỗi 10 giây trong lúc stream chạy, độ trễ cỡ 5–10 s do mỗi load job BigQuery mất khoảng 5 s |
+| Phục vụ người dùng | Dashboard Streamlit chia theo vai trò, đọc BigQuery; test khói `tests/test_app.py`. Trang Click thời gian thực tự tải lại mỗi 10 giây khi bật (mặc định tắt vì mỗi lần quét ~48 MB), độ trễ cỡ 5–10 s do mỗi load job BigQuery mất khoảng 5 s |
 
 ---
 
