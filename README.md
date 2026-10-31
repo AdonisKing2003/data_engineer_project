@@ -72,7 +72,8 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make student-week` | 1.8 | `fact_student_week` (SV × đợt × tuần, as-of) | ~65 s |
 | `make load-bq` | 1.6 | Nạp mọi bảng lên BigQuery, so số dòng | ~80 s |
 | `make load-pg` | 1.7 | Nạp mọi bảng vào PostgreSQL, so số dòng | ~35 s |
-| `make test` | 1.10 | Toàn bộ pytest | ~20 s |
+| `make test` | 1.10 | Toàn bộ pytest | ~30 s |
+| `make lock` | | Ghi phiên bản chính xác của mọi gói đang cài ra `requirements.lock` (xem [Phiên bản thư viện](#phiên-bản-thư-viện)) | vài giây |
 | `make stream` | 1.9 | Phát lại click theo ngày qua Spark Streaming, so với batch | ~2 phút |
 | `make stream-kafka` | | Như trên nhưng nguồn là Kafka, gom theo cửa sổ tuần có watermark; cần bật Kafka trước (xem [Demo phần stream](#demo-phần-stream)). Thêm `STREAM_ARGS="--produce --to-bq"` để ghi kết quả lên BigQuery cho dashboard | ~2,5 phút, ~4,5 phút nếu có BigQuery |
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
@@ -83,7 +84,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (283 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (289 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
@@ -98,6 +99,24 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_benchmark_*.py` | Runner benchmark mới: ma trận 44/48 ô, cổng câu hỏi, kiểm đáp án từng lượt; trang Chất lượng chỉ hiện lượt chạy thành công (TV3) |
 | `tests/test_dashboard_questions.py` | Chấm 20 câu hỏi mẫu qua dashboard: mở đúng trang, chọn đợt/tuần như đề hỏi, tìm đáp án trong nội dung trang. Câu dashboard chưa trả lời được đánh dấu xfail; xem bằng `pytest -rx` |
 | `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được giữ khi đổi trang |
+| `tests/test_alerts.py` | Báo lỗi của DAG Airflow: ghi log, gửi webhook đúng dạng Discord/Slack, webhook lỗi không làm hỏng lần chạy |
+| `tests/test_dag.py` | DAG Airflow nạp được, đúng thứ tự, mọi task có báo lỗi. Cần Airflow nên `make test` tự bỏ qua; chạy bằng `docker compose exec airflow make test-dag` |
+
+pytest chỉ tìm test trong `tests/` (`testpaths` trong `pytest.ini`), để không chạy nhầm các script trong `scripts/`.
+
+## Phiên bản thư viện
+
+`requirements.txt` ghi các gói project cần. `requirements.lock` ghi phiên bản chính xác của mọi gói (70 gói, kể cả gói
+phụ thuộc) đã chạy test xanh. Dockerfile cài `requirements.txt` với ràng buộc của file khóa, nên build ở máy nào, ngày
+nào cũng ra đúng một bộ thư viện.
+
+Thêm hay nâng thư viện:
+```bash
+# 1. sửa requirements.txt (thêm gói mới, hoặc xóa dòng của gói muốn nâng trong requirements.lock)
+docker compose build app && docker compose up -d app
+docker compose exec app make test       # 2. phải xanh
+docker compose exec app make lock       # 3. ghi lại requirements.lock rồi commit cùng requirements.txt
+```
 
 ## Demo phần stream
 
@@ -158,7 +177,7 @@ Trong lúc chạy, http://localhost:4040 (tab Structured Streaming) hiện số 
 
 DAG `oulad_batch` ([dags/oulad_batch.py](dags/oulad_batch.py)) làm đúng các bước của `make all`, mỗi task gọi một mục
 Makefile. Khác `make all` ở chỗ: chờ đủ 7 file CSV, kiểm kho trên Parquet **trước** khi nạp, nạp BigQuery và
-PostgreSQL song song, tự chạy lại một lần khi lỗi, chạy theo lịch 2 giờ sáng (UTC) mỗi ngày.
+PostgreSQL song song, tự chạy lại một lần khi lỗi, báo lỗi khi task lỗi hẳn, chạy theo lịch 2 giờ sáng (UTC) mỗi ngày.
 
 ```
 wait_raw_csv → staging → dims → facts → student_week → quality_gate ─┬→ load_bq ─┬→ test_all → give_back_files
@@ -183,7 +202,13 @@ docker compose exec airflow airflow dags unpause oulad_batch
 docker compose exec airflow airflow dags trigger oulad_batch
 docker compose exec airflow airflow dags list-runs -d oulad_batch
 docker compose exec airflow airflow dags list-import-errors          # DAG không hiện thì xem lỗi ở đây
+docker compose exec airflow make test-dag                            # DAG nạp được, đúng thứ tự, có báo lỗi
 ```
+
+**Báo lỗi.** Task nào lỗi hẳn (đã hết lượt chạy lại) thì [dags/alerts.py](dags/alerts.py) ghi một dòng vào
+`data/airflow_alerts.jsonl`: thời điểm, task, lần chạy, lỗi, đường dẫn tới log. Muốn nhận tin nhắn thì đặt URL webhook
+của Discord hoặc Slack vào `ALERT_WEBHOOK_URL` trong `.env`, rồi `docker compose --profile airflow up -d airflow` để
+container đọc lại `.env`.
 
 Lưu ý:
 - Đừng chạy `make all` bằng tay trong lúc DAG đang chạy: cả hai cùng ghi vào `data/`.

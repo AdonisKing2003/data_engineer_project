@@ -66,6 +66,7 @@ wait_raw_csv → staging → dims → facts → student_week → quality_gate �
 | Song song | `load_bq` và `load_pg` cùng chạy sau cổng chất lượng | Hai bước chỉ đọc Parquet, không phụ thuộc nhau |
 | Chạy lại khi lỗi | Mỗi task thử lại 1 lần sau 2 phút, quá 20 phút thì dừng | An toàn vì mọi bước đều ghi đè, chạy lại không nhân đôi dữ liệu |
 | Dọn dẹp | `give_back_files` trả quyền file trong `data/` cho chủ repo, chạy cả khi bước trước lỗi | Container chạy bằng root |
+| Báo lỗi | Task lỗi hẳn (hết lượt chạy lại) thì `dags/alerts.py` ghi một dòng vào `data/airflow_alerts.jsonl` (task, lần chạy, lỗi, đường dẫn log) và gửi webhook Discord/Slack nếu `.env` có `ALERT_WEBHOOK_URL` | Lịch chạy lúc 2 giờ sáng, không ai ngồi xem; gửi webhook lỗi cũng không làm hỏng thêm lần chạy |
 
 Mỗi task chỉ gọi một mục Makefile, nên logic ETL không đổi và `make all` vẫn dùng được khi không bật Airflow. Airflow
 chạy trên image của app, cài trong một venv riêng: task gọi được Spark, Java như khi chạy tay, mà thư viện của Airflow
@@ -360,8 +361,9 @@ nhất có đúng 627.031 dòng và 39.605.099 click. Số này được `stream
 
 ## 5. Kiểm thử
 
-`make test` chạy 283 test (182 test kho của TV1, gồm 11 test phụ thuộc hàm; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3), tất cả đều qua.
-Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 182 test kho.
+`make test` chạy 289 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3). Kết quả: 286 qua, 2 xfail (câu hỏi mẫu dashboard chưa trả lời được), 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 10 test qua).
+Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. pytest chỉ tìm test trong `tests/` (`testpaths` trong `pytest.ini`): trước đó pytest lấy nhầm cả `scripts/bq_smoke_test.py` vì tên khớp mẫu `*_test.py`, nên mỗi lần `make test` lại chạy code nạp thử bảng `courses` lên BigQuery của file này.
+Bảng dưới liệt kê 182 test kho và 6 test điều phối.
 
 | Nhóm kiểm tra | Nội dung | Số test |
 |---|---|---:|
@@ -376,6 +378,8 @@ Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dư�
 | Chống rò rỉ nhãn | Không có cột nhãn; đổi `final_result` không đổi danh sách BR4 | 2 |
 | Chạy lại, stream | Nạp lại không nhân đôi; Spark ghi overwrite; stream từ thư mục và từ Kafka khớp batch, Kafka không bỏ dòng nào vì watermark; bản trên BigQuery khớp bản Parquet | 5 |
 | Kho 5× | Số dòng gấp đúng 5; mỗi bản đủ 28.785 SV; tỷ lệ và phân bố click không đổi; đã nạp BigQuery và PostgreSQL | 19 |
+| Báo lỗi Airflow (`test_alerts.py`) | Ghi log báo lỗi, ghi thêm không ghi đè; không có URL thì không gửi; gửi đúng dạng Discord/Slack; webhook lỗi không làm hỏng lần chạy | 5 |
+| DAG Airflow (`test_dag.py`, chạy trong container airflow) | DAG nạp không lỗi, đủ 10 task; đúng thứ tự; cổng chất lượng đứng trước 2 bước nạp song song; bước trả quyền file chạy cả khi lỗi; mọi task có báo lỗi | 5 (tính là 1 bỏ qua trong `make test`) |
 
 20 câu hỏi mẫu trong `sql/questions/` được viết bằng SQL chung (không dùng hàm riêng của engine nào; trung vị và
 phân vị tính bằng `ROW_NUMBER` và nội suy tuyến tính), nên cùng một file chạy được trên BigQuery, PostgreSQL và
@@ -423,8 +427,8 @@ yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, 
 - Stream là phát lại dữ liệu lịch sử, không phải luồng thật; Kafka chạy 1 broker (xem mục 4.4).
 - Lần build lại image ngày 31/10 tự kéo DuckDB 2.0, pandas 3, pytest 9 vì `requirements.txt` chỉ ghi phiên bản tối
   thiểu, làm hỏng nhiều lệnh gọi DuckDB và 2 file test. Đã khóa lại DuckDB 1.5.6, Streamlit 1.65.0 và chặn bản lớn của
-  pandas, plotly; thêm `pytest.ini` (`pythonpath = .`). Muốn build lại ra đúng một môi trường thì cần một file khóa đủ
-  mọi phiên bản (`pip freeze`).
+  pandas, plotly; thêm `pytest.ini` (`pythonpath = .`). Sau đó thêm `requirements.lock` ghi đủ 70 gói (mục 8.1): image
+  build lại từ file này cài ra khớp từng phiên bản với file khóa và chạy test xanh.
 
 ## 8. Hướng lên production
 
@@ -440,8 +444,10 @@ hỏi hay gặp nhất khi so với production.
 | Kiểm chất lượng trước khi công bố | Trong DAG, test kho trên Parquet chạy trước khi nạp; lỗi thì dừng, BigQuery giữ bản cũ |
 | Chạy lại an toàn | Mọi bước ghi đè; load job BigQuery `WRITE_TRUNCATE` thay cả bảng trong một lần, lỗi thì bảng cũ giữ nguyên |
 | Stream không trùng, không mất | Producer idempotent, checkpoint của Spark, đích ghi theo `batch_id` và view lấy bản mới nhất (mục 4.2, 4.3) |
-| Kiểm thử | 283 test; số đúng chốt trong hợp đồng dữ liệu và trong đặc tả 8 yêu cầu nghiệp vụ |
+| Kiểm thử | 289 test; số đúng chốt trong hợp đồng dữ liệu và trong đặc tả 8 yêu cầu nghiệp vụ |
 | Môi trường giống nhau | Docker Compose; Kafka và Airflow tách thành profile, chỉ bật khi cần |
+| Phiên bản thư viện khóa chặt | `requirements.lock` ghi đủ 70 gói kể cả gói phụ thuộc; Dockerfile cài với ràng buộc của file này; `make lock` cập nhật sau khi test xanh. Có từ sau sự cố ngày 31/10 (mục 7) |
+| Báo lỗi | Task của DAG lỗi hẳn thì ghi `data/airflow_alerts.jsonl` và gửi webhook Discord/Slack nếu có. Đã thử với một task cố ý lỗi trong Airflow thật |
 
 ### 8.2 Nạp tăng dần và CDC
 
@@ -492,8 +498,7 @@ Cách này hợp với OULAD vì dữ liệu tự chia theo đợt học, nhưng
 | Kafka | Ít nhất 3 broker, replication factor 3, giám sát độ trễ của consumer | 1 broker, không bản sao |
 | Spark | Chạy trên cụm (Dataproc, Databricks, Kubernetes) | 1 máy, chế độ `local[*]` |
 | BigQuery | Bật billing: DML, Storage Write API cho stream độ trễ dưới 1 giây, bảng không tự hết hạn | Sandbox: chỉ load job, bảng tự xóa sau 60 ngày |
-| Airflow | Bản đang được hỗ trợ (3.x), executor chạy trên nhiều máy, cảnh báo khi task lỗi | 2.10.5, `LocalExecutor`, chưa gửi cảnh báo |
-| Tự động kiểm thử khi đẩy code (CI/CD) | Mỗi lần push chạy test, build image, triển khai | Chạy tay `make test` |
-| Phiên bản thư viện | File khóa đủ mọi phiên bản | Đã chặn bản lớn sau sự cố ngày 31/10, chưa có file khóa đủ |
-| Theo dõi | Cảnh báo khi dữ liệu cũ quá hạn, khi số dòng lệch, truy được nguồn gốc dữ liệu | File `_report_*.json` và log của Airflow |
+| Airflow | Bản đang được hỗ trợ (3.x), executor chạy trên nhiều máy, cảnh báo khi DAG chạy quá lâu (SLA) | 2.10.5, `LocalExecutor`; đã báo lỗi khi task lỗi, chưa có cảnh báo chạy quá lâu |
+| Tự động kiểm thử khi đẩy code (CI/CD) | Mỗi lần push chạy test, build image, triển khai | Chưa có, chạy tay `make test`. Nếu làm thì máy CI chỉ chạy được khoảng 90/289 test không cần dữ liệu cùng test DAG; test số liệu kho và đáp án nghiệp vụ vẫn phải chạy trên máy có kho, nên nhóm chưa làm |
+| Theo dõi | Cảnh báo khi dữ liệu cũ quá hạn, khi số dòng lệch, truy được nguồn gốc dữ liệu | File `_report_*.json`, log và báo lỗi của Airflow; số dòng lệch thì cổng chất lượng chặn lại nhưng chưa có cảnh báo dữ liệu cũ quá hạn |
 | Bảo mật | Quản lý khóa bí mật, phân quyền theo vai trò, che dữ liệu cá nhân của sinh viên | Khóa ở file `secrets/gcp-key.json`, mọi người cùng một quyền |

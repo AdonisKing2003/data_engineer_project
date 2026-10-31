@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app stream-kafka
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app stream-kafka lock test-dag
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -60,6 +60,17 @@ models:       ## mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSO
 
 test:
 	pytest -q
+
+test-dag:     ## DAG Airflow nạp được, đúng thứ tự, có báo lỗi; chạy trong container airflow: docker compose exec airflow make test-dag
+	python -m pytest -q tests/test_dag.py tests/test_alerts.py
+
+lock:         ## ghi phiên bản chính xác của mọi gói đang cài ra requirements.lock (chạy sau khi make test xanh)
+	@{ printf '%s\n' \
+	  "# Phiên bản chính xác của mọi gói trong image app, sinh bằng: make lock (đã chạy test xanh với bộ này)." \
+	  "# Dockerfile cài requirements.txt với ràng buộc của file này, nên build ở máy nào, ngày nào cũng ra một bộ." \
+	  "# Thêm hay đổi thư viện: sửa requirements.txt, build lại, chạy make test, rồi make lock để cập nhật file này."; \
+	  pip freeze; } > requirements.lock
+	@echo "Đã ghi requirements.lock ($$(grep -c '==' requirements.lock) gói)"
 
 RUNS ?= 5
 bench: ## 3.9 benchmark layouts; requires explicit CONFIRM_M3=1 after group M3 confirmation

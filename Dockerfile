@@ -15,8 +15,10 @@ RUN ln -sfn "$(dirname "$(dirname "$(readlink -f "$(which java)")")")" /opt/java
 ENV JAVA_HOME=/opt/java
 
 WORKDIR /work
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# requirements.txt: gói project cần. requirements.lock: phiên bản chính xác đã chạy test xanh (make lock).
+# Cài với ràng buộc -c để build ở máy nào, ngày nào cũng ra một bộ thư viện.
+COPY requirements.txt requirements.lock /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt -c /tmp/requirements.lock
 
 EXPOSE 8501 4040
 CMD ["sleep", "infinity"]
