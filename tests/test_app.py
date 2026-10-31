@@ -29,7 +29,7 @@ def open_page(at, pages, name):
 
 def test_every_page_renders(app):
     at, pages = app
-    assert len(pages) == 8
+    assert len(pages) == 9
     for name in pages:
         open_page(at, pages, name)
         assert not at.exception, f"Trang {name or 'Tổng quan'}: {at.exception[0].value}"

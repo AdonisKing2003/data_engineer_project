@@ -50,7 +50,7 @@ Mở app:
 docker compose exec app make app        # rồi mở http://localhost:8501
 ```
 App mặc định đọc BigQuery; đặt `DATA_BACKEND=duckdb` trong `.env` để đọc kho Parquet cục bộ. Thanh bên trái chia trang
-theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Trang Hoạt động học tập
+theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark, click thời gian thực). Trang Hoạt động học tập
 có thêm lựa chọn Toàn trường: tổng click của mọi lượt đăng ký theo loại học liệu và theo tuần. Ba trang của TV2
 (`app/pages/`: Nộp bài & điểm, Cảnh báo sớm & rút lui, Tiến độ so với lớp) giữ nguyên bản của TV2: chọn đợt ở thanh bên,
 đọc DuckDB qua `app/db.py`. Muốn dùng chung đợt với các trang khác thì gọi `select_offering` trong `app/state.py`.
@@ -74,7 +74,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make load-pg` | 1.7 | Nạp mọi bảng vào PostgreSQL, so số dòng | ~35 s |
 | `make test` | 1.10 | Toàn bộ pytest | ~20 s |
 | `make stream` | 1.9 | Phát lại click theo ngày qua Spark Streaming, so với batch | ~2 phút |
-| `make stream-kafka` | | Như trên nhưng nguồn là Kafka, gom theo cửa sổ tuần có watermark; cần bật Kafka trước (xem [Demo phần stream](#demo-phần-stream)) | ~2,5 phút |
+| `make stream-kafka` | | Như trên nhưng nguồn là Kafka, gom theo cửa sổ tuần có watermark; cần bật Kafka trước (xem [Demo phần stream](#demo-phần-stream)). Thêm `STREAM_ARGS="--produce --to-bq"` để ghi kết quả lên BigQuery cho dashboard | ~2,5 phút, ~4,5 phút nếu có BigQuery |
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
 | `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
 | `make optimize` | 1.11 | 4 ví dụ tối ưu có số đo, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all` và `python scripts/build_tv3_marts.py --apply`) | ~1 phút |
@@ -83,7 +83,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (282 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (283 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
@@ -91,7 +91,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_warehouse.py` | Mọi con số ở cột **Kiểm** của `docs/contract.md`, số NULL từng cột, khóa chính không trùng, khóa ngoại không mồ côi, tổng click và tổng điểm khớp nguồn |
 | `tests/test_student_week.py` | `fact_student_week` ra đúng đáp án BR4, BR7 trong tài liệu đặc tả; chống rò rỉ nhãn `final_result` |
 | `tests/test_postgres.py` | Cùng bộ số đó, chạy trên PostgreSQL |
-| `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream (đọc thư mục và đọc Kafka) khớp bản batch; bản Kafka không bỏ dòng nào vì watermark |
+| `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream (đọc thư mục và đọc Kafka) khớp bản batch; bản Kafka không bỏ dòng nào vì watermark; bản trên BigQuery khớp bản Parquet |
 | `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án (TV2) |
 | `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu; đảo nhãn `final_result` rồi chạy lại câu 14 thì danh sách cảnh báo không đổi |
 | `tests/test_tv3_*.py` | Mart BR2, BR3; các trang Học phần, Khoa, Sinh viên ra đúng đáp án BR2, BR3, BR6, BR8 (TV3). `RUN_TV3_BIGQUERY_DEMO=1` để chạy trên BigQuery |
@@ -137,6 +137,15 @@ docker compose exec app spark-submit --packages org.apache.spark:spark-sql-kafka
 docker compose exec app python stream/produce_kafka.py --delay 1                        # terminal 2: gửi click
 docker compose exec app python stream/compare.py --source kafka                         # so với batch
 ```
+
+Ghi kết quả lên BigQuery và xem trên dashboard: thêm `--to-bq`. Mỗi micro-batch được nạp vào bảng
+`stream_student_week_updates`, view `stream_student_week_latest` lấy bản mới nhất. Trang **Hệ thống → Click thời gian thực**
+đọc view đó và tự tải lại mỗi 10 giây, nên mở trang trước rồi chạy stream sẽ thấy đường stream dâng dần lên khớp batch:
+```bash
+docker compose exec app make app                                                    # terminal 1, mở http://localhost:8501
+docker compose exec app make stream-kafka STREAM_ARGS="--produce --to-bq --delay 1" # terminal 2, khoảng 6 phút
+```
+Mỗi lần trang tự tải lại quét khoảng 48 MB trên BigQuery. Xem xong thì tắt nút "Tự tải lại" hoặc đóng trang.
 
 Thử dữ liệu đến trễ: `make stream-kafka STREAM_ARGS="--produce --late 0.001"` giữ lại 0,1% số click và gửi sau cùng.
 Spark bỏ các click đã quá watermark và đếm ở `rows_dropped_by_watermark` trong `data/stream/_run_kafka.json`, nên

@@ -6,12 +6,19 @@
 - Watermark: tuần được coi là đóng khi đã thấy sự kiện muộn hơn cuối tuần đó --watermark.
   Spark dọn trạng thái của tuần đã đóng; click đến sau đó bị bỏ và được đếm.
 - Đích: outputMode "update" qua foreachBatch. Mỗi micro-batch ghi vào một thư mục riêng
-  (ghi đè), nên chạy lại một batch không tạo dòng trùng. --to-bq: nạp thêm lên BigQuery.
+  (ghi đè), nên chạy lại một batch không tạo dòng trùng.
+- --to-bq: mỗi micro-batch thêm một load job WRITE_APPEND vào bảng log
+  stream_student_week_updates; view stream_student_week_latest lấy dòng có batch_id lớn nhất
+  của mỗi (SV, đợt, tuần). BigQuery Sandbox không cho DML hay streaming insert, chỉ cho load job,
+  nên upsert được làm bằng log chỉ ghi thêm + view. Một batch bị nạp hai lần chỉ sinh dòng
+  giống hệt nhau, view vẫn ra một dòng.
 
 Chạy trong container (cần docker compose --profile stream up -d):
-    make stream-kafka
+    make stream-kafka                                        # chỉ ghi Parquet
+    make stream-kafka STREAM_ARGS="--produce --to-bq"        # ghi thêm lên BigQuery
 """
 import argparse
+import io
 import json
 import os
 import shutil
@@ -24,6 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "etl"))
 sys.path.insert(0, str(ROOT / "stream"))
 
+import pandas as pd  # noqa: E402
+import pyarrow as pa  # noqa: E402
+import pyarrow.parquet as pq  # noqa: E402
 from google.cloud import bigquery  # noqa: E402
 from pyspark.sql import functions as F  # noqa: E402
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType  # noqa: E402
@@ -48,6 +58,7 @@ BQ_SCHEMA = [bigquery.SchemaField(n, t) for n, t in [
     ("week_no", "INT64"), ("clicks_week", "INT64"), ("batch_id", "INT64"),
     ("processed_at", "TIMESTAMP")]]
 BQ = None  # (client, table_id) khi chạy với --to-bq
+BQ_STATS = {"load_jobs": 0, "rows_loaded": 0, "load_seconds": 0.0}
 
 
 def setup_bq():
@@ -68,6 +79,20 @@ def setup_bq():
     return client, table_id
 
 
+def load_to_bq(pdf, client, table_id):
+    """Nạp một micro-batch bằng một load job WRITE_APPEND, qua file Parquet trong bộ nhớ như 04_load_bq.py
+    (load_table_from_dataframe sắp đòi thêm gói pandas-gbq)."""
+    pdf["processed_at"] = pd.to_datetime(pdf["processed_at"], utc=True)  # Spark trả giờ UTC không kèm múi
+    buf = io.BytesIO()
+    # BigQuery TIMESTAMP chỉ tới micro giây, không đọc được TIMESTAMP_NANOS mặc định của pandas
+    pq.write_table(pa.Table.from_pandas(pdf, preserve_index=False), buf,
+                   coerce_timestamps="us", allow_truncated_timestamps=True)
+    buf.seek(0)
+    job_config = bigquery.LoadJobConfig(source_format=bigquery.SourceFormat.PARQUET,
+                                        write_disposition=bigquery.WriteDisposition.WRITE_APPEND)
+    client.load_table_from_file(buf, table_id, job_config=job_config).result()
+
+
 def save_batch(batch_df, batch_id):
     df = (batch_df.withColumn("batch_id", F.lit(batch_id))
           .withColumn("processed_at", F.current_timestamp()))
@@ -77,10 +102,11 @@ def save_batch(batch_df, batch_id):
         df.write.mode("overwrite").parquet(str(UPDATES / f"batch_{batch_id:05d}"))
         if BQ:
             client, table_id = BQ
-            client.load_table_from_dataframe(
-                df.toPandas(), table_id,
-                job_config=bigquery.LoadJobConfig(write_disposition="WRITE_APPEND", schema=BQ_SCHEMA),
-            ).result()
+            t0 = time.time()
+            load_to_bq(df.toPandas(), client, table_id)
+            BQ_STATS["load_jobs"] += 1
+            BQ_STATS["rows_loaded"] += n
+            BQ_STATS["load_seconds"] += time.time() - t0
     print(f"[stream-kafka] batch {batch_id:3d}: cập nhật {n:>8,} dòng SV-tuần")
     df.unpersist()
 
@@ -154,10 +180,20 @@ def main():
         "state_rows_end": ops[-1]["numRowsTotal"] if ops else 0,
         "watermark": args.watermark, "late_ratio": args.late, "to_bigquery": args.to_bq,
     }
+    if BQ:
+        client, table_id = BQ
+        latest = table_id.replace("stream_student_week_updates", "stream_student_week_latest")
+        n_latest, clicks = next(iter(client.query_and_wait(
+            f"SELECT COUNT(*), SUM(clicks_week) FROM `{latest}`")))
+        run["bigquery"] = {
+            **BQ_STATS, "load_seconds": round(BQ_STATS["load_seconds"], 1),
+            "rows_in_log": client.get_table(table_id).num_rows,
+            "rows_latest": n_latest, "total_clicks_latest": clicks,
+        }
     (STREAM_DIR / "_run_kafka.json").write_text(json.dumps(run, indent=2))
     print(json.dumps(run, indent=2))
-
     give_back_to_owner(STREAM_DIR)
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 # Phần TV1: Kiến trúc, ETL, stream, kiểm thử và tối ưu
 
-*Bản nháp ngày 26/10/2026, cập nhật 31/10/2026 (thêm stream từ Kafka có watermark), gửi TV3 ghép vào báo cáo chung. Số liệu lấy từ [etl_timing.md](etl_timing.md),
+*Bản nháp ngày 26/10/2026, cập nhật 31/10/2026 (thêm stream từ Kafka có watermark, ghi kết quả stream lên BigQuery và trang dashboard), gửi TV3 ghép vào báo cáo chung. Số liệu lấy từ [etl_timing.md](etl_timing.md),
 [optimization.md](optimization.md), [contract.md](contract.md) và kết quả `pytest` trên kho 1×.*
 
 ## 1. Kiến trúc
@@ -37,6 +37,7 @@ kho star (Parquet, 9 bảng) ──► DuckDB (phát triển SQL, test)
 Nhánh stream: studentVle chia theo ngày ─┬→ phát lại vào thư mục ─────────┬→ Spark Structured Streaming
                                         └→ producer → Kafka topic ───────┘   → cộng dồn click theo SV × tuần
                                                                               → so với fact_student_week của bản batch
+                                                                              → (Kafka, --to-bq) BigQuery ──► Streamlit
 ```
 
 ### 1.3 Chạy lại từ đầu
@@ -243,17 +244,73 @@ cùng, khi watermark đã vượt qua tuần của chúng. Spark bỏ các click
 này cố ý lệch so với batch, dùng để minh họa cái giá của watermark: đổi lại bộ nhớ có giới hạn là chấp nhận bỏ dữ liệu
 đến quá trễ.
 
-### 4.3 Hạn chế của phần stream
+### 4.3 Đưa kết quả stream tới người dùng: BigQuery và trang dashboard
+
+Chạy `make stream-kafka STREAM_ARGS="--produce --to-bq"` thì mỗi micro-batch, ngoài thư mục Parquet, còn được nạp lên
+BigQuery. Trang **Hệ thống → Click thời gian thực** của dashboard đọc kết quả đó. Như vậy nhánh stream đi trọn từ nguồn
+tới người dùng: producer → Kafka → Spark → BigQuery → Streamlit.
+
+**Vì sao là bảng log chỉ ghi thêm cộng với một view.** BigQuery Sandbox không cho DML (`INSERT`, `UPDATE`, `MERGE`) và
+không cho streaming insert, chỉ cho load job. Vì vậy upsert được làm theo hai bước:
+
+| Đối tượng | Vai trò |
+|---|---|
+| Bảng `stream_student_week_updates` | Log chỉ ghi thêm: mỗi micro-batch là một load job `WRITE_APPEND` chứa các dòng (SV, đợt, tuần) vừa đổi, kèm `batch_id` và `processed_at` |
+| View `stream_student_week_latest` | Với mỗi (SV, đợt, tuần), lấy dòng có `batch_id` lớn nhất (`ROW_NUMBER() ... = 1`) |
+
+Nếu một micro-batch bị nạp hai lần (Spark chạy lại batch đó sau sự cố), log có thêm các dòng giống hệt. View vẫn chỉ trả
+một dòng cho mỗi khóa, nên kết quả vẫn đúng. Mắt xích thứ ba của exactly-once ở mục 4.2 vì thế vẫn giữ được trên
+BigQuery.
+
+Mỗi micro-batch được chuyển thành file Parquet trong bộ nhớ rồi nạp, giống `etl/04_load_bq.py`. Timestamp ghi theo
+micro giây, vì BigQuery không đọc được timestamp nano giây mà pandas ghi mặc định.
+
+Kết quả lần chạy ngày 31/10/2026 có ghi BigQuery (mỗi ngày cách nhau 0,2 s):
+
+| Chỉ số | Giá trị |
+|---|---:|
+| Thời gian cả lần chạy | 260,6 s |
+| Số micro-batch, cũng là số load job | 44 |
+| Thời gian chờ load job (tổng) | 225,0 s, khoảng 5 s mỗi job |
+| Số dòng trong log trên BigQuery | 916.560, bằng số dòng cập nhật ghi ra Parquet |
+| Số dòng của view mới nhất | 627.031, bằng bản Parquet |
+| Tổng click của view mới nhất | 39.605.099, bằng batch |
+| Dòng bị watermark bỏ | 0 |
+
+**Đọc kết quả:**
+
+- Load job chiếm phần lớn thời gian. Mỗi job mất khoảng 5 s dù chỉ vài chục nghìn dòng, vì BigQuery phải lên lịch và
+  chạy một job. Spark đợi job xong mới chạy micro-batch sau, nên trong lúc đó click dồn lại. Micro-batch vì thế lớn hơn
+  và ít hơn (44 so với 63 khi không ghi BigQuery). Đây là cơ chế tự điều tiết của micro-batch: đích chậm thì batch to
+  ra, không mất dữ liệu.
+- Độ trễ từ lúc click vào Kafka tới lúc hiện trên dashboard vì vậy cỡ 5–10 s, đủ cho bảng theo dõi nhưng không phải thời
+  gian thực tính bằng mili giây. Muốn nhanh hơn thì cần streaming insert hoặc Storage Write API, phải bật billing.
+
+**Trang dashboard** đọc view mới nhất và tự tải lại mỗi 10 giây. Trang hiện:
+- micro-batch cuối, tuần mới nhất, số click đã xử lý so với batch, và micro-batch cuối được ghi cách đây bao lâu;
+- biểu đồ tổng click theo tuần: đường stream dâng dần lên trùng đường batch (đứt nét).
+
+Mở trang trước rồi chạy stream với `--delay 1` là có cảnh demo cho thuyết trình. Trang lấy số mới thẳng từ kho, không
+qua bộ nhớ đệm 6 giờ của các trang khác. Đổi lại, mỗi lần tải lại quét khoảng 48 MB, tức khoảng 17 GB mỗi giờ nếu để
+trang mở, nên trang có nút tắt tự tải lại. Khi chạy tại máy (`DATA_BACKEND=duckdb`), trang đọc thẳng thư mục Parquet
+của stream.
+
+`tests/test_pipeline.py` kiểm lần chạy có `--to-bq`: số dòng trong log bằng số dòng đã nạp và bằng bản Parquet, view mới
+nhất có đúng 627.031 dòng và 39.605.099 click. Số này được `stream_kafka.py` truy vấn một lần ngay sau khi chạy, ghi vào
+`data/stream/_run_kafka.json`, nên test không tốn hạn mức BigQuery.
+
+### 4.4 Hạn chế của phần stream
 
 - Dữ liệu gốc chỉ có ngày, không có giờ, nên thứ tự sự kiện trong một ngày không xác định được.
 - Tốc độ phát lại do người chạy chọn (`--delay`), không phản ánh tải thật.
 - Kafka chạy 1 broker, không có bản sao (replication factor 1). Đủ để minh họa, chưa chịu được lỗi máy.
-- Kết quả stream mới ghi ra Parquet để đối chiếu, chưa có trang dashboard nào đọc.
+- Mỗi lần chạy xóa bảng log và chạy lại từ đầu topic. Chưa thử dừng giữa chừng rồi chạy tiếp từ checkpoint.
+- Bảng log trên BigQuery chỉ dài thêm, chưa có bước gộp định kỳ. Chạy mãi thì view phải quét log ngày càng lớn.
 
 ## 5. Kiểm thử
 
-`make test` chạy 282 test (181 test kho của TV1, gồm 11 test phụ thuộc hàm; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3), tất cả đều qua.
-Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 181 test kho.
+`make test` chạy 283 test (182 test kho của TV1, gồm 11 test phụ thuộc hàm; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3), tất cả đều qua.
+Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dưới liệt kê 182 test kho.
 
 | Nhóm kiểm tra | Nội dung | Số test |
 |---|---|---:|
@@ -266,7 +323,7 @@ Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. Bảng dư�
 | Quy tắc | Cột ngày là số nguyên; tuần tính bằng `FLOOR`; grain bảng SV-tuần đủ các tuần; cột lũy kế không giảm; `avg_score_cum` chỉ NULL khi chưa có điểm; bài TMA đầu tiên của BBB 2014J | 6 |
 | Đáp án BR | Tỷ lệ trễ TMA 16,8% (BR1); danh sách nguy cơ BR4 (DDD 2014J tuần 4, mọi đợt); phân vị BR7 | 6 |
 | Chống rò rỉ nhãn | Không có cột nhãn; đổi `final_result` không đổi danh sách BR4 | 2 |
-| Chạy lại, stream | Nạp lại không nhân đôi; Spark ghi overwrite; stream từ thư mục và từ Kafka khớp batch, Kafka không bỏ dòng nào vì watermark | 4 |
+| Chạy lại, stream | Nạp lại không nhân đôi; Spark ghi overwrite; stream từ thư mục và từ Kafka khớp batch, Kafka không bỏ dòng nào vì watermark; bản trên BigQuery khớp bản Parquet | 5 |
 | Kho 5× | Số dòng gấp đúng 5; mỗi bản đủ 28.785 SV; tỷ lệ và phân bố click không đổi; đã nạp BigQuery và PostgreSQL | 19 |
 
 20 câu hỏi mẫu trong `sql/questions/` được viết bằng SQL chung (không dùng hàm riêng của engine nào; trung vị và
@@ -306,12 +363,13 @@ yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, 
 
 ## 7. Hạn chế
 
-- BigQuery Sandbox tự xóa bảng sau 60 ngày và không cho dùng DML (`INSERT`, `UPDATE`), nên kho được nạp lại toàn bộ
-  mỗi lần thay vì nạp tăng dần.
+- BigQuery Sandbox tự xóa bảng sau 60 ngày và không cho dùng DML (`INSERT`, `UPDATE`), nên kho batch được nạp lại toàn
+  bộ mỗi lần thay vì nạp tăng dần. Riêng nhánh stream đã nạp tăng dần bằng load job ghi thêm và view lấy bản mới nhất
+  (mục 4.3); cùng cách này áp được cho kho batch nếu nguồn có thay đổi.
 - Các tối ưu ở mục 6 được dựng thành bảng riêng (`opt_*`) để đo, chưa thay vào luồng nạp chính. Muốn dùng thật thì
   `04_load_bq.py` cần nạp thẳng vào bảng có phân vùng/gom cụm, và `05_load_pg.py` cần tạo chỉ mục sau khi nạp.
 - Kho 5× là các bản sao, nên giữ nguyên phân bố nhưng không tạo thêm sự đa dạng thật của dữ liệu.
-- Stream là phát lại dữ liệu lịch sử, không phải luồng thật; Kafka chạy 1 broker (xem mục 4.3).
+- Stream là phát lại dữ liệu lịch sử, không phải luồng thật; Kafka chạy 1 broker (xem mục 4.4).
 - Lần build lại image ngày 31/10 tự kéo DuckDB 2.0, pandas 3, pytest 9 vì `requirements.txt` chỉ ghi phiên bản tối
   thiểu, làm hỏng nhiều lệnh gọi DuckDB và 2 file test. Đã khóa lại DuckDB 1.5.6, Streamlit 1.65.0 và chặn bản lớn của
   pandas, plotly; thêm `pytest.ini` (`pythonpath = .`). Muốn build lại ra đúng một môi trường thì cần một file khóa đủ

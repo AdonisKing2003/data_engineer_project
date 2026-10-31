@@ -72,3 +72,16 @@ def test_kafka_stream_matches_batch():
     assert run["input_rows"] == 10655280
     assert run["rows_dropped_by_watermark"] == 0
     assert r["clicks_week_mismatch"] == r["clicks_cum_mismatch"] == r["stream_rows_not_in_batch"] == 0
+
+
+def test_kafka_stream_on_bigquery_matches_parquet():
+    """Lần chạy stream Kafka có --to-bq: view mới nhất trên BigQuery ra đúng như bản Parquet.
+    Số đọc từ _run_kafka.json (stream_kafka.py truy vấn view ngay sau khi chạy), nên test không tốn BigQuery."""
+    run_path = ROOT / "data" / "stream" / "_run_kafka.json"
+    cmp_path = ROOT / "data" / "stream" / "_compare_kafka.json"
+    if not run_path.exists() or not json.loads(run_path.read_text()).get("to_bigquery"):
+        pytest.skip('chưa chạy make stream-kafka STREAM_ARGS="--produce --to-bq"')
+    bq, r = json.loads(run_path.read_text())["bigquery"], json.loads(cmp_path.read_text())
+    assert bq["rows_in_log"] == bq["rows_loaded"] == r["stream_update_rows_written"]
+    assert bq["rows_latest"] == r["stream_rows_latest"]
+    assert bq["total_clicks_latest"] == 39605099

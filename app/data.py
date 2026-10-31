@@ -56,6 +56,14 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br8_forum_week5.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br8_forum_week5.sql",
     },
+    "stream_live_weekly": {
+        "duckdb": PROJECT_ROOT / "sql" / "stream_live_weekly.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "stream_live_weekly.sql",
+    },
+    "stream_batch_weekly": {
+        "duckdb": PROJECT_ROOT / "sql" / "stream_batch_weekly.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "stream_batch_weekly.sql",
+    },
 }
 
 # The order is the binding contract for DuckDB's positional ``?`` markers.
@@ -72,6 +80,8 @@ QUERY_PARAMETER_ORDER = {
     "br3_spearman": (),
     "br6_imd_gap": (),
     "br8_forum_week5": (),
+    "stream_live_weekly": (),
+    "stream_batch_weekly": (),
 }
 
 

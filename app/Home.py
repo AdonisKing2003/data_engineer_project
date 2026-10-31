@@ -1102,6 +1102,88 @@ def render_overview_page() -> None:
         st.toast("Đã xóa dữ liệu lưu tạm. Các trang sẽ đọc lại từ kho.")
 
 
+def _age_text(seconds: float) -> str:
+    if seconds < 120:
+        return f"{seconds:.0f} giây"
+    if seconds < 7200:
+        return f"{seconds / 60:.0f} phút"
+    return f"{seconds / 3600:.0f} giờ"
+
+
+def render_stream_live() -> None:
+    # Live numbers must bypass load_query's 6-hour cache. The batch warehouse does not
+    # change while the stream runs, so its weekly totals can stay cached.
+    try:
+        live = run_query("stream_live_weekly")
+        batch = load_query("stream_batch_weekly")
+    except Exception as error:
+        st.info("Chưa có kết quả stream. Chạy `make stream-kafka` rồi mở lại trang này.")
+        st.caption(str(error))
+        return
+    if live.empty:
+        st.info("Stream đang chạy nhưng chưa xong micro-batch nào.")
+        return
+
+    done = int(live["clicks_stream"].sum())
+    total = int(batch["clicks_batch"].sum())
+    last_at = pd.to_datetime(live["last_processed_at"].max(), utc=True)
+    age = (pd.Timestamp.now(tz="UTC") - last_at).total_seconds()
+    done_share = done / total if total else 0.0
+    last_batch, latest_week, processed = st.columns(3)
+    last_batch.metric("Micro-batch cuối", f"{int(live['last_batch'].max())}")
+    latest_week.metric("Tuần mới nhất", f"{int(live['week_no'].max())}")
+    processed.metric("Click đã xử lý", f"{done:,}", f"{done_share:.1%} so với batch", delta_color="off")
+    st.caption(f"Micro-batch cuối được ghi cách đây {_age_text(age)} ({last_at:%d/%m/%Y %H:%M:%S} UTC).")
+    if done == total:
+        st.success("Stream đã xử lý hết click: tổng theo từng tuần khớp bản batch.")
+
+    merged = batch.merge(live[["week_no", "clicks_stream"]], on="week_no", how="left")
+    merged["clicks_stream"] = merged["clicks_stream"].fillna(0)
+    chart = go.Figure()
+    chart.add_trace(
+        go.Scatter(
+            x=merged["week_no"],
+            y=merged["clicks_batch"],
+            name="Batch (kho)",
+            mode="lines",
+            line={"color": "#94a3b8", "dash": "dash", "width": 2},
+            hovertemplate="Tuần %{x}: %{y:,} click<extra>Batch</extra>",
+        )
+    )
+    chart.add_trace(
+        go.Scatter(
+            x=merged["week_no"],
+            y=merged["clicks_stream"],
+            name="Stream",
+            mode="lines",
+            line={"color": "#2563eb", "width": 3},
+            hovertemplate="Tuần %{x}: %{y:,} click<extra>Stream</extra>",
+        )
+    )
+    chart.update_layout(
+        title="Tổng click theo tuần: đường stream đuổi kịp đường batch",
+        xaxis_title="Tuần (tuần 0 là tuần khai giảng)",
+        yaxis_title="Tổng lượt click",
+        height=400,
+        legend={"orientation": "h", "y": -0.2},
+        margin={"l": 20, "r": 20, "t": 60, "b": 20},
+    )
+    st.plotly_chart(chart, use_container_width=True, key="stream_weekly")
+
+
+def render_stream_page() -> None:
+    st.title("Click thời gian thực")
+    st.caption(
+        "Spark Structured Streaming đọc click từ Kafka, cộng theo cửa sổ tuần có watermark 7 ngày, "
+        "rồi ghi từng micro-batch lên BigQuery (chạy tại máy thì đọc bản Parquet). "
+        "Đường đứt nét là kết quả của bản batch để đối chiếu."
+    )
+    # Each refresh scans the stream log table again (about 48 MB on BigQuery, so ~17 GB per
+    # hour at a 10 s interval), so the page refreshes on its own only while the toggle is on.
+    auto = st.toggle("Tự tải lại mỗi 10 giây", value=True, key="stream_auto_refresh")
+    st.fragment(run_every="10s" if auto else None)(render_stream_live)()
+
+
 # st.navigation disables auto-discovery of app/pages/, so the page scripts
 # are registered here explicitly and grouped by the role that uses them.
 PAGES = {
@@ -1113,6 +1195,7 @@ PAGES = {
     "progress": st.Page("pages/4_Sinh_vien.py", title="Tiến độ so với lớp", icon="🎓"),
     "forum": st.Page(render_student_page, title="Diễn đàn tuần 5", icon="💬"),
     "quality": st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
+    "stream": st.Page(render_stream_page, title="Click thời gian thực", icon="⏱️"),
 }
 navigation = st.navigation(
     {
@@ -1121,7 +1204,7 @@ navigation = st.navigation(
         "Cố vấn học tập": [PAGES["warning"]],
         "Lãnh đạo khoa": [PAGES["faculty"]],
         "Sinh viên": [PAGES["progress"], PAGES["forum"]],
-        "Hệ thống": [PAGES["quality"]],
+        "Hệ thống": [PAGES["quality"], PAGES["stream"]],
     },
     position="sidebar",
 )
