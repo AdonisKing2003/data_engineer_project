@@ -63,6 +63,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Tầng phục vụ tách khỏi nơi lưu | App đọc qua `app/data.py`, đổi BigQuery / DuckDB bằng một biến môi trường `DATA_BACKEND` |
 | Nhánh stream đi trọn tới người dùng | Producer → Kafka → Spark → BigQuery (bảng log ghi thêm + view lấy bản mới nhất, vì Sandbox cấm DML) → trang Click thời gian thực. View trên BigQuery khớp bản Parquet: 627.031 dòng, 39.605.099 click ([report_tv1.md](report_tv1.md) mục 4.3) |
 | Chạy lại được ở mọi máy | Docker Compose; `make all` dựng lại toàn bộ trong 303 s ([etl_timing.md](etl_timing.md)) |
+| Điều phối | DAG Airflow `oulad_batch`: chờ đủ 7 CSV → staging → dims → facts → SV-tuần → kiểm chất lượng trên Parquet → nạp BigQuery và PostgreSQL song song → toàn bộ test. Lập lịch hằng ngày, tự chạy lại khi lỗi ([report_tv1.md](report_tv1.md) mục 1.4) |
 
 ## 2.2 Thiết kế kho dữ liệu
 
@@ -100,6 +101,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Lưu trữ theo cột | Parquet, BigQuery; DuckDB chạy SQL thẳng trên Parquet |
 | Tối ưu có số đo | Phân vùng 16,8×, gom cụm 25,5×, bảng tổng hợp sẵn 330× (bytes quét BigQuery); chỉ mục 5,4× (thời gian PostgreSQL) ([optimization.md](optimization.md)) |
 | Container, chạy một lệnh | Docker Compose; Makefile; `scripts/run_all.py` dừng ở bước lỗi đầu tiên và ghi thời gian từng bước |
+| Điều phối pipeline | Airflow 2.10 (`LocalExecutor`, CSDL trên PostgreSQL): sensor chờ dữ liệu nguồn, cổng chất lượng trước khi nạp, 2 bước nạp chạy song song, retries; mỗi task gọi đúng một mục Makefile nên logic ETL không đổi ([report_tv1.md](report_tv1.md) mục 1.4) |
 | Phục vụ người dùng | Dashboard Streamlit chia theo vai trò, đọc BigQuery; test khói `tests/test_app.py`. Trang Click thời gian thực tự tải lại mỗi 10 giây khi bật (mặc định tắt vì mỗi lần quét ~48 MB), độ trễ cỡ 5–10 s do mỗi load job BigQuery mất khoảng 5 s |
 
 ---
@@ -113,6 +115,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Dashboard chậm hơn stream 5–10 s, bảng log trên BigQuery chỉ dài thêm | 2.1, 3.2 | Sandbox chỉ cho load job. Có billing thì dùng Storage Write API cho độ trễ dưới 1 s, và gộp log định kỳ bằng `MERGE` ([report_tv1.md](report_tv1.md) mục 4.3, 4.4) |
 | 7 nguồn đều thuộc một bộ dữ liệu | 2.1 | Các file có khóa, chất lượng và quy tắc ngày khác nhau, nên vẫn phải hợp nhất như nhiều nguồn |
 | BigQuery Sandbox: bảng tự xóa sau 60 ngày, không cho `INSERT`/`UPDATE` | 2.1, 3.2 | Kho batch nạp lại toàn bộ mỗi lần. Nhánh stream đã nạp tăng dần bằng load job ghi thêm + view lấy bản mới nhất, cùng cách dùng được cho kho batch |
+| Chưa có CDC | 2.1 | Nguồn là file tĩnh, không có CSDL đang thay đổi; Sandbox cấm `MERGE`. Kiến trúc nếu làm (Debezium → Kafka → Spark → bảng staging → `MERGE`) và phần đã có sẵn ở [report_tv1.md](report_tv1.md) mục 8.2 |
 | Bảng rộng 5× không dựng được trên BigQuery vì vượt hạn mức 10 GB | 1.2, 2.2 | So bảng rộng ở 1× trên BigQuery và ở 5× trên PostgreSQL |
 | Star 5× trên BigQuery chậm hơn 3NF dù quét cùng bytes; giả thuyết là do cách tạo bảng, chưa kiểm được | 2.2 | So bằng bytes quét, chỉ số đáng tin trên BigQuery ([benchmark.md](benchmark.md)) |
 | 3 trang của TV2 (`app/pages/`) vẫn đọc DuckDB qua `app/db.py`, chưa qua `app/data.py` | 2.1 | Demo các trang đó ở chế độ chạy tại máy |
@@ -143,3 +146,6 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Vì sao dùng `update` mà không dùng `append` khi có watermark? | [report_tv1.md](report_tv1.md) mục 4.2 |
 | Làm sao để stream không trùng, không mất (exactly-once)? | [report_tv1.md](report_tv1.md) mục 4.2 |
 | Kafka partition và key dùng để làm gì? | [report_tv1.md](report_tv1.md) mục 4.2 |
+| Airflow khác `make all` hay cron thế nào? Vì sao bật retries được? | [report_tv1.md](report_tv1.md) mục 1.4 |
+| CDC là gì; nạp tăng dần khi không có `MERGE` thì làm sao? | [report_tv1.md](report_tv1.md) mục 4.3, 8.2 |
+| Project còn thiếu gì so với production? | [report_tv1.md](report_tv1.md) mục 8.3 |

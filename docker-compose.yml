@@ -29,6 +29,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
   kafka:
     image: apache/kafka:3.8.1
     container_name: oulad-kafka
@@ -52,5 +53,31 @@ services:
       timeout: 10s
       retries: 12
 
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    image: oulad-airflow:latest
+    container_name: oulad-airflow
+    profiles: ["airflow"]         # chỉ chạy khi gọi --profile airflow
+    env_file: .env
+    environment:
+      AIRFLOW__CORE__DAGS_FOLDER: /work/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor          # chạy song song được; cần CSDL Postgres
+      AIRFLOW__CORE__PARALLELISM: "2"                 # tối đa 2 task cùng lúc, đủ RAM cho Spark
+      AIRFLOW__WEBSERVER__WORKERS: "2"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-oulad}:${POSTGRES_PASSWORD:-oulad}@postgres:5432/airflow
+    volumes:
+      - ./:/work
+      - airflowhome:/opt/airflow   # log của task và mật khẩu admin còn lại khi tạo lại container
+    working_dir: /work
+    ports:
+      - "8080:8080"               # giao diện Airflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  airflowhome:

@@ -154,6 +154,43 @@ lần chạy này **cố ý** lệch so với batch. Chạy lại `make stream-k
 
 Trong lúc chạy, http://localhost:4040 (tab Structured Streaming) hiện số dòng vào/ra của từng micro-batch.
 
+## Chạy pipeline batch bằng Airflow
+
+DAG `oulad_batch` ([dags/oulad_batch.py](dags/oulad_batch.py)) làm đúng các bước của `make all`, mỗi task gọi một mục
+Makefile. Khác `make all` ở chỗ: chờ đủ 7 file CSV, kiểm kho trên Parquet **trước** khi nạp, nạp BigQuery và
+PostgreSQL song song, tự chạy lại một lần khi lỗi, chạy theo lịch 2 giờ sáng (UTC) mỗi ngày.
+
+```
+wait_raw_csv → staging → dims → facts → student_week → quality_gate ─┬→ load_bq ─┬→ test_all → give_back_files
+                                                                      └→ load_pg ─┘
+```
+
+Airflow nằm trong profile `airflow` nên không tự chạy với `docker compose up -d`. Cài lần đầu:
+```bash
+docker compose build app                                     # image Airflow dựng trên image app
+docker compose --profile airflow build airflow               # vài phút, tải Airflow 2.10.5
+docker compose exec postgres createdb -U oulad airflow       # CSDL riêng của Airflow, một lần
+docker compose --profile airflow up -d
+docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt   # mật khẩu user admin
+```
+Mở http://localhost:8080, đăng nhập `admin`. DAG mới mặc định tạm dừng: bật công tắc của `oulad_batch` thì Airflow tự
+chạy một lần cho chu kỳ gần nhất; muốn chạy thêm thì bấm **Trigger DAG**. Tab **Graph** xem thứ tự và trạng thái, tab
+**Gantt** xem thời gian từng bước.
+
+Dòng lệnh thay cho giao diện:
+```bash
+docker compose exec airflow airflow dags unpause oulad_batch
+docker compose exec airflow airflow dags trigger oulad_batch
+docker compose exec airflow airflow dags list-runs -d oulad_batch
+docker compose exec airflow airflow dags list-import-errors          # DAG không hiện thì xem lỗi ở đây
+```
+
+Lưu ý:
+- Đừng chạy `make all` bằng tay trong lúc DAG đang chạy: cả hai cùng ghi vào `data/`.
+- Airflow tốn thêm khoảng 1,5 GB RAM, Spark trong task tốn thêm 3 GB. Không bật cùng lúc profile `stream` khi máy ít RAM.
+- Tắt Airflow: `docker compose --profile airflow stop airflow`. Lịch sử chạy nằm trong CSDL `airflow` của PostgreSQL,
+  log của task nằm trong volume `airflowhome`, tắt rồi bật lại vẫn còn.
+
 ## Truy cập kho
 
 | Kho | Cách vào |
@@ -184,6 +221,7 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
 |---|---|
 | `etl/` | Spark batch: `01_staging` → `02_clean_dims` → `03_facts` → `06_student_week`; `04_load_bq`, `05_load_pg` nạp kho |
 | `stream/` | Chia click theo ngày; phát lại vào thư mục hoặc gửi lên Kafka; Spark Structured Streaming; so với batch |
+| `dags/` | DAG Airflow chạy lại pipeline batch (`Dockerfile.airflow` dựng image Airflow) |
 | `scripts/` | `check_env.py`, `bq_smoke_test.py`, `run_all.py` (`make all`) |
 | `sql/` | Truy vấn các BR |
 | `app/` | Streamlit |
@@ -207,6 +245,8 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
   được tên miền, hay gặp khi máy bật VPN (Cloudflare WARP...). Đặt DNS cho Docker trong `/etc/docker/daemon.json`:
   `{"dns": ["1.1.1.1", "8.8.8.8"]}`, rồi `sudo systemctl restart docker`. Hoặc build bằng mạng của máy:
   `docker build --network host -t oulad-app:latest .`
+- **Cổng 8080 đã bị dùng** khi bật Airflow: đổi dòng `"8080:8080"` thành `"8081:8080"` trong `docker-compose.yml`.
+- **Airflow báo `database "airflow" does not exist`**: chưa tạo CSDL, chạy `docker compose exec postgres createdb -U oulad airflow`.
 - **Bảng trên BigQuery tự mất sau 60 ngày**: project đang ở chế độ BigQuery Sandbox (miễn phí, bảng hết hạn sau 60 ngày). Chạy lại `make load-bq` là có lại.
 
 Dữ liệu: Kuzilek, J., Hlosta, M., Zdrahal, Z. (2017). *Open University Learning Analytics dataset*. Scientific Data 4, 170171. Giấy phép CC BY 4.0.

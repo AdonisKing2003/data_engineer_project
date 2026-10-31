@@ -17,6 +17,7 @@
 | PostgreSQL 16 | Kho đối chứng | So kết quả với BigQuery và làm nền cho benchmark star / 3NF / bảng rộng |
 | DuckDB | Chạy SQL trên Parquet tại máy | Viết và kiểm SQL nhanh, không tốn hạn mức BigQuery |
 | Streamlit | Dashboard | Viết bằng Python, đọc BigQuery hoặc DuckDB |
+| Apache Airflow 2.10 (`LocalExecutor`) | Điều phối pipeline batch | Lập lịch, thứ tự, chạy song song, chạy lại khi lỗi, log từng bước. Lưu lịch sử chạy trong CSDL `airflow` của PostgreSQL có sẵn. Chỉ bật khi cần (profile `airflow`) |
 
 ### 1.2 Luồng dữ liệu
 
@@ -46,6 +47,56 @@ Toàn bộ pipeline chạy bằng một lệnh `make all` trong container (`scri
 bảng SV-tuần → BigQuery → PostgreSQL → pytest, dừng ngay ở bước lỗi đầu tiên và tự ghi thời gian từng bước ra
 [etl_timing.md](etl_timing.md). README hướng dẫn từ lúc clone đến lúc mở app. Khóa Google Cloud và `.env` không
 nằm trong repo; máy chưa có khóa vẫn chạy được bằng `make all-local` (bỏ bước BigQuery).
+
+### 1.4 Điều phối bằng Airflow
+
+`make all` chạy tuần tự trên một máy, phải có người gõ lệnh, và lỗi ở đâu thì dừng ở đó. DAG Airflow `oulad_batch`
+([dags/oulad_batch.py](../dags/oulad_batch.py)) chạy cùng các bước đó nhưng thêm phần điều phối:
+
+```
+wait_raw_csv → staging → dims → facts → student_week → quality_gate ─┬→ load_bq ─┬→ test_all → give_back_files
+                                                                      └→ load_pg ─┘
+```
+
+| Cơ chế | Cách làm trong DAG | Vì sao |
+|---|---|---|
+| Lập lịch | 2 giờ sáng (UTC) mỗi ngày, `catchup=False`, tối đa 1 lần chạy cùng lúc | Không chạy bù các ngày đã qua; hai lần chạy cùng ghi `data/` sẽ đè nhau |
+| Chờ dữ liệu đầu vào | Sensor `wait_raw_csv` kiểm tra đủ 7 file CSV mỗi phút, tối đa 1 giờ, chế độ `reschedule` | Nguồn đến muộn thì chờ thay vì báo lỗi ngay; giữa hai lần kiểm tra không chiếm chỗ chạy |
+| Cổng chất lượng | `quality_gate` chạy test staging, kho và bảng SV-tuần trên Parquet **trước** khi nạp | Lỗi thì dừng, BigQuery và PostgreSQL giữ bản cũ. `make all` đến cuối mới test, lúc dữ liệu đã nạp xong |
+| Song song | `load_bq` và `load_pg` cùng chạy sau cổng chất lượng | Hai bước chỉ đọc Parquet, không phụ thuộc nhau |
+| Chạy lại khi lỗi | Mỗi task thử lại 1 lần sau 2 phút, quá 20 phút thì dừng | An toàn vì mọi bước đều ghi đè, chạy lại không nhân đôi dữ liệu |
+| Dọn dẹp | `give_back_files` trả quyền file trong `data/` cho chủ repo, chạy cả khi bước trước lỗi | Container chạy bằng root |
+
+Mỗi task chỉ gọi một mục Makefile, nên logic ETL không đổi và `make all` vẫn dùng được khi không bật Airflow. Airflow
+chạy trên image của app, cài trong một venv riêng: task gọi được Spark, Java như khi chạy tay, mà thư viện của Airflow
+không đè lên phiên bản thư viện của project. Lịch sử chạy lưu trong CSDL `airflow` của PostgreSQL có sẵn. Nhờ đó dùng
+được `LocalExecutor` (chạy song song), điều không làm được với SQLite mặc định.
+
+Lần chạy theo lịch ngày 31/10/2026, trên cùng máy với mục 3.1:
+
+| Task | Thời gian (s) |
+|---|---:|
+| `wait_raw_csv` | 0,1 |
+| `staging` | 21,7 |
+| `dims` | 17,2 |
+| `facts` | 20,6 |
+| `student_week` | 33,5 |
+| `quality_gate` (110 test) | 3,1 |
+| `load_bq` ‖ `load_pg` (song song) | 76,3 ‖ 22,9 |
+| `test_all` (281 qua, 2 xfail) | 43,8 |
+| `give_back_files` | 0,8 |
+| **Cả lần chạy** | **222,8** |
+
+**Đọc kết quả:**
+
+- Nếu chạy tuần tự, tổng thời gian các task là 240 s. Chạy song song 2 bước nạp tiết kiệm đúng thời gian của bước
+  ngắn hơn, `load_pg` 23 s.
+- Thời gian chờ giữa hai task (Airflow lên lịch task kế tiếp) từ 0,3 đến 1,2 s, cộng lại khoảng 4,5 s cả lần chạy,
+  không đáng kể so với các bước Spark.
+- Cổng chất lượng chỉ tốn 3 s nhưng chặn được việc đẩy dữ liệu sai lên kho mà dashboard đang đọc.
+
+Airflow 2 đã hết hỗ trợ chính thức từ khoảng tháng 4/2026. Nhóm chọn 2.10.5 vì ổn định và tài liệu nhiều. Lên 3.x thì
+DAG chỉ đổi đường dẫn import (`airflow.sdk`, `airflow.providers.standard`).
 
 ## 2. Mô hình kho
 
@@ -374,3 +425,75 @@ yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, 
   thiểu, làm hỏng nhiều lệnh gọi DuckDB và 2 file test. Đã khóa lại DuckDB 1.5.6, Streamlit 1.65.0 và chặn bản lớn của
   pandas, plotly; thêm `pytest.ini` (`pythonpath = .`). Muốn build lại ra đúng một môi trường thì cần một file khóa đủ
   mọi phiên bản (`pip freeze`).
+
+## 8. Hướng lên production
+
+Project là đồ án môn học, chạy trên một máy với BigQuery Sandbox. Mục này ghi rõ những gì đã gần với một hệ thống thật,
+những gì còn thiếu, và nếu làm tiếp thì làm thế nào. Riêng nạp tăng dần/CDC được bàn kỹ hơn ở mục 8.2, vì đây là câu
+hỏi hay gặp nhất khi so với production.
+
+### 8.1 Đã có
+
+| Khía cạnh | Trong project |
+|---|---|
+| Điều phối | DAG Airflow `oulad_batch`: lập lịch, chờ đủ dữ liệu nguồn, chạy song song bước không phụ thuộc nhau, tự chạy lại khi lỗi, log và thời gian từng bước (mục 1.4) |
+| Kiểm chất lượng trước khi công bố | Trong DAG, test kho trên Parquet chạy trước khi nạp; lỗi thì dừng, BigQuery giữ bản cũ |
+| Chạy lại an toàn | Mọi bước ghi đè; load job BigQuery `WRITE_TRUNCATE` thay cả bảng trong một lần, lỗi thì bảng cũ giữ nguyên |
+| Stream không trùng, không mất | Producer idempotent, checkpoint của Spark, đích ghi theo `batch_id` và view lấy bản mới nhất (mục 4.2, 4.3) |
+| Kiểm thử | 283 test; số đúng chốt trong hợp đồng dữ liệu và trong đặc tả 8 yêu cầu nghiệp vụ |
+| Môi trường giống nhau | Docker Compose; Kafka và Airflow tách thành profile, chỉ bật khi cần |
+
+### 8.2 Nạp tăng dần và CDC
+
+**Hiện tại.** Kho batch được dựng lại toàn bộ từ 7 file CSV mỗi lần (khoảng 5 phút). Nhánh stream đã nạp tăng dần lên
+BigQuery bằng bảng log chỉ ghi thêm cộng với view lấy bản mới nhất (mục 4.3).
+
+**Vì sao chưa làm CDC.** CDC (change data capture) bắt từng thay đổi `INSERT`, `UPDATE`, `DELETE` của một CSDL nguồn
+đang chạy, rồi áp vào kho. Project chưa làm vì ba lý do:
+
+1. OULAD là 7 file tĩnh, không có CSDL nguồn đang thay đổi. Muốn làm CDC phải dựng thêm một CSDL giả làm hệ thống nguồn
+   và tự sinh thay đổi, tức là tự tạo ra vấn đề để giải.
+2. BigQuery Sandbox cấm DML, nên không có `MERGE` để áp thay đổi vào bảng kho.
+3. Debezium cần thêm Kafka Connect và cấu hình replication của CSDL nguồn, thêm khoảng 1 GB RAM và vài ngày công.
+
+**Nếu làm thì kiến trúc như sau:**
+
+```
+CSDL nguồn PostgreSQL (wal_level=logical)
+   │  Debezium (Kafka Connect) đọc WAL, mỗi thay đổi thành một message:
+   │  op = c/u/d, before, after, LSN
+   ▼
+Kafka, mỗi bảng nguồn một topic, key = khóa chính
+   │  Spark Structured Streaming: tách before/after, giữ thay đổi mới nhất theo LSN trong mỗi micro-batch
+   ▼
+BigQuery, bảng staging chỉ ghi thêm (như stream_student_week_updates ở mục 4.3)
+   │  Airflow chạy MERGE định kỳ (cần bật billing):
+   │    dimension: ghi đè thuộc tính (SCD loại 1); riêng thuộc tính cần lịch sử thì SCD loại 2
+   │    fact: thêm dòng mới; xóa ở nguồn thành cờ is_deleted, không xóa dòng
+   │    fact_student_week: chỉ tính lại các (SV, đợt) có thay đổi
+   ▼
+Bảng kho
+```
+
+**Những phần project đã có sẵn cho hướng này:** Kafka và checkpoint của Spark; mẫu bảng log chỉ ghi thêm cộng với view
+lấy bản mới nhất, chính là cách CDC ghi vào đích khi chưa `MERGE` được; Airflow để chạy `MERGE` và gộp log định kỳ.
+
+**Một bước nhẹ hơn, chưa thử.** Nạp tăng dần theo đợt học: mỗi lần chỉ dựng và nạp lại các đợt có dữ liệu mới.
+- Spark ghi đè theo phân vùng (`partitionOverwriteMode=dynamic`).
+- BigQuery dùng load job ghi vào đúng một phân vùng (`bảng$phân_vùng`, `WRITE_TRUNCATE`). Đây là load job chứ không phải
+  DML, nên nhiều khả năng vẫn dùng được trong Sandbox; cần thử trước khi dựa vào.
+
+Cách này hợp với OULAD vì dữ liệu tự chia theo đợt học, nhưng chưa có trong project.
+
+### 8.3 Còn thiếu so với production
+
+| Mảng | Production cần | Project hiện tại |
+|---|---|---|
+| Kafka | Ít nhất 3 broker, replication factor 3, giám sát độ trễ của consumer | 1 broker, không bản sao |
+| Spark | Chạy trên cụm (Dataproc, Databricks, Kubernetes) | 1 máy, chế độ `local[*]` |
+| BigQuery | Bật billing: DML, Storage Write API cho stream độ trễ dưới 1 giây, bảng không tự hết hạn | Sandbox: chỉ load job, bảng tự xóa sau 60 ngày |
+| Airflow | Bản đang được hỗ trợ (3.x), executor chạy trên nhiều máy, cảnh báo khi task lỗi | 2.10.5, `LocalExecutor`, chưa gửi cảnh báo |
+| Tự động kiểm thử khi đẩy code (CI/CD) | Mỗi lần push chạy test, build image, triển khai | Chạy tay `make test` |
+| Phiên bản thư viện | File khóa đủ mọi phiên bản | Đã chặn bản lớn sau sự cố ngày 31/10, chưa có file khóa đủ |
+| Theo dõi | Cảnh báo khi dữ liệu cũ quá hạn, khi số dòng lệch, truy được nguồn gốc dữ liệu | File `_report_*.json` và log của Airflow |
+| Bảo mật | Quản lý khóa bí mật, phân quyền theo vai trò, che dữ liệu cá nhân của sinh viên | Khóa ở file `secrets/gcp-key.json`, mọi người cùng một quyền |

@@ -1,0 +1,17 @@
+# Airflow chạy trên image của app, để task gọi được Spark, Java, make y như khi chạy tay.
+# Cài vào venv riêng: ràng buộc phiên bản của Airflow không đụng thư viện của project.
+# Build sau image app:  docker compose build app && docker compose --profile airflow build airflow
+FROM oulad-app:latest
+
+ARG AIRFLOW_VERSION=2.10.5
+RUN python -m venv /opt/airflow-venv \
+ && /opt/airflow-venv/bin/pip install --no-cache-dir "apache-airflow[postgres]==${AIRFLOW_VERSION}" \
+      --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.11.txt"
+
+# Venv đứng đầu PATH để airflow standalone gọi được các lệnh con của nó.
+# Task trong DAG tự đặt lại PATH về hệ thống để dùng python, spark-submit của image app.
+ENV AIRFLOW_HOME=/opt/airflow \
+    PATH="/opt/airflow-venv/bin:${PATH}"
+
+EXPOSE 8080
+CMD ["airflow", "standalone"]
