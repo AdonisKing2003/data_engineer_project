@@ -1,21 +1,47 @@
-"""Module kết nối và đóng gói toàn bộ các hàm nghiệp vụ truy vấn dữ liệu từ kho Parquet (DuckDB) cho ứng dụng Streamlit."""
+"""Module kết nối và đóng gói toàn bộ các hàm nghiệp vụ truy vấn dữ liệu
+Hỗ trợ song song cả DuckDB (kho Parquet cục bộ) và Google Cloud BigQuery.
+"""
+from __future__ import annotations
+
+import os
+import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
+
 import duckdb
 import pandas as pd
 import streamlit as st
 
-# Tự động nhận diện đường dẫn thư mục warehouse dù chạy từ Windows host hay bên trong Docker
+# Tự động nạp .env
 APP_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = APP_DIR.parent
 WAREHOUSE_DIR = PROJECT_DIR / "data" / "warehouse"
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_DIR / ".env")
+except ImportError:
+    pass
+
+
+def get_backend() -> str:
+    """Trả về backend đang được cấu hình: 'duckdb' hoặc 'bigquery'."""
+    return os.getenv("DATA_BACKEND", "duckdb").strip().lower()
+
+
+def is_bigquery() -> bool:
+    return get_backend() == "bigquery"
+
+
+# ==============================================================================
+# QUẢN LÝ KẾT NỐI (CONNECTION MANAGEMENT)
+# ==============================================================================
 
 @st.cache_resource
-def get_connection():
+def get_duckdb_connection():
     """Khởi tạo kết nối DuckDB in-memory và đăng ký các view trỏ tới Parquet warehouse."""
     con = duckdb.connect(database=":memory:")
-    
     tables = [
         "dim_presentation",
         "dim_student",
@@ -27,19 +53,99 @@ def get_connection():
         "fact_submission",
         "fact_student_week",
     ]
-    
     for table in tables:
         table_path = WAREHOUSE_DIR / table
         if table_path.exists():
-            con.execute(f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{table_path.as_posix()}/*.parquet')")
-    
+            con.execute(
+                f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{table_path.as_posix()}/*.parquet')"
+            )
     return con
 
 
+@st.cache_resource
+def get_bigquery_client():
+    """Khởi tạo BigQuery Client với cấu hình dự án và chứng thực từ môi trường."""
+    try:
+        from google.cloud import bigquery
+    except ImportError as exc:
+        raise RuntimeError(
+            "Cấu hình DATA_BACKEND=bigquery yêu cầu gói 'google-cloud-bigquery'. "
+            "Vui lòng chạy trong Docker container hoặc cài đặt 'pip install google-cloud-bigquery db-dtypes'."
+        ) from exc
+
+    project = os.getenv("GCP_PROJECT_ID", "dataengineergroup32").strip()
+    location = os.getenv("BQ_LOCATION", "US").strip()
+
+    # Xử lý đường dẫn file service account credentials nếu cần fallback sang Windows
+    cred_env = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
+    if cred_env:
+        cred_path = Path(cred_env)
+        if not cred_path.is_file():
+            host_fallback = PROJECT_DIR / "secrets" / "gcp-key.json"
+            if host_fallback.is_file():
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(host_fallback)
+
+    return bigquery.Client(
+        project=project,
+        location=location,
+        default_job_creation_mode="JOB_CREATION_OPTIONAL",
+    )
+
+
+# Giữ tương thích ngược với code cũ
+get_connection = get_duckdb_connection
+
+
+# ==============================================================================
+# HÀM THỰC THI TRUY VẤN ĐA NỀN TẢNG (DUAL-BACKEND RUNNER)
+# ==============================================================================
+
+def _bq_param_type(val: Any) -> str:
+    if isinstance(val, bool):
+        return "BOOL"
+    if isinstance(val, int):
+        return "INT64"
+    if isinstance(val, float):
+        return "FLOAT64"
+    return "STRING"
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
-def run_query(sql: str, params: Optional[list] = None) -> pd.DataFrame:
-    """Thực thi câu truy vấn SQL và trả về DataFrame với bộ nhớ đệm (cache)."""
-    con = get_connection()
+def run_query(
+    sql: str,
+    params: Optional[list] = None,
+    sql_bq: Optional[str] = None,
+    named_params_bq: Optional[dict] = None,
+) -> pd.DataFrame:
+    """
+    Thực thi câu truy vấn SQL và trả về DataFrame với bộ nhớ đệm (cache).
+    Tự động rẽ nhánh sang DuckDB hoặc BigQuery tùy theo biến DATA_BACKEND.
+    """
+    backend = get_backend()
+    if backend == "bigquery":
+        from google.cloud import bigquery
+
+        client = get_bigquery_client()
+        project = os.getenv("GCP_PROJECT_ID", "dataengineergroup32").strip()
+        dataset = os.getenv("BQ_DATASET", "oulad").strip()
+
+        target_sql = sql_bq if sql_bq is not None else sql
+        bq_params = []
+        if named_params_bq:
+            for k, v in named_params_bq.items():
+                bq_params.append(
+                    bigquery.ScalarQueryParameter(k, _bq_param_type(v), v)
+                )
+
+        job_config = bigquery.QueryJobConfig(
+            default_dataset=f"{project}.{dataset}",
+            query_parameters=bq_params if bq_params else None,
+        )
+        job = client.query_and_wait(target_sql, job_config=job_config)
+        return job.to_dataframe(create_bqstorage_client=False)
+
+    # Chế độ DuckDB cục bộ
+    con = get_duckdb_connection()
     if params:
         return con.execute(sql, params).df()
     return con.execute(sql).df()
@@ -81,7 +187,7 @@ def get_overall_stats() -> dict:
 @st.cache_data(ttl=3600)
 def get_br1_assessment_stats(code_module: str, code_presentation: str) -> pd.DataFrame:
     """Lấy thống kê tỷ lệ nộp bài, nộp trễ và các phân vị điểm số theo từng bài kiểm tra."""
-    sql = """
+    sql_duckdb = """
     WITH assessment_meta AS (
         SELECT
             a.id_assessment,
@@ -150,13 +256,88 @@ def get_br1_assessment_stats(code_module: str, code_presentation: str) -> pd.Dat
     LEFT JOIN submission_stats s USING (id_assessment)
     ORDER BY a.deadline, a.id_assessment;
     """
-    return run_query(sql, [code_module, code_presentation, code_module, code_presentation])
+
+    sql_bq = """
+    WITH assessment_meta AS (
+        SELECT
+            a.id_assessment,
+            a.code_module,
+            a.code_presentation,
+            a.assessment_type,
+            a.deadline,
+            a.weight,
+            a.assessment_order,
+            a.is_first_weighted_tma
+        FROM dim_assessment a
+        WHERE a.code_module = @code_module AND a.code_presentation = @code_presentation
+    ),
+    enrolled_at_deadline AS (
+        SELECT
+            a.id_assessment,
+            COUNT(DISTINCT e.id_student) AS n_active_students
+        FROM assessment_meta a
+        JOIN fact_enrollment e
+          ON e.code_module = a.code_module
+         AND e.code_presentation = a.code_presentation
+        WHERE e.date_unregistration IS NULL OR e.date_unregistration > a.deadline
+        GROUP BY a.id_assessment
+    ),
+    submission_stats AS (
+        SELECT
+            s.id_assessment,
+            COUNT(DISTINCT s.id_student) AS n_submitted_total,
+            COUNTIF(NOT s.is_banked) AS n_submitted_regular,
+            COUNTIF(s.is_banked) AS n_banked,
+            COUNTIF(s.is_late) AS n_late,
+            ROUND(APPROX_QUANTILES(IF(NOT s.score_missing, s.score, NULL), 100)[OFFSET(50)], 1) AS median_score,
+            ROUND(APPROX_QUANTILES(IF(NOT s.score_missing, s.score, NULL), 100)[OFFSET(25)], 1) AS p25_score,
+            ROUND(APPROX_QUANTILES(IF(NOT s.score_missing, s.score, NULL), 100)[OFFSET(75)], 1) AS p75_score,
+            ROUND(100.0 * COUNTIF(s.is_pass_score) / NULLIF(COUNTIF(NOT s.score_missing), 0), 1) AS pass_rate_pct
+        FROM fact_submission s
+        WHERE s.code_module = @code_module AND s.code_presentation = @code_presentation
+        GROUP BY s.id_assessment
+    )
+    SELECT
+        a.id_assessment,
+        a.assessment_type || ' ' || CAST(a.id_assessment AS STRING) AS assessment_label,
+        a.assessment_type,
+        a.assessment_order,
+        a.deadline,
+        a.weight,
+        a.is_first_weighted_tma,
+        COALESCE(e.n_active_students, 0) AS active_students,
+        COALESCE(s.n_submitted_regular, 0) AS submitted_regular,
+        COALESCE(s.n_banked, 0) AS banked_students,
+        COALESCE(s.n_late, 0) AS late_submissions,
+        CASE 
+            WHEN COALESCE(e.n_active_students, 0) = 0 THEN 0.0
+            ELSE ROUND(100.0 * COALESCE(s.n_submitted_regular, 0) / e.n_active_students, 1)
+        END AS submission_rate_pct,
+        CASE 
+            WHEN COALESCE(s.n_submitted_regular, 0) = 0 OR a.assessment_type != 'TMA' THEN 0.0
+            ELSE ROUND(100.0 * COALESCE(s.n_late, 0) / s.n_submitted_regular, 1)
+        END AS late_rate_pct,
+        s.p25_score,
+        s.median_score,
+        s.p75_score,
+        s.pass_rate_pct
+    FROM assessment_meta a
+    LEFT JOIN enrolled_at_deadline e USING (id_assessment)
+    LEFT JOIN submission_stats s USING (id_assessment)
+    ORDER BY a.deadline, a.id_assessment;
+    """
+    return run_query(
+        sql_duckdb,
+        params=[code_module, code_presentation, code_module, code_presentation],
+        sql_bq=sql_bq,
+        named_params_bq={"code_module": code_module, "code_presentation": code_presentation},
+    )
 
 
 @st.cache_data(ttl=3600)
 def get_br1_assessment_scores(code_module: str, code_presentation: str) -> pd.DataFrame:
     """Lấy danh sách điểm số chi tiết của từng bài kiểm tra để vẽ biểu đồ Box Plot."""
-    sql = """
+    sql_duckdb = """
     SELECT 
         a.assessment_type || ' ' || CAST(a.id_assessment AS VARCHAR) AS assessment_label,
         a.deadline,
@@ -167,7 +348,23 @@ def get_br1_assessment_scores(code_module: str, code_presentation: str) -> pd.Da
       AND s.score IS NOT NULL
     ORDER BY a.deadline, a.id_assessment
     """
-    return run_query(sql, [code_module, code_presentation])
+    sql_bq = """
+    SELECT 
+        a.assessment_type || ' ' || CAST(a.id_assessment AS STRING) AS assessment_label,
+        a.deadline,
+        s.score
+    FROM dim_assessment a
+    JOIN fact_submission s USING (id_assessment)
+    WHERE a.code_module = @code_module AND a.code_presentation = @code_presentation
+      AND s.score IS NOT NULL
+    ORDER BY a.deadline, a.id_assessment
+    """
+    return run_query(
+        sql_duckdb,
+        params=[code_module, code_presentation],
+        sql_bq=sql_bq,
+        named_params_bq={"code_module": code_module, "code_presentation": code_presentation},
+    )
 
 
 # ==============================================================================
@@ -178,19 +375,20 @@ def get_br1_assessment_scores(code_module: str, code_presentation: str) -> pd.Da
 def get_br4_at_risk_students(
     code_module: Optional[str] = None,
     code_presentation: Optional[str] = None,
-    week_no: int = 4
+    week_no: int = 4,
 ) -> pd.DataFrame:
     """
     Truy vấn cảnh báo sớm sinh viên có nguy cơ học tập tại tuần week_no.
     Nếu code_module và code_presentation được chỉ định, lọc theo đợt học; ngược lại tính toàn trường.
     """
-    filter_pres_clause = ""
-    params = [week_no]
+    # DuckDB version
+    filter_pres_duckdb = ""
+    params_duckdb = [week_no]
     if code_module and code_presentation:
-        filter_pres_clause = "AND w.code_module = ? AND w.code_presentation = ?"
-        params.extend([code_module, code_presentation])
+        filter_pres_duckdb = "AND w.code_module = ? AND w.code_presentation = ?"
+        params_duckdb.extend([code_module, code_presentation])
 
-    sql = f"""
+    sql_duckdb = f"""
     WITH cohort AS (
         SELECT
             w.id_student,
@@ -210,7 +408,7 @@ def get_br4_at_risk_students(
          AND p.week_no = w.week_no - 1
         WHERE w.week_no = ?
           AND w.is_enrolled
-          {filter_pres_clause}
+          {filter_pres_duckdb}
     ),
     cohort_p25 AS (
         SELECT
@@ -251,7 +449,83 @@ def get_br4_at_risk_students(
      AND e.code_module = s.code_module 
      AND e.code_presentation = s.code_presentation
     """
-    return run_query(sql, params)
+
+    # BigQuery version
+    filter_pres_bq = ""
+    named_params_bq = {"week_no": week_no}
+    if code_module and code_presentation:
+        filter_pres_bq = "AND w.code_module = @code_module AND w.code_presentation = @code_presentation"
+        named_params_bq["code_module"] = code_module
+        named_params_bq["code_presentation"] = code_presentation
+
+    sql_bq = f"""
+    WITH cohort AS (
+        SELECT
+            w.id_student,
+            w.code_module,
+            w.code_presentation,
+            w.week_no,
+            w.clicks_cum,
+            w.clicks_week,
+            w.avg_score_cum,
+            w.n_tma_missed_cum,
+            p.clicks_week AS clicks_prev_week
+        FROM fact_student_week w
+        LEFT JOIN fact_student_week p
+          ON p.id_student = w.id_student
+         AND p.code_module = w.code_module
+         AND p.code_presentation = w.code_presentation
+         AND p.week_no = w.week_no - 1
+        WHERE w.week_no = @week_no
+          AND w.is_enrolled
+          {filter_pres_bq}
+    ),
+    cohort_p25 AS (
+        SELECT
+            code_module,
+            code_presentation,
+            APPROX_QUANTILES(clicks_cum, 100)[OFFSET(25)] AS p25_clicks
+        FROM cohort
+        GROUP BY code_module, code_presentation
+    ),
+    scored AS (
+        SELECT
+            c.id_student,
+            c.code_module,
+            c.code_presentation,
+            c.clicks_cum,
+            c.clicks_week,
+            c.avg_score_cum,
+            c.n_tma_missed_cum,
+            p.p25_clicks,
+            (c.clicks_cum < p.p25_clicks) AS flag_low_clicks,
+            (c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0) AS flag_inactive_2w,
+            (c.n_tma_missed_cum > 0) AS flag_missed_tma,
+            (COALESCE(c.avg_score_cum < 40, FALSE)) AS flag_low_score,
+            (CAST(c.clicks_cum < p.p25_clicks AS INT64) +
+             CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
+             CAST(c.n_tma_missed_cum > 0 AS INT64) +
+             CAST(COALESCE(c.avg_score_cum < 40, FALSE) AS INT64)) AS risk_score
+        FROM cohort c
+        JOIN cohort_p25 p USING (code_module, code_presentation)
+    )
+    SELECT
+        s.*,
+        e.final_result,
+        (e.final_result IN ('Fail', 'Withdrawn')) AS is_unsuccessful
+    FROM scored s
+    LEFT JOIN fact_enrollment e 
+      ON e.id_student = s.id_student 
+     AND e.code_module = s.code_module 
+     AND e.code_presentation = s.code_presentation
+    """
+
+    return run_query(
+        sql_duckdb,
+        params=params_duckdb,
+        sql_bq=sql_bq,
+        named_params_bq=named_params_bq,
+    )
 
 
 # ==============================================================================
@@ -261,7 +535,7 @@ def get_br4_at_risk_students(
 @st.cache_data(ttl=3600)
 def get_br5_withdrawal_summary() -> pd.DataFrame:
     """Lấy thống kê tỷ lệ rút lui của toàn bộ 22 đợt học tại các mốc ngày then chốt (ngày 0, ngày 27)."""
-    sql = """
+    sql_duckdb = """
     WITH presentation_base AS (
         SELECT code_module, code_presentation, COUNT(*) AS total_students
         FROM fact_enrollment
@@ -292,7 +566,39 @@ def get_br5_withdrawal_summary() -> pd.DataFrame:
     JOIN presentation_base b USING (code_module, code_presentation)
     ORDER BY pct_withdrawn_total DESC;
     """
-    return run_query(sql)
+
+    sql_bq = """
+    WITH presentation_base AS (
+        SELECT code_module, code_presentation, COUNT(*) AS total_students
+        FROM fact_enrollment
+        GROUP BY code_module, code_presentation
+    ),
+    presentation_milestones AS (
+        SELECT
+            e.code_module,
+            e.code_presentation,
+            COUNTIF(e.is_withdrawn AND e.date_unregistration <= 0) AS with_day_0,
+            COUNTIF(e.is_withdrawn AND e.date_unregistration <= 27) AS with_day_27,
+            COUNTIF(e.is_withdrawn) AS with_total,
+            APPROX_QUANTILES(IF(e.is_withdrawn AND e.date_unregistration IS NOT NULL, e.date_unregistration, NULL), 100)[OFFSET(50)] AS median_unreg_day
+        FROM fact_enrollment e
+        GROUP BY e.code_module, e.code_presentation
+    )
+    SELECT
+        m.code_module || ' ' || m.code_presentation AS presentation,
+        b.total_students,
+        m.with_day_0,
+        ROUND(100.0 * m.with_day_0 / b.total_students, 1) AS pct_withdrawn_day_0,
+        m.with_day_27,
+        ROUND(100.0 * m.with_day_27 / b.total_students, 1) AS pct_withdrawn_day_27,
+        m.with_total,
+        ROUND(100.0 * m.with_total / b.total_students, 1) AS pct_withdrawn_total,
+        m.median_unreg_day
+    FROM presentation_milestones m
+    JOIN presentation_base b USING (code_module, code_presentation)
+    ORDER BY pct_withdrawn_total DESC;
+    """
+    return run_query(sql_duckdb, sql_bq=sql_bq)
 
 
 @st.cache_data(ttl=3600)
@@ -304,15 +610,26 @@ def get_br5_retention_curve(cohorts: List[str]) -> pd.DataFrame:
     if not cohorts:
         return pd.DataFrame()
 
-    conditions = []
-    params = []
-    for c in cohorts:
-        m, p = c.split(" ")
-        conditions.append("(p.code_module = ? AND p.code_presentation = ?)")
-        params.extend([m, p])
-    where_cohorts = " OR ".join(conditions)
+    conditions_duckdb = []
+    params_duckdb = []
+    conditions_bq = []
+    named_params_bq = {}
 
-    sql = f"""
+    for idx, c in enumerate(cohorts):
+        m, p = c.split(" ")
+        conditions_duckdb.append("(p.code_module = ? AND p.code_presentation = ?)")
+        params_duckdb.extend([m, p])
+
+        mod_key = f"m_{idx}"
+        pres_key = f"p_{idx}"
+        conditions_bq.append(f"(p.code_module = @{mod_key} AND p.code_presentation = @{pres_key})")
+        named_params_bq[mod_key] = m
+        named_params_bq[pres_key] = p
+
+    where_duckdb = " OR ".join(conditions_duckdb)
+    where_bq = " OR ".join(conditions_bq)
+
+    sql_duckdb = f"""
     WITH presentation_weeks AS (
         SELECT
             p.code_module,
@@ -322,7 +639,7 @@ def get_br5_retention_curve(cohorts: List[str]) -> pd.DataFrame:
             w.day_to
         FROM dim_presentation p
         CROSS JOIN dim_week w
-        WHERE ({where_cohorts})
+        WHERE ({where_duckdb})
           AND w.week_no >= -4 AND w.week_no < p.n_weeks
     ),
     enrollment_base AS (
@@ -359,7 +676,61 @@ def get_br5_retention_curve(cohorts: List[str]) -> pd.DataFrame:
      AND b.code_presentation = SPLIT_PART(w.cohort, ' ', 2)
     ORDER BY w.cohort, w.week_no;
     """
-    return run_query(sql, params)
+
+    sql_bq = f"""
+    WITH presentation_weeks AS (
+        SELECT
+            p.code_module,
+            p.code_presentation,
+            p.code_module || ' ' || p.code_presentation AS cohort,
+            w.week_no,
+            w.day_to
+        FROM dim_presentation p
+        CROSS JOIN dim_week w
+        WHERE ({where_bq})
+          AND w.week_no >= -4 AND w.week_no < p.n_weeks
+    ),
+    enrollment_base AS (
+        SELECT
+            code_module,
+            code_presentation,
+            COUNT(*) AS total_students
+        FROM fact_enrollment
+        GROUP BY code_module, code_presentation
+    ),
+    weekly_dropouts AS (
+        SELECT
+            pw.cohort,
+            pw.week_no,
+            pw.day_to,
+            COUNTIF(e.date_unregistration IS NOT NULL AND e.date_unregistration <= pw.day_to) AS cum_withdrawn_students
+        FROM presentation_weeks pw
+        LEFT JOIN fact_enrollment e
+          ON e.code_module = pw.code_module
+         AND e.code_presentation = pw.code_presentation
+        GROUP BY pw.cohort, pw.week_no, pw.day_to
+    )
+    SELECT
+        w.cohort,
+        w.week_no,
+        w.day_to,
+        w.cum_withdrawn_students,
+        b.total_students,
+        ROUND(100.0 * w.cum_withdrawn_students / b.total_students, 2) AS cum_withdrawal_rate_pct,
+        ROUND(100.0 * (b.total_students - w.cum_withdrawn_students) / b.total_students, 2) AS retention_rate_pct
+    FROM weekly_dropouts w
+    JOIN enrollment_base b 
+      ON b.code_module = SPLIT(w.cohort, ' ')[OFFSET(0)] 
+     AND b.code_presentation = SPLIT(w.cohort, ' ')[OFFSET(1)]
+    ORDER BY w.cohort, w.week_no;
+    """
+
+    return run_query(
+        sql_duckdb,
+        params=params_duckdb,
+        sql_bq=sql_bq,
+        named_params_bq=named_params_bq,
+    )
 
 
 # ==============================================================================
@@ -369,20 +740,31 @@ def get_br5_retention_curve(cohorts: List[str]) -> pd.DataFrame:
 @st.cache_data(ttl=3600)
 def get_br7_students_in_presentation(code_module: str, code_presentation: str) -> List[int]:
     """Lấy danh sách mã sinh viên (id_student) thuộc một đợt học cụ thể."""
-    sql = """
+    sql_duckdb = """
     SELECT DISTINCT id_student
     FROM fact_enrollment
     WHERE code_module = ? AND code_presentation = ?
     ORDER BY id_student
     """
-    df = run_query(sql, [code_module, code_presentation])
+    sql_bq = """
+    SELECT DISTINCT id_student
+    FROM fact_enrollment
+    WHERE code_module = @code_module AND code_presentation = @code_presentation
+    ORDER BY id_student
+    """
+    df = run_query(
+        sql_duckdb,
+        params=[code_module, code_presentation],
+        sql_bq=sql_bq,
+        named_params_bq={"code_module": code_module, "code_presentation": code_presentation},
+    )
     return df["id_student"].tolist()
 
 
 @st.cache_data(ttl=3600)
 def get_br7_cohort_benchmark(code_module: str, code_presentation: str) -> pd.DataFrame:
     """Truy vấn dải phân vị (Q25, Median, Q75) về tương tác VLE và điểm số theo tuần của cả lớp."""
-    sql = """
+    sql_duckdb = """
     SELECT
         week_no,
         COUNT(*) AS n_active_students,
@@ -398,13 +780,35 @@ def get_br7_cohort_benchmark(code_module: str, code_presentation: str) -> pd.Dat
     GROUP BY week_no
     ORDER BY week_no;
     """
-    return run_query(sql, [code_module, code_presentation])
+
+    sql_bq = """
+    SELECT
+        week_no,
+        COUNT(*) AS n_active_students,
+        ROUND(APPROX_QUANTILES(clicks_cum, 100)[OFFSET(25)]) AS q25_clicks,
+        ROUND(APPROX_QUANTILES(clicks_cum, 100)[OFFSET(50)]) AS median_clicks,
+        ROUND(APPROX_QUANTILES(clicks_cum, 100)[OFFSET(75)]) AS q75_clicks,
+        ROUND(APPROX_QUANTILES(IF(avg_score_cum IS NOT NULL, avg_score_cum, NULL), 100)[OFFSET(25)], 1) AS q25_score,
+        ROUND(APPROX_QUANTILES(IF(avg_score_cum IS NOT NULL, avg_score_cum, NULL), 100)[OFFSET(50)], 1) AS median_score,
+        ROUND(APPROX_QUANTILES(IF(avg_score_cum IS NOT NULL, avg_score_cum, NULL), 100)[OFFSET(75)], 1) AS q75_score
+    FROM fact_student_week
+    WHERE code_module = @code_module AND code_presentation = @code_presentation
+      AND is_enrolled
+    GROUP BY week_no
+    ORDER BY week_no;
+    """
+    return run_query(
+        sql_duckdb,
+        params=[code_module, code_presentation],
+        sql_bq=sql_bq,
+        named_params_bq={"code_module": code_module, "code_presentation": code_presentation},
+    )
 
 
 @st.cache_data(ttl=3600)
 def get_br7_student_progress(code_module: str, code_presentation: str, id_student: int) -> pd.DataFrame:
     """Truy vấn tiến trình học tập cá nhân theo từng tuần của một sinh viên."""
-    sql = """
+    sql_duckdb = """
     SELECT
         w.week_no,
         w.clicks_cum,
@@ -423,4 +827,33 @@ def get_br7_student_progress(code_module: str, code_presentation: str, id_studen
       AND w.code_presentation = ?
     ORDER BY w.week_no;
     """
-    return run_query(sql, [id_student, code_module, code_presentation])
+
+    sql_bq = """
+    SELECT
+        w.week_no,
+        w.clicks_cum,
+        w.clicks_week,
+        w.avg_score_cum,
+        w.n_tma_missed_cum,
+        w.is_enrolled,
+        e.final_result
+    FROM fact_student_week w
+    JOIN fact_enrollment e 
+      ON e.id_student = w.id_student
+     AND e.code_module = w.code_module
+     AND e.code_presentation = w.code_presentation
+    WHERE w.id_student = @id_student
+      AND w.code_module = @code_module
+      AND w.code_presentation = @code_presentation
+    ORDER BY w.week_no;
+    """
+    return run_query(
+        sql_duckdb,
+        params=[id_student, code_module, code_presentation],
+        sql_bq=sql_bq,
+        named_params_bq={
+            "id_student": id_student,
+            "code_module": code_module,
+            "code_presentation": code_presentation,
+        },
+    )

@@ -56,6 +56,30 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br8_forum_week5.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br8_forum_week5.sql",
     },
+    "br1_school_summary": {
+        "duckdb": PROJECT_ROOT / "sql" / "br1_school_summary.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br1_school_summary.sql",
+    },
+    "br1_assessment_stats": {
+        "duckdb": PROJECT_ROOT / "sql" / "br1_assessment_stats.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br1_assessment_stats.sql",
+    },
+    "br4_school_summary": {
+        "duckdb": PROJECT_ROOT / "sql" / "br4_school_summary.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br4_school_summary.sql",
+    },
+    "br4_at_risk_list": {
+        "duckdb": PROJECT_ROOT / "sql" / "br4_at_risk_list.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br4_at_risk_list.sql",
+    },
+    "br5_withdrawal_summary": {
+        "duckdb": PROJECT_ROOT / "sql" / "br5_withdrawal_summary.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br5_withdrawal_summary.sql",
+    },
+    "br7_cohort_benchmark": {
+        "duckdb": PROJECT_ROOT / "sql" / "br7_cohort_benchmark.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br7_cohort_benchmark.sql",
+    },
 }
 
 # The order is the binding contract for DuckDB's positional ``?`` markers.
@@ -72,6 +96,12 @@ QUERY_PARAMETER_ORDER = {
     "br3_spearman": (),
     "br6_imd_gap": (),
     "br8_forum_week5": (),
+    "br1_school_summary": (),
+    "br1_assessment_stats": ("code_module", "code_presentation", "code_module", "code_presentation"),
+    "br4_school_summary": (),
+    "br4_at_risk_list": ("week_no", "code_module", "code_presentation"),
+    "br5_withdrawal_summary": (),
+    "br7_cohort_benchmark": ("code_module", "code_presentation"),
 }
 
 
@@ -98,6 +128,13 @@ def _run_duckdb(query: str, parameters: Sequence[Any] | None) -> pd.DataFrame:
     with duckdb.connect(
         database=":memory:", config={"file_search_path": str(PROJECT_ROOT)}
     ) as connection:
+        warehouse = PROJECT_ROOT / "data" / "warehouse"
+        if warehouse.is_dir():
+            for entry in warehouse.iterdir():
+                if entry.is_dir() and any(entry.glob("*.parquet")):
+                    connection.execute(
+                        f"CREATE OR REPLACE VIEW {entry.name} AS SELECT * FROM read_parquet('{entry.as_posix()}/*.parquet')"
+                    )
         return connection.execute(query, list(parameters or ())).fetchdf()
 
 
