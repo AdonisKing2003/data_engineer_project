@@ -9,8 +9,14 @@ from typing import Any, Mapping, Sequence
 
 import pandas as pd
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
 QUERY_FILES = {
     "overview_offerings": {
         "duckdb": PROJECT_ROOT / "sql" / "overview_offerings.sql",
@@ -56,6 +62,14 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br8_forum_week5.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br8_forum_week5.sql",
     },
+    "presentations": {
+        "duckdb": PROJECT_ROOT / "sql" / "presentations.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "presentations.sql",
+    },
+    "overall_stats": {
+        "duckdb": PROJECT_ROOT / "sql" / "overall_stats.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "overall_stats.sql",
+    },
     "br1_school_summary": {
         "duckdb": PROJECT_ROOT / "sql" / "br1_school_summary.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br1_school_summary.sql",
@@ -64,9 +78,17 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br1_assessment_stats.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br1_assessment_stats.sql",
     },
+    "br1_assessment_scores": {
+        "duckdb": PROJECT_ROOT / "sql" / "br1_assessment_scores.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br1_assessment_scores.sql",
+    },
     "br4_school_summary": {
         "duckdb": PROJECT_ROOT / "sql" / "br4_school_summary.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br4_school_summary.sql",
+    },
+    "br4_at_risk_all": {
+        "duckdb": PROJECT_ROOT / "sql" / "br4_at_risk_all.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br4_at_risk_all.sql",
     },
     "br4_at_risk_list": {
         "duckdb": PROJECT_ROOT / "sql" / "br4_at_risk_list.sql",
@@ -76,9 +98,17 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br5_withdrawal_summary.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br5_withdrawal_summary.sql",
     },
+    "br7_students_in_presentation": {
+        "duckdb": PROJECT_ROOT / "sql" / "br7_students_in_presentation.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br7_students_in_presentation.sql",
+    },
     "br7_cohort_benchmark": {
         "duckdb": PROJECT_ROOT / "sql" / "br7_cohort_benchmark.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br7_cohort_benchmark.sql",
+    },
+    "br7_student_progress": {
+        "duckdb": PROJECT_ROOT / "sql" / "br7_student_progress.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br7_student_progress.sql",
     },
 }
 
@@ -96,12 +126,18 @@ QUERY_PARAMETER_ORDER = {
     "br3_spearman": (),
     "br6_imd_gap": (),
     "br8_forum_week5": (),
+    "presentations": (),
+    "overall_stats": (),
     "br1_school_summary": (),
-    "br1_assessment_stats": ("code_module", "code_presentation", "code_module", "code_presentation"),
+    "br1_assessment_stats": ("code_module", "code_presentation"),
+    "br1_assessment_scores": ("code_module", "code_presentation"),
     "br4_school_summary": (),
+    "br4_at_risk_all": ("week_no",),
     "br4_at_risk_list": ("week_no", "code_module", "code_presentation"),
     "br5_withdrawal_summary": (),
+    "br7_students_in_presentation": ("code_module", "code_presentation"),
     "br7_cohort_benchmark": ("code_module", "code_presentation"),
+    "br7_student_progress": ("id_student", "code_module", "code_presentation"),
 }
 
 

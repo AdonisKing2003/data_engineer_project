@@ -8,3 +8,4 @@ JOIN fact_submission s USING (id_assessment)
 WHERE a.code_module = @code_module AND a.code_presentation = @code_presentation
   AND s.score IS NOT NULL
 ORDER BY a.deadline, a.id_assessment;
+

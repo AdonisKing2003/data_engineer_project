@@ -1,9 +1,11 @@
-import streamlit as st
+import os
+import sys
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import sys
-from pathlib import Path
+import streamlit as st
 
 # Thêm đường dẫn app vào sys.path
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -85,7 +87,8 @@ with tab1:
     if selected_pres_label != "Tất cả các đợt (Toàn trường)":
         mod, pres = selected_pres_label.split(" ")
 
-    with st.spinner("Đang truy vấn dữ liệu từ DuckDB..."):
+    backend_name = "BigQuery (Cloud)" if os.getenv("DATA_BACKEND", "bigquery").strip().lower() == "bigquery" else "DuckDB (Local)"
+    with st.spinner(f"Đang truy vấn dữ liệu từ {backend_name}..."):
         df_br4 = db.get_br4_at_risk_students(code_module=mod, code_presentation=pres, week_no=selected_week)
 
     if df_br4.empty:

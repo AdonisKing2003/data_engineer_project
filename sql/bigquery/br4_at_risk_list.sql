@@ -1,4 +1,4 @@
--- BR4 detail: Danh sách sinh viên nguy cơ học tập kèm 4 cờ dấu hiệu (BigQuery)
+-- BR4 detail: Đánh giá nguy cơ học tập của sinh viên một đợt học tại tuần week_no (BigQuery)
 WITH cohort AS (
     SELECT
         w.id_student,
@@ -36,43 +36,31 @@ scored_students AS (
         c.code_presentation,
         c.week_no,
         c.clicks_week,
-        c.clicks_prev_week,
         c.clicks_cum,
-        p.p25_clicks_cum,
         c.avg_score_cum,
         c.n_tma_missed_cum,
-        (c.clicks_cum < p.p25_clicks_cum) AS flag_low_clicks_cum,
-        (c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0) AS flag_two_weeks_inactive,
-        (c.n_tma_missed_cum > 0) AS flag_missed_tma,
-        (c.avg_score_cum IS NOT NULL AND c.avg_score_cum < 40) AS flag_low_score,
-        (CAST(c.clicks_cum < p.p25_clicks_cum AS INT64) +
-         CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) +
-         CAST(c.n_tma_missed_cum > 0 AS INT64) +
-         CAST(c.avg_score_cum IS NOT NULL AND c.avg_score_cum < 40 AS INT64)) AS risk_score
+        CAST(c.clicks_cum < p.p25_clicks_cum AS INT64) AS flag_low_clicks,
+        CAST(c.clicks_week = 0 AND COALESCE(c.clicks_prev_week, 0) = 0 AS INT64) AS flag_inactive_2w,
+        CAST(c.n_tma_missed_cum > 0 AS INT64) AS flag_missed_tma,
+        CAST(c.avg_score_cum IS NOT NULL AND c.avg_score_cum < 40 AS INT64) AS flag_low_score
     FROM cohort c
     JOIN cohort_p25 p USING (code_module, code_presentation)
 )
 SELECT
-    id_student,
-    code_module,
-    code_presentation,
-    week_no,
-    risk_score,
-    CASE 
-        WHEN risk_score >= 3 THEN 'High Risk (Đỏ)'
-        WHEN risk_score = 2 THEN 'Medium Risk (Vàng)'
-        ELSE 'Low Risk (Xanh)'
-    END AS risk_level,
-    flag_low_clicks_cum,
-    flag_two_weeks_inactive,
-    flag_missed_tma,
-    flag_low_score,
-    clicks_cum,
-    ROUND(p25_clicks_cum, 1) AS cohort_p25_clicks,
-    clicks_week,
-    avg_score_cum,
-    n_tma_missed_cum
-FROM scored_students
-WHERE risk_score >= 2
-ORDER BY risk_score DESC, clicks_cum ASC;
-
+    s.id_student,
+    s.code_module,
+    s.code_presentation,
+    s.week_no,
+    s.clicks_cum,
+    s.clicks_week,
+    s.avg_score_cum,
+    s.n_tma_missed_cum,
+    s.flag_low_clicks,
+    s.flag_inactive_2w,
+    s.flag_missed_tma,
+    s.flag_low_score,
+    (s.flag_low_clicks + s.flag_inactive_2w + s.flag_missed_tma + s.flag_low_score) AS risk_score,
+    e.final_result,
+    CAST(e.final_result IN ('Fail', 'Withdrawn') AS INT64) AS is_unsuccessful
+FROM scored_students s
+JOIN fact_enrollment e USING (id_student, code_module, code_presentation);
