@@ -1,7 +1,15 @@
--- Câu 16 (BR5): Ngày rút trung vị của sinh viên Withdrawn?
--- Đáp án chuẩn: Ngày 27
-SELECT
-    APPROX_QUANTILES(IF(is_withdrawn AND date_unregistration IS NOT NULL, date_unregistration, NULL), 100)[OFFSET(50)] AS median_unreg_day,
-    APPROX_QUANTILES(IF(is_withdrawn AND date_unregistration IS NOT NULL, date_unregistration, NULL), 100)[OFFSET(25)] AS q25_unreg_day,
-    APPROX_QUANTILES(IF(is_withdrawn AND date_unregistration IS NOT NULL, date_unregistration, NULL), 100)[OFFSET(75)] AS q75_unreg_day
-FROM fact_enrollment;
+-- Câu 16 (BR5): Ngày rút trung vị của SV Withdrawn?
+-- Đáp án chuẩn: ngày 27
+-- Trung vị viết tay (trung bình hai phần tử giữa) để chạy được trên BigQuery, PostgreSQL, DuckDB.
+WITH ranked AS (
+    SELECT date_unregistration AS d,
+           ROW_NUMBER() OVER (ORDER BY date_unregistration) AS rn,
+           COUNT(*) OVER () AS n
+    FROM fact_enrollment
+    WHERE is_withdrawn
+      AND date_unregistration IS NOT NULL
+)
+SELECT MAX(n) AS n_withdrawn_co_ngay_rut,
+       AVG(d) AS ngay_rut_trung_vi
+FROM ranked
+WHERE rn IN (FLOOR((n + 1) / 2.0), CEIL((n + 1) / 2.0))

@@ -1,9 +1,8 @@
 -- Câu 7 (BR1): Tỷ lệ nộp trễ chung của mọi TMA?
 -- Đáp án chuẩn: 16,8% (16.320 bài)
-SELECT
-    COUNTIF(s.is_late) AS n_late_submissions,
-    COUNTIF(NOT s.is_banked) AS n_regular_submissions,
-    ROUND(100.0 * COUNTIF(s.is_late) / COUNTIF(NOT s.is_banked), 1) AS overall_tma_late_rate_pct
-FROM fact_submission s
-JOIN dim_assessment a USING (id_assessment)
-WHERE a.assessment_type = 'TMA';
+SELECT SUM(CASE WHEN s.is_late THEN 1 ELSE 0 END) AS n_tre,
+       ROUND(100.0 * SUM(CASE WHEN s.is_late THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct
+FROM fact_submission AS s
+JOIN dim_assessment AS a ON a.id_assessment = s.id_assessment
+WHERE a.assessment_type = 'TMA'
+  AND NOT s.is_banked

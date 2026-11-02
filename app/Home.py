@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from math import atanh, isfinite, sqrt, tanh
@@ -18,6 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.data import run_query  # noqa: E402
+from app.state import offering_label, select_offering, split_offering  # noqa: E402
 
 
 st.set_page_config(page_title="OULAD Analytics", page_icon="📊", layout="wide")
@@ -31,7 +33,9 @@ def load_query(
     return _load_query_cached(query_id, parameters, backend)
 
 
-@st.cache_data(ttl=300)
+# The warehouse only changes when it is reloaded (make load-bq), so results are
+# kept for 6 hours; the quality page has a button to clear them after a reload.
+@st.cache_data(ttl="6h", show_spinner="Đang tải dữ liệu…")
 def _load_query_cached(
     query_id: str,
     parameters: Mapping[str, Any] | Sequence[Any] | None,
@@ -55,51 +59,143 @@ def show_query_error(label: str, error: Exception) -> None:
 
 
 def render_course_page() -> None:
-    st.title("Học phần")
-    analysis = st.selectbox(
-        "Phân tích",
-        ["BR2 — Click VLE theo tuần", "BR3 — Click trước hạn TMA và điểm"],
-        key="course_analysis",
-    )
-    if analysis.startswith("BR3"):
-        render_br3_analysis()
-    else:
-        render_br2_analysis()
-
-
-def render_br2_analysis() -> None:
-    st.caption("BR2 — lượt click VLE theo tuần và loại hoạt động.")
+    st.title("Hoạt động học tập")
     try:
         offerings = load_query("br2_offerings")
     except Exception as error:
-        show_query_error("danh sách học phần BR2", error)
+        show_query_error("danh sách học phần", error)
         return
     if offerings.empty:
-        st.warning("Chưa có học phần nào để hiển thị cho BR2.")
+        st.warning("Chưa có học phần nào để hiển thị.")
         return
 
     required_offering_columns = {"code_module", "code_presentation"}
     missing_offering_columns = sorted(required_offering_columns - set(offerings.columns))
     if missing_offering_columns:
         st.error(
-            "Danh sách học phần BR2 thiếu các cột theo hợp đồng: "
+            "Danh sách học phần thiếu các cột theo hợp đồng: "
             f"{', '.join(missing_offering_columns)}"
         )
         return
     offerings = offerings.dropna(subset=["code_module", "code_presentation"])
-    modules = sorted(offerings["code_module"].astype(str).unique().tolist())
-    if not modules:
-        st.warning("Chưa có học phần hợp lệ để hiển thị cho BR2.")
+    labels = sorted(
+        {
+            offering_label(row.code_module, row.code_presentation)
+            for row in offerings.itertuples()
+        }
+    )
+    if not labels:
+        st.warning("Chưa có học phần hợp lệ để hiển thị.")
         return
-    selected_module = st.selectbox("Học phần", modules, key="br2_module")
-    presentations = sorted(
-        offerings.loc[
-            offerings["code_module"].astype(str) == selected_module, "code_presentation"
-        ].astype(str).unique().tolist()
+    # "Toàn trường" is listed first but the page still opens on the first offering.
+    choice = select_offering([SCHOOL_WIDE, *labels], key="course_offering", default=labels[0])
+    if choice == SCHOOL_WIDE:
+        selected_module = selected_presentation = None
+    else:
+        selected_module, selected_presentation = split_offering(choice)
+
+    # on_change="rerun" tracks the selected tab, so only the open tab runs its queries.
+    weekly, before_deadline = st.tabs(
+        ["Click VLE theo tuần", "Click trước hạn TMA và điểm"],
+        key="course_tab",
+        on_change="rerun",
     )
-    selected_presentation = st.selectbox(
-        "Kỳ học", presentations, key="br2_presentation"
+    if weekly.open:
+        with weekly:
+            if selected_module is None:
+                render_br2_school_analysis()
+            else:
+                render_br2_analysis(selected_module, selected_presentation)
+    if before_deadline.open:
+        with before_deadline:
+            render_br3_analysis(selected_module, selected_presentation)
+
+
+SCHOOL_WIDE = "Toàn trường"
+
+
+def render_br2_school_analysis() -> None:
+    st.caption(
+        "Tổng click VLE của mọi lượt đăng ký trên 22 đợt, kể cả sinh viên đã rút (BR2). "
+        "Khi chọn một đợt, trang chỉ đếm sinh viên còn học vào cuối tuần, nên tổng ở đây lớn hơn "
+        "tổng của các đợt cộng lại."
     )
+    try:
+        totals = load_query("br2_school_totals")
+    except Exception as error:
+        show_query_error("tổng click toàn trường", error)
+        return
+    if totals.empty:
+        st.warning("Truy vấn tổng click toàn trường chưa trả về dữ liệu.")
+        return
+
+    by_type = (
+        totals.groupby("activity_type", as_index=False)["total_clicks"].sum()
+        .sort_values(["total_clicks", "activity_type"], ascending=[False, True])
+    )
+    by_week = totals.groupby("week_no", as_index=False)["total_clicks"].sum().sort_values("week_no")
+    grand_total = int(by_type["total_clicks"].sum())
+    top_type = by_type.iloc[0]
+    # On a tie the earliest week wins, as in sample question 10.
+    peak_week = by_week.sort_values(["total_clicks", "week_no"], ascending=[False, True]).iloc[0]
+
+    total_metric, type_metric, week_metric = st.columns(3)
+    total_metric.metric("Tổng click VLE", f"{grand_total:,}")
+    type_metric.metric(
+        "Loại học liệu nhiều click nhất",
+        str(top_type["activity_type"]),
+        help=(
+            f"{int(top_type['total_clicks']):,} click, "
+            f"{100 * top_type['total_clicks'] / grand_total:.1f}% tổng click."
+        ),
+    )
+    week_metric.metric(
+        "Tuần nhiều click nhất",
+        f"Tuần {int(peak_week['week_no'])}",
+        help=f"{int(peak_week['total_clicks']):,} click.",
+    )
+
+    types_chart = go.Figure(
+        go.Bar(
+            x=by_type["total_clicks"],
+            y=by_type["activity_type"],
+            orientation="h",
+            marker={"color": "#2a78d6"},
+            customdata=100 * by_type[["total_clicks"]].to_numpy() / grand_total,
+            hovertemplate="%{y}<br>%{x:,} click (%{customdata[0]:.1f}%)<extra></extra>",
+        )
+    )
+    types_chart.update_layout(
+        title="Tổng click theo loại học liệu",
+        xaxis_title="Tổng lượt click",
+        yaxis={"title": "", "autorange": "reversed"},
+        height=max(420, 24 * len(by_type) + 100),
+        margin={"l": 20, "r": 20, "t": 60, "b": 20},
+    )
+    st.plotly_chart(types_chart, use_container_width=True, key="br2_school_types")
+
+    weeks_chart = go.Figure(
+        go.Scatter(
+            x=by_week["week_no"],
+            y=by_week["total_clicks"],
+            mode="lines+markers",
+            line={"color": "#2a78d6", "width": 2},
+            hovertemplate="Tuần %{x}<br>%{y:,} click<extra></extra>",
+        )
+    )
+    weeks_chart.add_vline(x=0, line_dash="dot", line_color="#9aa4b2")
+    weeks_chart.update_layout(
+        title="Tổng click theo tuần (tuần 0 là tuần khai giảng)",
+        xaxis_title="Tuần",
+        yaxis_title="Tổng lượt click",
+        height=380,
+        margin={"l": 20, "r": 20, "t": 60, "b": 20},
+    )
+    st.plotly_chart(weeks_chart, use_container_width=True, key="br2_school_weeks")
+
+
+def render_br2_analysis(selected_module: str, selected_presentation: str) -> None:
+    st.caption("Lượt click VLE theo tuần và loại hoạt động (BR2).")
     parameters = {
         "code_module": selected_module,
         "code_presentation": selected_presentation,
@@ -265,10 +361,10 @@ def _fisher_interval(rho: float | None, n: int) -> tuple[float | None, float | N
     return tanh(z - margin), tanh(z + margin)
 
 
-def render_br3_analysis() -> None:
-    st.subheader("BR3 — Click trước hạn TMA đầu tiên và điểm bài")
+def render_br3_analysis(selected_module: str | None, selected_presentation: str | None) -> None:
     st.caption(
-        "Đây là tương quan Spearman, không chứng minh click gây ra điểm số. "
+        "Click trước hạn TMA đầu tiên và điểm bài (BR3). "
+        "Tương quan, không phải nhân quả: hệ số Spearman không chứng minh click gây ra điểm số. "
         "Mẫu gồm các bài TMA đầu tiên có trọng số, không banked và có điểm."
     )
     try:
@@ -351,29 +447,21 @@ def render_br3_analysis() -> None:
     )
     st.plotly_chart(forest, use_container_width=True, key="br3_forest")
 
-    modules = sorted(summaries["code_module"].unique().tolist())
-    if "GGG" not in modules:
-        modules.append("GGG")
-    selected_module = st.selectbox("Học phần", modules, key="br3_module")
+    if selected_module is None:
+        st.info("Chọn một đợt ở ô Đợt học để xem từng cặp click và điểm của sinh viên.")
+        return
     if selected_module == "GGG":
         st.info("GGG không có TMA có trọng số, nên không có cặp hợp lệ để tính BR3.")
         return
-
-    presentations = sorted(
-        summaries.loc[
-            summaries["code_module"] == selected_module, "code_presentation"
-        ].unique().tolist()
-    )
-    if not presentations:
-        st.warning("Không tìm thấy kỳ học BR3 cho học phần đã chọn.")
-        return
-    selected_presentation = st.selectbox(
-        "Kỳ học", presentations, key="br3_presentation"
-    )
     selected_summary = summaries.loc[
         (summaries["code_module"] == selected_module)
         & (summaries["code_presentation"] == selected_presentation)
     ]
+    if selected_summary.empty:
+        st.warning(
+            f"Không có kết quả BR3 cho {selected_module} {selected_presentation}."
+        )
+        return
     try:
         selected_details = load_query(
             "br3_dashboard",
@@ -432,8 +520,8 @@ def render_br3_analysis() -> None:
 
 
 def render_faculty_page() -> None:
-    st.title("Khoa")
-    st.subheader("Khoảng cách kết quả theo nhóm IMD")
+    st.title("Khoảng cách kết quả theo nhóm IMD")
+    st.caption("BBB, DDD, FFF gộp theo kỳ; so nhóm IMD thấp nhất với cao nhất (BR6).")
     measure = st.radio(
         "Chỉ số tỷ lệ",
         ["Pass/Distinction", "Distinction"],
@@ -533,9 +621,10 @@ def render_faculty_page() -> None:
 
 
 def render_student_page() -> None:
-    st.title("Sinh viên")
-    st.subheader("BR8 — Hoạt động diễn đàn của nhóm đạt")
-    st.caption("BBB 2013J, tuần 5, loại hoạt động forumng; sinh viên không có click được tính là 0.")
+    st.title("Hoạt động diễn đàn của nhóm đạt")
+    st.caption(
+        "BBB 2013J, tuần 5, loại hoạt động forumng; sinh viên không có click được tính là 0 (BR8)."
+    )
     try:
         result = load_query("br8_forum_week5")
     except Exception as error:
@@ -562,7 +651,7 @@ def render_student_page() -> None:
             mode="lines",
             line={"color": "#60a5fa", "width": 24},
             name="Khoảng tứ phân vị",
-            hovertemplate="Q1=%{x}<extra></extra>",
+            hovertemplate="Click: %{x}<extra></extra>",
         )
     )
     chart.add_trace(
@@ -587,40 +676,453 @@ def render_student_page() -> None:
 
 def render_quality_page() -> None:
     st.title("Chất lượng & benchmark")
-    st.write("Trang tổng hợp các hiện vật benchmark được bàn giao trong thư mục bench/.")
-    result_dirs = [PROJECT_ROOT / "sql" / "bench" / "results", PROJECT_ROOT / "bench" / "results"]
-    median_candidates = sorted(
-        (path for directory in result_dirs if directory.is_dir()
-         for path in directory.glob("*.medians.csv")),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    if not median_candidates:
-        st.info("Chưa có CSV trung vị benchmark để hiển thị. Trang này sẽ tự nhận hiện vật sau khi runner tạo xong.")
+    st.write("Kết quả chỉ được hiển thị khi runner công bố một lượt benchmark thành công.")
+
+    results_dir = PROJECT_ROOT / "bench" / "results"
+    success_pointer = results_dir / "latest_success.json"
+    if not success_pointer.is_file():
+        st.info(
+            "Chưa có lượt benchmark thành công được công bố. Sau khi nhóm xác nhận M3, "
+            "hoàn tất preflight và chạy runner, kết quả sẽ xuất hiện tại đây."
+        )
         return
-    csv_path = median_candidates[0]
+
     try:
-        st.dataframe(pd.read_csv(csv_path), hide_index=True, use_container_width=True)
+        pointer = json.loads(success_pointer.read_text(encoding="utf-8"))
     except Exception as error:
-        st.error(f"Không đọc được {csv_path.relative_to(PROJECT_ROOT)}: {error}")
+        st.error(f"Không đọc được `bench/results/latest_success.json`: {error}")
         return
-    chart_path = csv_path.with_name(csv_path.name.replace(".medians.csv", ".png"))
-    if chart_path.is_file():
-        st.image(str(chart_path), caption="So sánh thời gian thực thi theo layout, engine và quy mô")
+
+    run_id = pointer.get("run_id") if isinstance(pointer, dict) else None
+    if (
+        not isinstance(run_id, str)
+        or not run_id.strip()
+        or run_id in {".", ".."}
+        or Path(run_id).name != run_id
+    ):
+        st.error("Con trỏ benchmark không có `run_id` hợp lệ.")
+        return
+
+    run_dir = results_dir / run_id
+    try:
+        run_root = run_dir.resolve()
+        run_root.relative_to(results_dir.resolve())
+    except (OSError, ValueError):
+        st.error(f"Đường dẫn lượt benchmark `{run_id}` nằm ngoài thư mục kết quả.")
+        return
+    manifest_path = run_dir / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as error:
+        st.error(f"Không đọc được manifest cho lượt `{run_id}`: {error}")
+        return
+    if not isinstance(manifest, dict) or manifest.get("status") != "success":
+        st.info(f"Lượt `{run_id}` chưa được đánh dấu thành công; không hiển thị kết quả.")
+        return
+    if manifest.get("run_id") != run_id:
+        st.error(f"`run_id` trong manifest không khớp với con trỏ `{run_id}`.")
+        return
+
+    artifacts = manifest.get("artifacts")
+    median_name = artifacts.get("medians_csv") if isinstance(artifacts, dict) else None
+    if not isinstance(median_name, str) or not median_name.strip():
+        st.error(f"Manifest của lượt `{run_id}` không chỉ định `artifacts.medians_csv`.")
+        return
+    try:
+        csv_path = (run_dir / median_name).resolve()
+        csv_path.relative_to(run_root)
+    except (OSError, ValueError):
+        st.error(f"Đường dẫn CSV trung vị trong manifest không hợp lệ cho lượt `{run_id}`.")
+        return
+    if not csv_path.is_file():
+        st.error(f"Không tìm thấy CSV trung vị được manifest chỉ định: {csv_path.name}")
+        return
+    try:
+        medians = pd.read_csv(csv_path)
+    except Exception as error:
+        st.error(f"Không đọc được CSV trung vị của lượt `{run_id}`: {error}")
+        return
+
+    median_column = next(
+        (column for column in ("median_s", "median_elapsed_seconds", "median_seconds")
+         if column in medians.columns),
+        None,
+    )
+    runs_column = next(
+        (column for column in ("runs", "measured_runs") if column in medians.columns),
+        None,
+    )
+    chart_columns = {"engine", "scale", "layout", "workload"}
+    missing_columns = sorted(chart_columns - set(medians.columns))
+    if median_column is None or runs_column is None or missing_columns:
+        missing = missing_columns[:]
+        if median_column is None:
+            missing.append("median_s/median_elapsed_seconds")
+        if runs_column is None:
+            missing.append("runs/measured_runs")
+        st.error("CSV trung vị thiếu các cột cần thiết: " + ", ".join(missing))
+        return
+
+    coverage = manifest.get("coverage")
+    if not isinstance(coverage, dict):
+        st.error(f"Manifest của lượt `{run_id}` không có phạm vi `coverage` hợp lệ.")
+        return
+    try:
+        planned = int(coverage["planned"])
+        selected = int(coverage["selected"])
+    except (KeyError, TypeError, ValueError):
+        st.error(f"Manifest của lượt `{run_id}` thiếu số tổ hợp trong `coverage`.")
+        return
+    excluded = coverage.get("excluded")
+    if isinstance(excluded, dict):
+        excluded_items = [
+            {"combination": combination, "reason": reason}
+            for combination, reason in excluded.items()
+        ]
+    elif isinstance(excluded, list):
+        excluded_items = excluded
+    else:
+        st.error(f"Manifest của lượt `{run_id}` không có danh sách `coverage.excluded` hợp lệ.")
+        return
+    if selected != len(medians) or selected + len(excluded_items) != planned:
+        st.error(
+            f"Phạm vi trong manifest của lượt `{run_id}` không khớp với CSV trung vị."
+        )
+        return
+
+    workloads = {"br1_q07", "br2_q09", "br4_q14", "br6_q18"}
+    expected_cells = {
+        (engine, scale, layout, workload)
+        for engine in ("bq", "pg")
+        for scale in (1, 5)
+        for layout in ("star", "3nf", "wide")
+        for workload in workloads
+    }
+    expected_excluded = {
+        ("bq", 5, "wide", workload) for workload in workloads
+    }
+
+    def scope_key(engine: object, scale: object, layout: object, workload: object):
+        try:
+            normalized_scale = int(str(scale).lower().removesuffix("x").strip())
+        except (TypeError, ValueError):
+            return None
+        normalized_layout = "3nf" if str(layout) == "three_nf" else str(layout)
+        return str(engine), normalized_scale, normalized_layout, str(workload)
+
+    selected_cells = {
+        scope_key(row.engine, row.scale, row.layout, row.workload)
+        for row in medians.itertuples(index=False)
+    }
+    excluded_cells = set()
+    for item in excluded_items:
+        if not isinstance(item, dict):
+            continue
+        combination = item.get("combination")
+        if not isinstance(combination, dict):
+            combination = item
+        key = scope_key(
+            combination.get("engine"),
+            combination.get("scale"),
+            combination.get("layout"),
+            combination.get("workload"),
+        )
+        if key is not None:
+            excluded_cells.add(key)
+    if (
+        planned != 48
+        or selected != 44
+        or len(excluded_items) != 4
+        or None in selected_cells
+        or selected_cells != expected_cells - expected_excluded
+        or excluded_cells != expected_excluded
+    ):
+        st.error(
+            f"Run `{run_id}` không khớp ma trận benchmark 44/48 đã chốt."
+        )
+        return
+
+    measured_runs = pd.to_numeric(medians[runs_column], errors="coerce").dropna()
+    if measured_runs.empty:
+        run_count_label = "—"
+    else:
+        run_counts = sorted({int(value) if float(value).is_integer() else float(value)
+                             for value in measured_runs})
+        if len(run_counts) == 1:
+            run_count_label = f"{run_counts[0]} / tổ hợp"
+        else:
+            run_count_label = f"{run_counts[0]}–{run_counts[-1]} / tổ hợp"
+
+    st.caption(f"Run ID: `{run_id}`")
+    completed_at_utc = manifest.get("completed_at_utc")
+    if completed_at_utc:
+        st.caption(f"Thời điểm run thành công gần nhất: {completed_at_utc}")
+    scope_col, excluded_col, repetitions_col = st.columns(3)
+    scope_col.metric("Phạm vi", f"{selected}/{planned}")
+    excluded_col.metric("Tổ hợp loại trừ", len(excluded_items))
+    repetitions_col.metric("Lượt đo theo CSV", run_count_label)
+
+    chart_name = artifacts.get("chart_html") if isinstance(artifacts, dict) else None
+    if isinstance(chart_name, str) and chart_name.strip():
+        try:
+            chart_path = (run_dir / chart_name).resolve()
+            chart_path.relative_to(run_root)
+        except (OSError, ValueError):
+            chart_path = None
+        if chart_path is not None and chart_path.is_file():
+            st.download_button(
+                "Tải biểu đồ HTML tương tác",
+                data=chart_path.read_bytes(),
+                file_name=f"benchmark-{run_id}.html",
+                mime="text/html",
+            )
+
+    st.subheader("Tổ hợp bị loại trừ")
+    if excluded_items:
+        exclusion_rows = []
+        for item in excluded_items:
+            if isinstance(item, dict):
+                combination = item.get("combination")
+                if combination is None:
+                    combination = {
+                        field: item[field]
+                        for field in ("engine", "scale", "layout", "workload")
+                        if field in item
+                    }
+                if isinstance(combination, dict):
+                    parts = []
+                    for field in ("engine", "scale", "layout", "workload"):
+                        value = combination.get(field)
+                        if value is not None:
+                            label = str(value)
+                            if field == "scale" and not label.lower().endswith("x"):
+                                label += "x"
+                            parts.append(label)
+                    combination_label = " · ".join(parts) or str(combination)
+                else:
+                    combination_label = str(combination or item.get("id") or "—")
+                reason = item.get("reason") or item.get("exclusion_reason") or "Không ghi lý do trong manifest"
+            else:
+                combination_label = str(item)
+                reason = "Không ghi lý do trong manifest"
+            exclusion_rows.append({"Tổ hợp": combination_label, "Lý do": reason})
+        st.dataframe(pd.DataFrame(exclusion_rows), hide_index=True, use_container_width=True)
+    else:
+        st.info("Manifest không ghi chi tiết các tổ hợp bị loại trừ.")
+
+    median_values = pd.to_numeric(medians[median_column], errors="coerce")
+    chart_data = medians.copy()
+    chart_data["_median_seconds"] = median_values
+    chart_data["_scale"] = pd.to_numeric(
+        chart_data["scale"].astype(str).str.replace("x", "", regex=False).str.strip(),
+        errors="coerce",
+    )
+    chart_data = chart_data.dropna(subset=["_median_seconds", "_scale"])
+    if chart_data.empty:
+        st.error("CSV trung vị không có thời lượng số hợp lệ để vẽ biểu đồ.")
+        return
+
+    st.subheader("Trung vị thời gian theo layout")
+    workloads = sorted(chart_data["workload"].astype(str).unique())
+    scales = sorted(chart_data["_scale"].astype(int).unique())
+    selector_workload, selector_scale = st.columns(2)
+    selected_workload = selector_workload.selectbox(
+        "Workload", workloads, key="quality_benchmark_workload"
+    )
+    selected_scale = selector_scale.selectbox(
+        "Quy mô", scales, format_func=lambda value: f"{value}x", key="quality_benchmark_scale"
+    )
+    selected_rows = chart_data.loc[
+        (chart_data["workload"].astype(str) == selected_workload)
+        & (chart_data["_scale"] == selected_scale)
+    ]
+    layout_names = {"3nf": "partial normalization", "three_nf": "partial normalization"}
+    engine_names = {"bq": "BigQuery", "pg": "PostgreSQL"}
+    figure = go.Figure()
+    for engine in sorted(selected_rows["engine"].astype(str).unique()):
+        engine_rows = selected_rows.loc[selected_rows["engine"].astype(str) == engine]
+        layouts = engine_rows["layout"].astype(str)
+        figure.add_trace(
+            go.Bar(
+                name=engine_names.get(engine, engine),
+                x=[layout_names.get(layout, layout) for layout in layouts],
+                y=engine_rows["_median_seconds"],
+                customdata=engine_rows[runs_column],
+                hovertemplate="%{x}<br>Median: %{y:.3f} s<br>Runs: %{customdata}<extra>%{fullData.name}</extra>",
+            )
+        )
+    figure.update_layout(
+        title=f"{selected_workload} · {selected_scale}x",
+        barmode="group",
+        xaxis_title="Layout",
+        yaxis_title="Median time (seconds)",
+        template="plotly_white",
+        margin={"l": 20, "r": 20, "t": 55, "b": 20},
+        legend_title_text="Engine",
+    )
+    st.plotly_chart(figure, use_container_width=True, key="quality_benchmark_medians")
+
+    st.subheader("Bảng trung vị")
+    visible_columns = ["engine", "scale", "layout", "workload", median_column, runs_column]
+    st.dataframe(medians[visible_columns], hide_index=True, use_container_width=True)
 
 
-# st.navigation disables auto-discovery of app/pages/, so TV2's page scripts
-# (BR1, BR4/BR5, BR7) are registered here explicitly.
+def _rate(part: Any, whole: Any) -> float:
+    return 100.0 * float(part) / float(whole) if whole else 0.0
+
+
+def _attention_list(
+    title: str,
+    caption: str,
+    rows: pd.DataFrame,
+    rate_column: str,
+    page_key: str,
+    action: str,
+) -> None:
+    with st.container(border=True):
+        st.markdown(f"**{title}**")
+        st.caption(caption)
+        for row in rows.itertuples():
+            label = offering_label(row.code_module, row.code_presentation)
+            st.markdown(f"{label} · **{getattr(row, rate_column):.1f}%**")
+        st.page_link(PAGES[page_key], label=action, icon=":material/arrow_forward:")
+
+
+def render_overview_page() -> None:
+    st.title("OULAD Analytics")
+    st.markdown(
+        "Theo dõi việc học, nộp bài và nguy cơ bỏ học của sinh viên trên 22 đợt học, "
+        "7 môn của Open University (2013–2014)."
+    )
+    try:
+        summary = load_query("overview_offerings")
+    except Exception as error:
+        show_query_error("số liệu tổng quan", error)
+        return
+    if summary.empty:
+        st.warning("Chưa có dữ liệu để hiển thị.")
+        return
+
+    school = summary.loc[summary["code_module"].isna()].iloc[0]
+    offerings = summary.loc[summary["code_module"].notna()].copy()
+    offerings["pass_rate"] = 100.0 * offerings["n_passed"] / offerings["n_enrollments"]
+    offerings["withdrawal_rate"] = 100.0 * offerings["n_withdrawn"] / offerings["n_enrollments"]
+    offerings["clicks_per_enrollment"] = offerings["total_clicks"] / offerings["n_enrollments"]
+
+    enrollments = school["n_enrollments"]
+    tiles = st.columns(4, border=True)
+    tiles[0].metric(
+        "Sinh viên",
+        f"{int(school['n_students']):,}",
+        help=f"{int(enrollments):,} lượt đăng ký; một sinh viên có thể học nhiều đợt.",
+    )
+    tiles[1].metric("Lượt đăng ký", f"{int(enrollments):,}", help="Một dòng cho một sinh viên trong một đợt.")
+    tiles[2].metric("Tỷ lệ đạt", f"{_rate(school['n_passed'], enrollments):.1f}%", help="Pass hoặc Distinction, trên lượt đăng ký.")
+    tiles[3].metric(
+        "Chưa từng vào VLE",
+        f"{int(school['n_no_vle_activity']):,} lượt",
+        help=f"{_rate(school['n_no_vle_activity'], enrollments):.1f}% lượt đăng ký không có click nào cả đợt.",
+    )
+
+    st.markdown("**Kết quả cuối kỳ** (trên lượt đăng ký)")
+    outcomes = {
+        "Distinction": school["n_distinction"],
+        "Pass": school["n_passed"] - school["n_distinction"],
+        "Fail": school["n_failed"],
+        "Withdrawn": school["n_withdrawn"],
+    }
+    for column, (result, count) in zip(st.columns(4, border=True), outcomes.items()):
+        column.metric(result, f"{_rate(count, enrollments):.1f}%", help=f"{int(count):,} lượt")
+
+    st.subheader("Cần chú ý")
+    worst_withdrawal, worst_pass = st.columns(2)
+    with worst_withdrawal:
+        _attention_list(
+            "Đợt có tỷ lệ rút cao nhất",
+            "Chọn đợt ở trang cảnh báo sớm để xem ai cần liên hệ ngay từ những tuần đầu.",
+            offerings.nlargest(3, "withdrawal_rate"),
+            "withdrawal_rate",
+            "warning",
+            "Mở trang cảnh báo sớm",
+        )
+    with worst_pass:
+        _attention_list(
+            "Đợt có tỷ lệ đạt thấp nhất",
+            "Chọn đợt ở trang nộp bài & điểm để xem bài nào nhiều sinh viên bỏ hoặc điểm thấp.",
+            offerings.nsmallest(3, "pass_rate"),
+            "pass_rate",
+            "submissions",
+            "Mở trang nộp bài & điểm",
+        )
+
+    st.subheader("Bắt đầu theo vai trò")
+    roles = [
+        ("📚 Giảng viên", "Sinh viên học gì theo từng tuần, nộp bài có đúng hạn, điểm phân bố ra sao.", ["course", "submissions"]),
+        ("⚠️ Cố vấn học tập", "Danh sách sinh viên cần liên hệ mỗi tuần và thời điểm sinh viên hay rút.", ["warning"]),
+        ("🏫 Lãnh đạo khoa", "Kết quả của nhóm sinh viên khó khăn nhất cách nhóm thuận lợi nhất bao xa.", ["faculty"]),
+        ("🎓 Sinh viên", "Tiến độ của mình so với cả lớp, và nhóm đạt dùng diễn đàn thế nào.", ["progress", "forum"]),
+    ]
+    for column, (title, description, page_keys) in zip(st.columns(4), roles):
+        with column.container(border=True, height="stretch"):
+            st.markdown(f"**{title}**")
+            st.caption(description)
+            for page_key in page_keys:
+                st.page_link(PAGES[page_key], label=PAGES[page_key].title, icon=":material/arrow_forward:")
+
+    st.subheader("Các đợt học")
+    table = offerings.assign(
+        offering=[
+            offering_label(row.code_module, row.code_presentation) for row in offerings.itertuples()
+        ]
+    )[["offering", "n_enrollments", "pass_rate", "withdrawal_rate", "clicks_per_enrollment"]]
+    st.dataframe(
+        table,
+        hide_index=True,
+        use_container_width=True,
+        height=35 * (len(table) + 1) + 3,  # every offering visible, no inner scroll
+        column_config={
+            "offering": st.column_config.TextColumn("Đợt học"),
+            "n_enrollments": st.column_config.NumberColumn("Lượt đăng ký", format="localized"),
+            "pass_rate": st.column_config.ProgressColumn(
+                "Tỷ lệ đạt", format="%.1f%%", min_value=0, max_value=100, color="#2a78d6"
+            ),
+            "withdrawal_rate": st.column_config.ProgressColumn(
+                "Tỷ lệ rút", format="%.1f%%", min_value=0, max_value=100, color="#eb6834"
+            ),
+            "clicks_per_enrollment": st.column_config.NumberColumn("Click VLE trung bình", format="%.0f"),
+        },
+    )
+    source, refresh = st.columns([4, 1], vertical_alignment="center")
+    source.caption(
+        "Nguồn: Open University Learning Analytics Dataset (CC BY 4.0). "
+        "Số liệu được lưu tạm 6 giờ; sau khi nạp lại kho (make load-bq), bấm Tải lại dữ liệu."
+    )
+    if refresh.button("Tải lại dữ liệu", key="clear_cache", use_container_width=True):
+        st.cache_data.clear()
+        st.toast("Đã xóa dữ liệu lưu tạm. Các trang sẽ đọc lại từ kho.")
+
+
+# st.navigation disables auto-discovery of app/pages/, so the page scripts
+# are registered here explicitly and grouped by the role that uses them.
+PAGES = {
+    "overview": st.Page(render_overview_page, title="Tổng quan", icon="🏠", default=True),
+    "course": st.Page(render_course_page, title="Hoạt động học tập", icon="📚"),
+    "submissions": st.Page("pages/1_Hoc_phan.py", title="Nộp bài & điểm", icon="📝"),
+    "warning": st.Page("pages/2_Canh_bao.py", title="Cảnh báo sớm & rút lui", icon="⚠️"),
+    "faculty": st.Page(render_faculty_page, title="Khoảng cách IMD", icon="🏫"),
+    "progress": st.Page("pages/4_Sinh_vien.py", title="Tiến độ so với lớp", icon="🎓"),
+    "forum": st.Page(render_student_page, title="Diễn đàn tuần 5", icon="💬"),
+    "quality": st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
+}
 navigation = st.navigation(
-    [
-        st.Page(render_course_page, title="Học phần", icon="📚"),
-        st.Page("pages/1_Hoc_phan.py", title="Học phần: nộp bài & điểm (BR1)", icon="📝"),
-        st.Page("pages/2_Canh_bao.py", title="Cảnh báo", icon="⚠️"),
-        st.Page(render_faculty_page, title="Khoa", icon="🏫"),
-        st.Page(render_student_page, title="Sinh viên", icon="🎓"),
-        st.Page("pages/4_Sinh_vien.py", title="Sinh viên: tiến độ so với lớp (BR7)", icon="📊"),
-        st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
-    ],
+    {
+        "Chung": [PAGES["overview"]],
+        "Giảng viên": [PAGES["course"], PAGES["submissions"]],
+        "Cố vấn học tập": [PAGES["warning"]],
+        "Lãnh đạo khoa": [PAGES["faculty"]],
+        "Sinh viên": [PAGES["progress"], PAGES["forum"]],
+        "Hệ thống": [PAGES["quality"]],
+    },
     position="sidebar",
 )
 navigation.run()

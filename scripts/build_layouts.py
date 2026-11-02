@@ -193,6 +193,10 @@ def _quote(engine: str, identifier: str) -> str:
 def _source_table(engine: str, source_schema: str, table: str) -> str:
     if engine == "pg":
         return f"{_quote(engine, source_schema)}.{_quote(engine, table)}"
+    # BigQuery views cannot rely on the job's default dataset, so view bodies pass
+    # a fully qualified "project.dataset" and get project.dataset.table references.
+    if "." in source_schema:
+        return f"`{source_schema}.{_quote(engine, table)}`"
     # BigQuery source references stay unqualified; QueryJobConfig selects the
     # source dataset explicitly for every dry run and query.
     return _quote(engine, table)
@@ -569,7 +573,8 @@ def _bq_validate(
     fields = ", ".join(f"{column} AS {column}" for column in grain)
     sql = (
         "SELECT COUNT(*) AS row_count, "
-        f"COUNT(DISTINCT STRUCT({fields})) AS grain_count FROM {_quote('bq', table)}"
+        # BigQuery rejects COUNT(DISTINCT STRUCT(...)); a JSON string keeps the same key identity.
+        f"COUNT(DISTINCT TO_JSON_STRING(STRUCT({fields}))) AS grain_count FROM {_quote('bq', table)}"
     )
     job = client.query(
         sql,
@@ -681,7 +686,7 @@ def _run_bigquery(scale: int, layouts: tuple[str, ...]) -> None:
             )
         for spec in view_specs:
             table = spec["name"]
-            select = _select_sql("bq", destination_dataset, spec, source_columns)
+            select = _select_sql("bq", f"{project}.{destination_dataset}", spec, source_columns)
             target_table = f"`{project}.{destination_dataset}.{table}`"
             job = client.query(
                 f"CREATE VIEW {target_table} AS\n{select}",
