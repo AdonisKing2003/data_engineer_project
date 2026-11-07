@@ -1,0 +1,159 @@
+% ============================================================
+% Chương 3. Mô tả bài toán và dữ liệu
+% Nguồn: docs/overview_and_demo.md mục 1, docs/report_tv1.md mục 3.3,
+%        file đặc tả 8 BR (OULAD – Giai đoạn 2 Đặc tả 8 BR.docx)
+% ============================================================
+\section{Mô tả project}
+\label{sec:mo-ta}
+
+\subsection{Bộ dữ liệu OULAD}
+\label{sec:nguon-du-lieu}
+Hệ thống dùng bộ dữ liệu Open University Learning Analytics Dataset (OULAD) do Open
+University, một trường đại học đào tạo từ xa ở Anh, công bố năm 2017 theo giấy phép
+CC BY 4.0~\cite{kuzilek2017oulad}. Bộ dữ liệu ghi lại quá trình học của 28.785 sinh viên
+trong 7 môn học (ký hiệu AAA đến GGG), mỗi môn mở ở một hoặc nhiều kỳ trong hai năm 2013 và
+2014, tổng cộng 22 đợt học. Mã kỳ kết thúc bằng B là kỳ bắt đầu vào tháng 2, bằng J là kỳ
+bắt đầu vào tháng 10. Thông tin cá nhân của sinh viên đã được ẩn danh.
+
+Dữ liệu gồm 7 file CSV, mô tả ở Bảng~\ref{tab:file-nguon}. Ba file đầu mô tả môn học, bài
+kiểm tra và học liệu; bốn file sau ghi lại sinh viên và hoạt động của họ. File lớn nhất là
+\texttt{studentVle}, ghi số click của từng sinh viên trên từng học liệu theo ngày, với hơn
+10,6 triệu dòng và tổng cộng 39.605.099 click.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|l|X|r|}
+\hline
+\textbf{File} & \textbf{Nội dung, một dòng là} & \textbf{Số dòng} \\ \hline
+\texttt{courses} & Một đợt học: mã môn, mã kỳ, số ngày của đợt & 22 \\ \hline
+\texttt{assessments} & Một bài kiểm tra của một đợt: loại bài (TMA, CMA, Exam), hạn nộp, trọng số & 206 \\ \hline
+\texttt{vle} & Một học liệu trên VLE của một đợt: loại học liệu (trang nội dung, diễn đàn, quiz\ldots) & 6.364 \\ \hline
+\texttt{studentInfo} & Một sinh viên trong một đợt: đặc điểm cá nhân và kết quả cuối kỳ & 32.593 \\ \hline
+\texttt{studentRegistration} & Một lượt đăng ký: ngày đăng ký, ngày rút (nếu có) & 32.593 \\ \hline
+\texttt{studentAssessment} & Một lần nộp bài: ngày nộp, điểm, có phải điểm chuyển từ đợt trước không & 173.912 \\ \hline
+\texttt{studentVle} & Số click của một sinh viên trên một học liệu trong một ngày & 10.655.280 \\ \hline
+\end{tabularx}
+\caption{Bảy file CSV của bộ dữ liệu OULAD}
+\label{tab:file-nguon}
+\end{table}
+
+Đây là bản xuất tĩnh, không thay đổi sau khi công bố, nên nhóm không dựng một cơ sở dữ liệu
+vận hành (OLTP) để mô phỏng nguồn mà đọc thẳng các file CSV vào pipeline. Nếu nguồn là một
+hệ thống đang chạy và dữ liệu thay đổi liên tục, kho sẽ cần nạp tăng dần theo các thay đổi
+(CDC); hướng này được bàn ở mục~\ref{sec:huong-phat-trien}. Dù cùng thuộc một bộ dữ liệu,
+7 file vẫn khác nhau về khóa, mức độ sạch và cách ghi ngày, nên việc hợp nhất chúng vào kho
+cũng gặp các vấn đề như khi tích hợp nhiều nguồn (mục~\ref{sec:van-de-du-lieu}).
+
+\subsection{Yêu cầu nghiệp vụ}
+\label{sec:br}
+% Nguồn: OULAD – Giai đoạn 2 Đặc tả 8 BR.docx
+
+\subsubsection{Thuật ngữ và quy ước chung}
+Các yêu cầu nghiệp vụ dùng chung những thuật ngữ và quy ước sau:
+\begin{itemize}
+  \item \textbf{Đợt học}: một môn mở trong một kỳ, ví dụ BBB 2014J. Bộ dữ liệu có 22 đợt.
+        Mọi tỷ lệ được tính trong từng đợt rồi mới đem so sánh.
+  \item \textbf{Lượt đăng ký}: một sinh viên học một môn trong một đợt. Một sinh viên
+        có thể có nhiều lượt nếu học nhiều môn hoặc học lại.
+  \item \textbf{Ngày và tuần}: ngày đếm từ ngày khai giảng (ngày 0), ngày âm là trước
+        khai giảng. Tuần 0 gồm ngày 0--6, tuần 1 gồm ngày 7--13, sớm nhất là tuần $-4$.
+  \item \textbf{TMA và CMA}: bài tập do giảng viên chấm (Tutor Marked Assessment) và bài
+        trắc nghiệm do máy chấm (Computer Marked Assessment). Bài thi cuối kỳ (Exam)
+        không được dùng vì chỉ 6/22 đợt có điểm thi.
+  \item \textbf{VLE}: hệ thống học trực tuyến (Virtual Learning Environment). Mỗi lần
+        sinh viên bấm vào một học liệu được ghi là một click.
+  \item \textbf{IMD}: chỉ số mức độ khó khăn của khu vực sinh viên sinh sống (Index of
+        Multiple Deprivation), chia thành 10 nhóm từ 0--10\% (khó khăn nhất) đến 90--100\%.
+  \item \textbf{Đạt}: đạt môn là có kết quả Pass hoặc Distinction; đạt một bài là từ 40 điểm.
+  \item \textbf{Còn học}: sinh viên chưa rút khỏi môn tính đến thời điểm đang xét. Sinh viên
+        rút trước khai giảng không có dữ liệu học tập nên không được tính ở các chỉ số
+        về hành vi học tập (BR2, BR3, BR4, BR7, BR8).
+\end{itemize}
+Các kết quả chỉ mô tả mối liên hệ trong dữ liệu. Báo cáo và dashboard không dùng câu
+hàm ý nhân quả như ``click nhiều giúp điểm cao''.
+
+\subsubsection{Tám yêu cầu nghiệp vụ}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Mã} & \textbf{Người dùng} & \textbf{Câu hỏi nghiệp vụ} \\ \hline
+BR1 & Giảng viên & Mỗi bài tập có bao nhiêu sinh viên nộp, bao nhiêu nộp trễ, và điểm ra sao? \\ \hline
+BR2 & Giảng viên & Sinh viên dùng loại học liệu nào nhiều nhất, và vào giai đoạn nào của đợt họ hoạt động nhiều hay ít? \\ \hline
+BR3 & Giảng viên & Sinh viên click nhiều trước hạn bài TMA đầu tiên thì có hay được điểm bài đó cao hơn không? \\ \hline
+BR4 & Cố vấn học tập & Tính đến cuối tuần này, sinh viên nào đang có dấu hiệu nguy cơ rớt hoặc bỏ môn? \\ \hline
+BR5 & Cố vấn học tập & Sinh viên rút khỏi môn vào thời điểm nào, và đến mỗi mốc bao nhiêu phần trăm đã rút? \\ \hline
+BR6 & Lãnh đạo khoa & Tỷ lệ đạt của nhóm IMD khó khăn nhất thấp hơn nhóm ít khó khăn nhất bao nhiêu, và thay đổi thế nào qua các kỳ? \\ \hline
+BR7 & Sinh viên & Tính đến tuần này, mình đang ở đâu so với các bạn cùng đợt về hoạt động, số bài đã nộp và điểm? \\ \hline
+BR8 & Sinh viên & Trong tuần này, mình dùng từng loại học liệu nhiều hay ít hơn so với các bạn đã đạt môn? \\ \hline
+\end{tabularx}
+\caption{Tám yêu cầu nghiệp vụ}
+\label{tab:br}
+\end{table}
+
+Chi tiết từng yêu cầu:
+\begin{itemize}
+  \item \textbf{BR1 -- Tình hình nộp bài và điểm từng bài.} Với mỗi bài, hệ thống tính tỷ lệ nộp (số sinh viên đã nộp chia cho số sinh viên còn học
+        đến hạn nộp), tỷ lệ nộp trễ (chỉ tính cho TMA) và phân bố điểm (trung vị, khoảng điểm
+        của 50\% sinh viên ở giữa, phần trăm bài đạt). CMA không có tỷ lệ trễ vì ngày ghi của CMA
+        không phải hạn nộp thật. Bài được chuyển điểm từ đợt trước không được tính.
+  \item \textbf{BR2 -- Hoạt động trên VLE theo loại học liệu và theo tuần.} Số đo chính là số click trung bình mỗi sinh viên trong từng tuần: tổng click chia cho số
+        sinh viên còn học đến cuối tuần, kể cả người không click. Kèm theo là tỷ trọng click của
+        từng loại học liệu. Để so hai đợt có độ dài khác nhau (234--269 ngày), trục thời gian
+        được đổi sang phần trăm độ dài đợt.
+  \item \textbf{BR3 -- Hoạt động trước bài TMA đầu tiên và điểm bài đó.} Với mỗi sinh viên, hệ thống lấy tổng click trước hạn của bài TMA đầu tiên có trọng số và
+        điểm của bài đó, rồi tính hệ số tương quan hạng Spearman ($\rho$) riêng cho từng đợt, kèm
+        khoảng tin cậy 95\%. Chỉ có 19/22 đợt vì môn GGG không có TMA nào có trọng số. Đây là
+        tương quan, không phải quan hệ nhân quả.
+  \item \textbf{BR4 -- Danh sách sinh viên có nguy cơ, cập nhật theo tuần.} Mỗi tuần, sinh viên còn học được xét 4 dấu hiệu: tổng click thuộc nhóm 25\% thấp nhất của
+        đợt; không click trong 2 tuần gần nhất; có TMA đã qua hạn mà chưa nộp; điểm trung bình
+        dưới 40. Sinh viên có từ 2 dấu hiệu trở lên vào danh sách. Danh sách tuần $w$ chỉ dùng dữ
+        liệu đến hết tuần $w$ và không dùng kết quả cuối kỳ. Kết quả cuối kỳ chỉ dùng sau khi đợt
+        kết thúc, để đo độ chính xác và độ bao phủ của quy tắc.
+  \item \textbf{BR5 -- Đường cong rút lui.} Hệ thống vẽ phần trăm lượt đăng ký đã rút theo từng ngày, từ trước khai giảng đến hết đợt,
+        kèm ngày rút trung vị và tỷ lệ rút trước khai giảng. ``Rút'' ở đây là rút khỏi một môn,
+        không phải bỏ học cả trường.
+  \item \textbf{BR6 -- Khoảng cách tỷ lệ đạt giữa các nhóm IMD.} Hệ thống so tỷ lệ đạt và tỷ lệ Distinction của nhóm IMD 0--10\% với nhóm 90--100\%, tính
+        khoảng cách bằng điểm phần trăm qua 4 kỳ. Chỉ dùng 3 môn có đủ 4 kỳ (BBB, DDD, FFF) để xu
+        hướng không bị lệch do mỗi kỳ mở môn khác nhau. Kết quả chỉ báo ở mức nhóm.
+  \item \textbf{BR7 -- Tiến độ tuần của sinh viên so với các bạn cùng đợt.} Sinh viên xem 4 chỉ số của mình tính đến tuần đang chọn (click trong tuần, tổng click,
+        số bài đã nộp, điểm trung bình) và vị trí của mình so với phân vị 25\%, 50\%, 75\% của các
+        bạn cùng đợt còn học. Nhóm dưới 30 sinh viên thì không hiện phân vị, để tránh đoán ra số
+        của người khác.
+  \item \textbf{BR8 -- So hoạt động của mình với nhóm đã đạt.} Với mỗi loại học liệu, sinh viên thấy số click của mình trong tuần đặt trên dải 25\%--75\%
+        click của các bạn đã đạt môn. Trên OULAD, nhóm đạt lấy cùng đợt vì mọi đợt đã kết thúc;
+        khi dùng thật thì lấy đợt trước của cùng môn, vì đợt đang học chưa có kết quả.
+\end{itemize}
+
+Đi kèm 8 yêu cầu là một bộ 20 câu hỏi mẫu, mỗi yêu cầu có ít nhất một câu, ví dụ ``tỷ lệ
+nộp trễ chung của mọi bài TMA là bao nhiêu''. Đáp án của từng câu được tính thẳng từ 7 file
+CSV gốc, không đi qua kho, nên bộ câu hỏi này dùng được để kiểm tra kho trả lời đúng. Kết quả
+kiểm tra được trình bày ở chương~\ref{sec:danh-gia}.
+
+\subsection{Các vấn đề của dữ liệu nguồn}
+\label{sec:van-de-du-lieu}
+Dữ liệu OULAD có một số vấn đề khiến nó không thể nạp thẳng vào kho; cách xử lý được
+trình bày ở mục~\ref{sec:etl}.
+
+File click \texttt{studentVle} không có khóa: cùng một sinh viên, học liệu và ngày có thể
+nằm trên nhiều dòng, tổng cộng 3.810.465 trên 10.655.280 dòng. Giá trị thiếu được ghi bằng
+dấu \texttt{"?"}, và cột nhóm IMD vừa thiếu ở 971 sinh viên vừa ghi một nhóm theo hai cách
+(\texttt{10-20} và \texttt{10-20\%}).
+
+Dữ liệu không có ngày lịch thật: mọi mốc thời gian là số ngày tính từ khai giảng, có thể
+âm. Vì vậy cách quy ngày về tuần phải thống nhất trên mọi engine, nếu không cùng một truy
+vấn sẽ ra kết quả khác nhau.
+
+Một số dòng thiếu thông tin hoặc mâu thuẫn: 11 bài thi cuối kỳ không có hạn nộp, và 102
+lượt đăng ký có kết quả cuối kỳ không khớp với ngày rút.
+
+Riêng file \texttt{studentInfo} có vấn đề về cấu trúc bảng chứ không phải về giá trị. Mỗi
+dòng là một sinh viên trong một đợt, nhưng file chứa cả đặc điểm của sinh viên (giới tính,
+vùng, trình độ, nhóm IMD) lẫn thông tin của lượt đăng ký (nhóm tuổi, số lần học lại, kết
+quả cuối kỳ). Đặc điểm sinh viên chỉ phụ thuộc vào mã sinh viên, không phụ thuộc vào đợt,
+nên bị lặp lại ở mỗi đợt sinh viên đó học; bảng vi phạm dạng chuẩn 2 (2NF). Khi tách bảng
+cũng phải xét kỹ từng cột: nhóm tuổi trông giống đặc điểm sinh viên nhưng thay đổi giữa các
+lần đăng ký ở 72 sinh viên, nên thuộc về lượt đăng ký. Việc tách bảng theo phụ thuộc hàm
+được trình bày ở mục~\ref{sec:chuan-hoa}.

@@ -1,0 +1,65 @@
+% ============================================================
+% Chương 1. Giới thiệu tổng quan
+% Nguồn: docs/overview_and_demo.md mục 1, docs/lo_traceability.md
+% ============================================================
+\section{Giới thiệu tổng quan}
+\label{sec:mo-dau}
+
+\subsection{Bối cảnh}
+% TODO: 1-2 đoạn. Dữ liệu học trực tuyến nằm rải rác (đăng ký, bài nộp, click VLE),
+% nhà trường cần phát hiện sớm sinh viên có nguy cơ rớt hoặc rút học phần.
+% Giới thiệu bộ dữ liệu OULAD (Open University, giấy phép CC BY 4.0).
+\textbf{Hệ thống Phân tích Hành vi Học tập và Cảnh báo Sớm Học vụ} là một giải pháp quản lý và phân tích dữ liệu giáo dục, được xây dựng nhằm hỗ trợ nhà trường phát hiện sớm các dấu hiệu rủi ro trong quá trình học tập của sinh viên, từ đó đưa ra các can thiệp kịp thời.
+
+Trong bối cảnh đào tạo theo học chế tín chỉ, việc theo dõi tiến độ học tập và phát hiện sinh viên có nguy cơ bị cảnh báo học vụ, bỏ học hay không hoàn thành chương trình thường bị chậm trễ do dữ liệu nằm rời rạc ở nhiều nguồn (điểm số, bài tập, mức độ truy cập học liệu, tiến độ tích lũy tín chỉ...). Hệ thống này hướng đến việc tập hợp, chuẩn hóa và phân tích các dữ liệu hành vi học tập để tạo ra bức tranh toàn diện về từng sinh viên, lớp học phần và khóa đào tạo.
+
+\subsection{Mục tiêu và phạm vi}
+% TODO: Xây kho dữ liệu phân tích từ 7 file CSV của OULAD, trả lời 8 yêu cầu nghiệp vụ
+% (BR1--BR8) và 20 câu hỏi mẫu, hiển thị trên dashboard chia theo vai trò.
+% Nêu rõ ngoài phạm vi: không dựng CSDL vận hành (OLTP), lý do ở mục \ref{sec:nguon-du-lieu}.
+Mục tiêu của project là xây dựng kho dữ liệu phân tích học tập từ bộ Open University Learning Analytics Dataset (OULAD), trả lời 8 yêu cầu nghiệp vụ (BR1--BR8, mô tả ở Bảng~\ref{tab:br}) và 20 câu hỏi mẫu, rồi hiển thị kết quả trên dashboard chia theo vai trò người dùng
+
+Để đạt mục tiêu đó, hệ thống cần:
+\begin{itemize}
+  \item Làm sạch 7 file CSV của OULAD và nạp vào kho theo dimensional model (star schema, mục~\ref{sec:luan-ly}).
+  \item Lưu kho trên BigQuery (kho chính) và PostgreSQL (kho đối chứng); cùng một truy vấn phải cho kết quả giống nhau trên cả hai nơi.
+  \item Tự động hóa pipeline: dựng lại toàn bộ kho từ dữ liệu gốc mà không cần thao tác tay, chạy theo lịch và kiểm tra chất lượng dữ liệu trước khi nạp.
+  \item Phục vụ 4 nhóm người dùng: giảng viên, cố vấn học tập, lãnh đạo khoa và sinh viên.
+\end{itemize}
+
+
+Ngoài phạm vi: nhóm không dựng cơ sở dữ liệu vận hành (OLTP), vì nguồn là bản xuất
+tĩnh (mục~\ref{sec:nguon-du-lieu}). Cảnh báo sớm (BR4) dùng ngưỡng quy tắc, không
+xây mô hình học máy.
+
+\subsection{Người dùng của hệ thống}
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{Nhóm người dùng} & \textbf{Nhu cầu} & \textbf{Yêu cầu} \\ \hline
+Giảng viên & Hoạt động học tập theo tuần, nộp bài, phân bố điểm & BR1, BR2, BR3 \\ \hline
+Cố vấn học tập & Danh sách sinh viên có nguy cơ, đường cong rút lui & BR4, BR5 \\ \hline
+Lãnh đạo khoa & Khoảng cách kết quả giữa các nhóm IMD & BR6 \\ \hline
+Sinh viên & Tiến độ cá nhân so với lớp, hoạt động diễn đàn & BR7, BR8 \\ \hline
+\end{tabularx}
+\caption{Nhóm người dùng và yêu cầu nghiệp vụ tương ứng}
+\label{tab:nguoi-dung}
+\end{table}
+
+\subsection{Phân công}
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Thành viên} & \textbf{Họ tên} & \textbf{Phụ trách} \\ \hline
+TV1 & Nguyễn Hoàng Vương
+& Môi trường, ETL, kho dữ liệu, điều phối Airflow, kiểm thử, tối ưu \\ \hline
+TV2 & Vũ Nguyễn Mai Linh
+& BR1, BR4, BR5, BR7 và các trang dashboard tương ứng \\ \hline
+TV3 & Lê Đức Tài
+& BR2, BR3, BR6, BR8, bảng tổng hợp sẵn cho app, benchmark bố trí dữ liệu, ghép báo cáo \\ \hline
+\end{tabularx}
+\caption{Phân công công việc}
+\label{tab:phan-cong}
+\end{table}
