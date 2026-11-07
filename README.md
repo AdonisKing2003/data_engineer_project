@@ -6,7 +6,8 @@ kho đối chứng trên PostgreSQL, dashboard Streamlit.
 ```
 7 file CSV ──Spark──> staging (Parquet) ──Spark──> 5 dim + 4 fact (Parquet) ──┬──> BigQuery   (kho chính)
                                                                               └──> PostgreSQL (đối chứng)
-studentVle ──chia theo ngày──> phát lại vào thư mục ──Spark Structured Streaming──> click theo tuần
+studentVle ──chia theo ngày──┬──> phát lại vào thư mục ──Spark Structured Streaming──> click theo tuần
+                             └──> producer ──> Kafka ──Spark Structured Streaming + watermark──> click theo tuần
 ```
 
 Tên bảng, tên cột, định nghĩa từng cờ: **[docs/contract.md](docs/contract.md)**. Đọc file này trước khi viết SQL.
@@ -49,7 +50,7 @@ Mở app:
 docker compose exec app make app        # rồi mở http://localhost:8501
 ```
 App mặc định đọc BigQuery; đặt `DATA_BACKEND=duckdb` trong `.env` để đọc kho Parquet cục bộ. Thanh bên trái chia trang
-theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark). Trang Hoạt động học tập
+theo vai trò: Tổng quan, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống (benchmark, click thời gian thực). Trang Hoạt động học tập
 có thêm lựa chọn Toàn trường: tổng click của mọi lượt đăng ký theo loại học liệu và theo tuần. Ba trang của TV2
 (`app/pages/`: Nộp bài & điểm, Cảnh báo sớm & rút lui, Tiến độ so với lớp) giữ nguyên bản của TV2: chọn đợt ở thanh bên,
 đọc DuckDB qua `app/db.py`. Muốn dùng chung đợt với các trang khác thì gọi `select_offering` trong `app/state.py`.
@@ -71,8 +72,10 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make student-week` | 1.8 | `fact_student_week` (SV × đợt × tuần, as-of) | ~65 s |
 | `make load-bq` | 1.6 | Nạp mọi bảng lên BigQuery, so số dòng | ~80 s |
 | `make load-pg` | 1.7 | Nạp mọi bảng vào PostgreSQL, so số dòng | ~35 s |
-| `make test` | 1.10 | Toàn bộ pytest | ~20 s |
+| `make test` | 1.10 | Toàn bộ pytest | ~30 s |
+| `make lock` | | Ghi phiên bản chính xác của mọi gói đang cài ra `requirements.lock` (xem [Phiên bản thư viện](#phiên-bản-thư-viện)) | vài giây |
 | `make stream` | 1.9 | Phát lại click theo ngày qua Spark Streaming, so với batch | ~2 phút |
+| `make stream-kafka` | | Như trên nhưng nguồn là Kafka, gom theo cửa sổ tuần có watermark; cần bật Kafka trước (xem [Demo phần stream](#demo-phần-stream)). Thêm `STREAM_ARGS="--produce --to-bq"` để ghi kết quả lên BigQuery cho dashboard | ~2,5 phút, ~4,5 phút nếu có BigQuery |
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
 | `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
 | `make optimize` | 1.11 | 4 ví dụ tối ưu có số đo, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all` và `python scripts/build_tv3_marts.py --apply`) | ~1 phút |
@@ -81,7 +84,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (281 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (289 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|
@@ -89,18 +92,41 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_warehouse.py` | Mọi con số ở cột **Kiểm** của `docs/contract.md`, số NULL từng cột, khóa chính không trùng, khóa ngoại không mồ côi, tổng click và tổng điểm khớp nguồn |
 | `tests/test_student_week.py` | `fact_student_week` ra đúng đáp án BR4, BR7 trong tài liệu đặc tả; chống rò rỉ nhãn `final_result` |
 | `tests/test_postgres.py` | Cùng bộ số đó, chạy trên PostgreSQL |
-| `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream khớp bản batch |
+| `tests/test_pipeline.py` | Chạy lại không nhân đôi; bản stream (đọc thư mục và đọc Kafka) khớp bản batch; bản Kafka không bỏ dòng nào vì watermark; bản trên BigQuery khớp bản Parquet |
 | `tests/test_tv2_sql.py` | BR1, BR4, BR5, BR7 ra đúng đáp án (TV2) |
 | `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu; đảo nhãn `final_result` rồi chạy lại câu 14 thì danh sách cảnh báo không đổi |
 | `tests/test_tv3_*.py` | Mart BR2, BR3; các trang Học phần, Khoa, Sinh viên ra đúng đáp án BR2, BR3, BR6, BR8 (TV3). `RUN_TV3_BIGQUERY_DEMO=1` để chạy trên BigQuery |
 | `tests/test_benchmark_*.py` | Runner benchmark mới: ma trận 44/48 ô, cổng câu hỏi, kiểm đáp án từng lượt; trang Chất lượng chỉ hiện lượt chạy thành công (TV3) |
 | `tests/test_dashboard_questions.py` | Chấm 20 câu hỏi mẫu qua dashboard: mở đúng trang, chọn đợt/tuần như đề hỏi, tìm đáp án trong nội dung trang. Câu dashboard chưa trả lời được đánh dấu xfail; xem bằng `pytest -rx` |
 | `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được giữ khi đổi trang |
+| `tests/test_alerts.py` | Báo lỗi của DAG Airflow: ghi log, gửi webhook đúng dạng Discord/Slack, webhook lỗi không làm hỏng lần chạy |
+| `tests/test_dag.py` | DAG Airflow nạp được, đúng thứ tự, mọi task có báo lỗi. Cần Airflow nên `make test` tự bỏ qua; chạy bằng `docker compose exec airflow make test-dag` |
 
-## Demo phần stream (không dùng Kafka)
+pytest chỉ tìm test trong `tests/` (`testpaths` trong `pytest.ini`), để không chạy nhầm các script trong `scripts/`.
 
-Một script thả lần lượt file click của từng ngày vào thư mục `data/stream/input/`; Spark Structured Streaming đọc
-thư mục đó và cộng dồn click theo tuần. Đây là **phát lại có kiểm soát** dữ liệu lịch sử, không phải luồng thời gian thực.
+## Phiên bản thư viện
+
+`requirements.txt` ghi các gói project cần. `requirements.lock` ghi phiên bản chính xác của mọi gói (70 gói, kể cả gói
+phụ thuộc) đã chạy test xanh. Dockerfile cài `requirements.txt` với ràng buộc của file khóa, nên build ở máy nào, ngày
+nào cũng ra đúng một bộ thư viện.
+
+Thêm hay nâng thư viện:
+```bash
+# 1. sửa requirements.txt (thêm gói mới, hoặc xóa dòng của gói muốn nâng trong requirements.lock)
+docker compose build app && docker compose up -d app
+docker compose exec app make test       # 2. phải xanh
+docker compose exec app make lock       # 3. ghi lại requirements.lock rồi commit cùng requirements.txt
+```
+
+## Demo phần stream
+
+Click của `studentVle` được phát lại theo từng ngày, Spark Structured Streaming cộng dồn click theo SV × đợt × tuần,
+rồi so với bảng `fact_student_week` của bản batch. Đây là **phát lại có kiểm soát** dữ liệu lịch sử, không phải luồng
+thời gian thực. Có hai nguồn, cùng ra một kết quả; chi tiết và số đo ở [docs/report_tv1.md](docs/report_tv1.md) mục 4.
+
+### Nguồn là thư mục
+
+Một script thả lần lượt file click của từng ngày vào thư mục `data/stream/input/`; Spark đọc thư mục đó.
 
 Chạy một lệnh: `docker compose exec app make stream`. Muốn xem từng micro-batch khi demo, mở hai terminal:
 ```bash
@@ -109,6 +135,86 @@ docker compose exec app spark-submit stream/stream_weekly.py             # termi
 docker compose exec app python stream/replay.py --delay 1                # terminal 2: phát lại
 docker compose exec app python stream/compare.py                         # so với batch
 ```
+
+### Nguồn là Kafka, có watermark
+
+Producer gửi từng dòng click thành một message JSON lên topic `oulad.clicks` (4 partition, key là `id_student`).
+Spark đọc topic, gom click theo cửa sổ 7 ngày theo thời gian sự kiện, có watermark 7 ngày.
+
+Kafka nằm trong profile `stream` nên không tự chạy với `docker compose up -d`. Bật rồi chạy:
+```bash
+docker compose --profile stream up -d                   # app, postgres và kafka
+docker compose exec app make stream-kafka               # tạo lại topic, gửi click, xử lý, so với batch
+```
+Lần đầu Spark tải gói Kafka connector về `.ivy2/` (cần mạng), các lần sau dùng lại.
+
+Muốn xem từng micro-batch khi demo, mở hai terminal:
+```bash
+docker compose exec app python stream/split_days.py                                     # một lần
+docker compose exec app spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3 \
+    --conf spark.jars.ivy=/work/.ivy2 stream/stream_kafka.py                            # terminal 1: chạy trước
+docker compose exec app python stream/produce_kafka.py --delay 1                        # terminal 2: gửi click
+docker compose exec app python stream/compare.py --source kafka                         # so với batch
+```
+
+Ghi kết quả lên BigQuery và xem trên dashboard: thêm `--to-bq`. Mỗi micro-batch được nạp vào bảng
+`stream_student_week_updates`, view `stream_student_week_latest` lấy bản mới nhất. Trang **Hệ thống → Click thời gian thực**
+đọc view đó. Mở trang, bật nút **Tự tải lại mỗi 10 giây** (mặc định tắt), rồi chạy stream sẽ thấy đường stream dâng dần
+lên khớp batch:
+```bash
+docker compose exec app make app                                                    # terminal 1, mở http://localhost:8501
+docker compose exec app make stream-kafka STREAM_ARGS="--produce --to-bq --delay 1" # terminal 2, khoảng 6 phút
+```
+Mỗi lần trang tải lại quét khoảng 48 MB trên BigQuery, nên nút tự tải lại mặc định tắt. Xem xong thì tắt lại.
+
+Thử dữ liệu đến trễ: `make stream-kafka STREAM_ARGS="--produce --late 0.001"` giữ lại 0,1% số click và gửi sau cùng.
+Spark bỏ các click đã quá watermark và đếm ở `rows_dropped_by_watermark` trong `data/stream/_run_kafka.json`, nên
+lần chạy này **cố ý** lệch so với batch. Chạy lại `make stream-kafka` không kèm `--late` để test xanh trở lại.
+
+Trong lúc chạy, http://localhost:4040 (tab Structured Streaming) hiện số dòng vào/ra của từng micro-batch.
+
+## Chạy pipeline batch bằng Airflow
+
+DAG `oulad_batch` ([dags/oulad_batch.py](dags/oulad_batch.py)) làm đúng các bước của `make all`, mỗi task gọi một mục
+Makefile. Khác `make all` ở chỗ: chờ đủ 7 file CSV, kiểm kho trên Parquet **trước** khi nạp, nạp BigQuery và
+PostgreSQL song song, tự chạy lại một lần khi lỗi, báo lỗi khi task lỗi hẳn, chạy theo lịch 2 giờ sáng (UTC) mỗi ngày.
+
+```
+wait_raw_csv → staging → dims → facts → student_week → quality_gate ─┬→ load_bq ─┬→ test_all → give_back_files
+                                                                      └→ load_pg ─┘
+```
+
+Airflow nằm trong profile `airflow` nên không tự chạy với `docker compose up -d`. Cài lần đầu:
+```bash
+docker compose build app                                     # image Airflow dựng trên image app
+docker compose --profile airflow build airflow               # vài phút, tải Airflow 2.10.5
+docker compose exec postgres createdb -U oulad airflow       # CSDL riêng của Airflow, một lần
+docker compose --profile airflow up -d
+docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt   # mật khẩu user admin
+```
+Mở http://localhost:8080, đăng nhập `admin`. DAG mới mặc định tạm dừng: bật công tắc của `oulad_batch` thì Airflow tự
+chạy một lần cho chu kỳ gần nhất; muốn chạy thêm thì bấm **Trigger DAG**. Tab **Graph** xem thứ tự và trạng thái, tab
+**Gantt** xem thời gian từng bước.
+
+Dòng lệnh thay cho giao diện:
+```bash
+docker compose exec airflow airflow dags unpause oulad_batch
+docker compose exec airflow airflow dags trigger oulad_batch
+docker compose exec airflow airflow dags list-runs -d oulad_batch
+docker compose exec airflow airflow dags list-import-errors          # DAG không hiện thì xem lỗi ở đây
+docker compose exec airflow make test-dag                            # DAG nạp được, đúng thứ tự, có báo lỗi
+```
+
+**Báo lỗi.** Task nào lỗi hẳn (đã hết lượt chạy lại) thì [dags/alerts.py](dags/alerts.py) ghi một dòng vào
+`data/airflow_alerts.jsonl`: thời điểm, task, lần chạy, lỗi, đường dẫn tới log. Muốn nhận tin nhắn thì đặt URL webhook
+của Discord hoặc Slack vào `ALERT_WEBHOOK_URL` trong `.env`, rồi `docker compose --profile airflow up -d airflow` để
+container đọc lại `.env`.
+
+Lưu ý:
+- Đừng chạy `make all` bằng tay trong lúc DAG đang chạy: cả hai cùng ghi vào `data/`.
+- Airflow tốn thêm khoảng 1,5 GB RAM, Spark trong task tốn thêm 3 GB. Không bật cùng lúc profile `stream` khi máy ít RAM.
+- Tắt Airflow: `docker compose --profile airflow stop airflow`. Lịch sử chạy nằm trong CSDL `airflow` của PostgreSQL,
+  log của task nằm trong volume `airflowhome`, tắt rồi bật lại vẫn còn.
 
 ## Truy cập kho
 
@@ -139,7 +245,8 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
 | Thư mục | Nội dung |
 |---|---|
 | `etl/` | Spark batch: `01_staging` → `02_clean_dims` → `03_facts` → `06_student_week`; `04_load_bq`, `05_load_pg` nạp kho |
-| `stream/` | Chia click theo ngày, phát lại, Spark Structured Streaming, so với batch |
+| `stream/` | Chia click theo ngày; phát lại vào thư mục hoặc gửi lên Kafka; Spark Structured Streaming; so với batch |
+| `dags/` | DAG Airflow chạy lại pipeline batch (`Dockerfile.airflow` dựng image Airflow) |
 | `scripts/` | `check_env.py`, `bq_smoke_test.py`, `run_all.py` (`make all`) |
 | `sql/` | Truy vấn các BR |
 | `app/` | Streamlit |
@@ -157,6 +264,14 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
 - **Cổng 5432 đã bị dùng** (máy đã cài sẵn PostgreSQL): đổi dòng `"5432:5432"` thành `"5433:5432"` trong `docker-compose.yml`.
 - **Windows báo lỗi xuống dòng trong script** (`\r`): `git config --global core.autocrlf input` rồi clone lại.
 - **Máy Linux không xóa được file trong `data/`** (file do container tạo thuộc root): chạy `make all` một lần, cuối lệnh này trả quyền file về cho bạn. Hoặc `sudo rm -rf data/staging data/warehouse data/stream`.
+- **`make stream-kafka` báo không kết nối được `kafka:9092`**: chưa bật Kafka. Chạy `docker compose --profile stream up -d`.
+  Dòng `Coordinator load in progress: retrying` lúc mới chạy chỉ là Kafka chưa khởi động xong, producer tự thử lại.
+- **Build treo lâu ở `apt-get update` rồi báo `Temporary failure resolving 'deb.debian.org'`**: container không phân giải
+  được tên miền, hay gặp khi máy bật VPN (Cloudflare WARP...). Đặt DNS cho Docker trong `/etc/docker/daemon.json`:
+  `{"dns": ["1.1.1.1", "8.8.8.8"]}`, rồi `sudo systemctl restart docker`. Hoặc build bằng mạng của máy:
+  `docker build --network host -t oulad-app:latest .`
+- **Cổng 8080 đã bị dùng** khi bật Airflow: đổi dòng `"8080:8080"` thành `"8081:8080"` trong `docker-compose.yml`.
+- **Airflow báo `database "airflow" does not exist`**: chưa tạo CSDL, chạy `docker compose exec postgres createdb -U oulad airflow`.
 - **Bảng trên BigQuery tự mất sau 60 ngày**: project đang ở chế độ BigQuery Sandbox (miễn phí, bảng hết hạn sau 60 ngày). Chạy lại `make load-bq` là có lại.
 
 Dữ liệu: Kuzilek, J., Hlosta, M., Zdrahal, Z. (2017). *Open University Learning Analytics dataset*. Scientific Data 4, 170171. Giấy phép CC BY 4.0.

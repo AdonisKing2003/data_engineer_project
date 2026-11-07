@@ -1,0 +1,77 @@
+% ============================================================
+% Chương 8. Tổng kết
+% Nguồn: docs/report_tv1.md mục 7, 8
+% ============================================================
+\section{Tổng kết}
+\label{sec:tong-ket}
+
+\subsection{Kết quả đạt được}
+
+Nhóm đã xây dựng một kho dữ liệu phân tích học tập hoàn chỉnh từ bộ dữ liệu OULAD, đi từ 7
+file CSV gốc đến dashboard phục vụ bốn nhóm người dùng. Về thiết kế, dữ liệu được phân tích
+qua ba mức ý niệm, luận lý và vật lý; các phụ thuộc hàm được kiểm chứng trên dữ liệu thật để
+đưa lược đồ về dạng chuẩn, rồi phi chuẩn hóa có chủ đích thành dimensional model gồm 5
+dimension và 4 fact. Cùng bộ dữ liệu còn được tổ chức theo các mô hình 3NF, wide table, dạng
+lồng và tài liệu, kèm số đo cho thấy mỗi mô hình phù hợp với kiểu truy cập nào.
+
+Về hiện thực, pipeline ETL bằng Spark dựng lại toàn bộ kho trong khoảng 5 phút và nạp vào ba
+hệ lưu trữ nhất quán với nhau. Airflow điều phối pipeline theo lịch, với cổng chất lượng ngăn
+dữ liệu sai đến tay người dùng. Bộ 289 bài kiểm thử bảo đảm số liệu của kho khớp với dữ liệu
+nguồn và với đặc tả nghiệp vụ; 20 câu hỏi mẫu cho cùng đáp án trên cả ba hệ lưu trữ. Các kỹ
+thuật tối ưu giảm lượng dữ liệu quét trên BigQuery từ 16,8 đến 330 lần.
+
+Về nghiệp vụ, hệ thống trả lời được cả 8 yêu cầu. Kết quả nổi bật là quy tắc cảnh báo sớm:
+chỉ với dữ liệu đến hết tuần 4, 80,6\% sinh viên trong danh sách cảnh báo thực sự rớt hoặc rút
+khi đợt học kết thúc, gần gấp đôi tỷ lệ nền. Thiết kế bảng ảnh chụp theo tuần không chứa kết
+quả cuối kỳ bảo đảm kết quả này không bị rò rỉ thông tin từ tương lai.
+
+\subsection{Hướng phát triển}
+\label{sec:huong-phat-trien}
+
+\textbf{Nạp tăng dần và bắt thay đổi dữ liệu (CDC).} Hiện tại kho được dựng lại toàn bộ mỗi
+lần, vì nguồn là bản xuất tĩnh và gói Sandbox của BigQuery không cho dùng lệnh
+\texttt{MERGE}. Nếu nguồn là một cơ sở dữ liệu vận hành đang thay đổi liên tục, kiến trúc đề
+xuất như sau. Debezium đọc nhật ký giao dịch (WAL) của PostgreSQL nguồn và phát mỗi thay đổi
+thêm, sửa, xóa thành một thông điệp vào Kafka, mỗi bảng nguồn một topic. Spark Structured
+Streaming đọc các topic này, giữ lại thay đổi mới nhất của mỗi khóa trong từng lô nhỏ, rồi ghi
+vào một bảng staging chỉ ghi thêm trên BigQuery. Airflow định kỳ chạy \texttt{MERGE} từ bảng
+staging vào kho: dimension được cập nhật thuộc tính (SCD loại 1, hoặc loại 2 với thuộc tính
+cần lưu lịch sử), fact được thêm dòng mới, còn dòng bị xóa ở nguồn được đánh dấu bằng cờ thay
+vì xóa khỏi kho; bảng tiến độ theo tuần chỉ được tính lại cho các lượt đăng ký có thay đổi.
+
+Một bước trung gian nhẹ hơn là nạp tăng dần theo đợt học: mỗi lần chỉ dựng và nạp lại các đợt
+có dữ liệu mới. Spark hỗ trợ ghi đè từng phân vùng, còn BigQuery cho phép load job ghi đè đúng
+một phân vùng của bảng. Cách này phù hợp với OULAD vì dữ liệu vốn đã chia theo đợt học, nhưng
+chưa được thử nghiệm trong project.
+
+\textbf{Đưa các tối ưu vào luồng chính.} Phân vùng, gom cụm và chỉ mục cần được áp dụng ngay
+khi nạp kho thay vì chỉ thử nghiệm trên bản sao, và bước làm mới data mart cần được thêm vào
+DAG sau bước nạp BigQuery.
+
+\textbf{Tiến tới môi trường production.} Bảng~\ref{tab:production} so sánh hiện trạng của
+project với yêu cầu của một hệ thống vận hành thật.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.6cm}|X|X|}
+\hline
+\textbf{Thành phần} & \textbf{Yêu cầu khi vận hành thật} & \textbf{Hiện trạng} \\ \hline
+Spark & Chạy trên cụm (Dataproc, Databricks, Kubernetes) & Một máy, chế độ local \\ \hline
+BigQuery & Bật tính phí để dùng lệnh sửa dữ liệu, ghi stream độ trễ thấp, bảng không tự hết hạn & Gói Sandbox: chỉ load job, bảng tự xóa sau 60 ngày \\ \hline
+Airflow & Phiên bản đang được hỗ trợ (3.x), executor chạy trên nhiều máy, cảnh báo khi DAG chạy quá lâu & Phiên bản 2.10.5, \texttt{LocalExecutor}; đã có báo lỗi khi task thất bại \\ \hline
+CI/CD & Tự động kiểm thử, dựng image và triển khai mỗi lần cập nhật mã nguồn & Chạy kiểm thử thủ công \\ \hline
+Giám sát & Cảnh báo dữ liệu cũ quá hạn, số dòng bất thường; truy vết nguồn gốc dữ liệu (lineage) & Log và báo lỗi của Airflow; cổng chất lượng chặn số dòng sai \\ \hline
+Bảo mật & Quản lý khóa bí mật tập trung, phân quyền theo vai trò, che dữ liệu cá nhân & Khóa lưu trong file cục bộ; mọi thành viên cùng một quyền \\ \hline
+\end{tabularx}
+\caption{Hiện trạng của project so với yêu cầu vận hành thật}
+\label{tab:production}
+\end{table}
+% TODO (bổ sung sau): thêm dòng Kafka (1 broker -> ít nhất 3 broker, replication factor 3) khi viết phần stream.
+
+\subsection{Mã nguồn}
+% TODO: link repo GitHub. Ghi rõ trong repo có: hợp đồng bảng và cột (docs/contract.md),
+%       20 câu hỏi mẫu (sql/questions/), hướng dẫn chạy lại (README.md),
+%       bảng truy vết chuẩn đầu ra đầy đủ (docs/lo_traceability.md).
+Toàn bộ mã nguồn, hợp đồng dữ liệu, SQL của 20 câu hỏi mẫu và hướng dẫn dựng lại hệ thống
+được lưu tại kho mã nguồn của nhóm: % TODO: \url{...}

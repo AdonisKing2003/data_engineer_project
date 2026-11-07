@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg stream scale optimize models test bench app stream-kafka lock test-dag
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -38,6 +38,15 @@ stream:       ## 1.9 chia click theo ngày, phát lại qua Spark Streaming, so 
 	spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} stream/stream_weekly.py --replay
 	python stream/compare.py
 
+KAFKA_PKG = org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3
+STREAM_ARGS ?= --produce
+
+stream-kafka: ## stream từ Kafka có watermark; cần: docker compose --profile stream up -d
+	python stream/split_days.py
+	spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} --packages $(KAFKA_PKG) --conf spark.jars.ivy=/work/.ivy2 stream/stream_kafka.py $(STREAM_ARGS)
+	python stream/compare.py --source kafka
+
+
 scale:        ## 1.12 sinh kho 5× rồi nạp vào BigQuery (dataset oulad_5x) và PostgreSQL (schema x5); chạy sau all
 	cd etl && spark-submit --driver-memory $${SPARK_DRIVER_MEMORY:-3g} 07_scale.py --factor 5
 	cd etl && python 04_load_bq.py --scale 5
@@ -51,6 +60,17 @@ models:       ## mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSO
 
 test:
 	pytest -q
+
+test-dag:     ## DAG Airflow nạp được, đúng thứ tự, có báo lỗi; chạy trong container airflow: docker compose exec airflow make test-dag
+	python -m pytest -q tests/test_dag.py tests/test_alerts.py
+
+lock:         ## ghi phiên bản chính xác của mọi gói đang cài ra requirements.lock (chạy sau khi make test xanh)
+	@{ printf '%s\n' \
+	  "# Phiên bản chính xác của mọi gói trong image app, sinh bằng: make lock (đã chạy test xanh với bộ này)." \
+	  "# Dockerfile cài requirements.txt với ràng buộc của file này, nên build ở máy nào, ngày nào cũng ra một bộ." \
+	  "# Thêm hay đổi thư viện: sửa requirements.txt, build lại, chạy make test, rồi make lock để cập nhật file này."; \
+	  pip freeze; } > requirements.lock
+	@echo "Đã ghi requirements.lock ($$(grep -c '==' requirements.lock) gói)"
 
 RUNS ?= 5
 bench: ## 3.9 benchmark layouts; requires explicit CONFIRM_M3=1 after group M3 confirmation

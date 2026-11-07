@@ -8,6 +8,7 @@
 Chạy trong container:
     python stream/compare.py
 """
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -15,19 +16,25 @@ from pathlib import Path
 import duckdb
 
 ROOT = Path(__file__).resolve().parents[1]
-UPDATES = ROOT / "data" / "stream" / "out" / "updates"
+SOURCES = {  # nguồn -> (thư mục cập nhật, mẫu file, file báo cáo)
+    "file":  (ROOT / "data" / "stream" / "out" / "updates", "*.parquet", "_compare.json"),
+    "kafka": (ROOT / "data" / "stream" / "out_kafka" / "updates", "*/*.parquet", "_compare_kafka.json"),
+}
 BATCH = ROOT / "data" / "warehouse" / "fact_student_week"
-REPORT = ROOT / "data" / "stream" / "_compare.json"
-
 
 def main():
-    for p, hint in [(UPDATES, "spark-submit stream/stream_weekly.py --replay"), (BATCH, "make student-week")]:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--source", choices=SOURCES, default="file")
+    updates, pattern, report_name = SOURCES[ap.parse_args().source]
+    files = f"{updates}/{pattern}"
+    report_path = ROOT / "data" / "stream" / report_name
+    for p, hint in [(updates, "make stream hoặc make stream-kafka"), (BATCH, "make student-week")]:
         if not p.exists():
             sys.exit(f"Thiếu {p}. Chạy {hint} trước.")
 
     con = duckdb.connect()
     con.sql(f"""create view stream_latest as
-        select * exclude (batch_id) from read_parquet('{UPDATES}/*.parquet')
+        select * exclude (batch_id) from read_parquet('{files}')
         qualify row_number() over (partition by id_student, code_module, code_presentation, week_no
                                    order by batch_id desc) = 1""")
     con.sql(f"""create view compared as
@@ -47,7 +54,7 @@ def main():
                    from compared""").fetchone()
     stream_only = con.sql(f"""select count(*) from stream_latest s anti join
         read_parquet('{BATCH}/*.parquet') b using (id_student, code_module, code_presentation, week_no)""").fetchone()[0]
-    n_updates = con.sql(f"select count(*) from read_parquet('{UPDATES}/*.parquet')").fetchone()[0]
+    n_updates = con.sql(f"select count(*) from read_parquet('{files}')").fetchone()[0]
 
     report = {
         "rows_compared": r[0],
@@ -59,7 +66,7 @@ def main():
         "stream_update_rows_written": n_updates,
         "stream_rows_latest": con.sql("select count(*) from stream_latest").fetchone()[0],
     }
-    REPORT.write_text(json.dumps(report, indent=2))
+    report_path.write_text(json.dumps(report, indent=2))
     for k, v in report.items():
         print(f"{k:28s} {v:>12,}")
     ok = report["clicks_week_mismatch"] == report["clicks_cum_mismatch"] == stream_only == 0
