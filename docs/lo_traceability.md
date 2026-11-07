@@ -36,9 +36,9 @@ Code: `etl/02_clean_dims.py`, `etl/03_facts.py` (mức luận lý thành bảng)
 
 | Mô hình | Hiện thực trong project | Số đo |
 |---|---|---|
-| Quan hệ 3NF | PostgreSQL `three_nf`, BigQuery `oulad_3nf` (TV3) | Bảng click nhỏ hơn star 24%; chậm hơn star 8–16% ở BR1, BR2 trên PostgreSQL |
+| Quan hệ 3NF | PostgreSQL `three_nf`, BigQuery `oulad_3nf` (TV3) | Bảng click nhỏ hơn star 24%; trên PostgreSQL ngang star (chênh không quá 11%) |
 | Mô hình chiều (star) | Kho chính BigQuery `oulad`, PostgreSQL `public` | Mốc so sánh |
-| Bảng rộng phi chuẩn hóa | PostgreSQL `wide`, BigQuery `oulad_wide` (TV3) | Gấp đôi dung lượng; chậm nhất ở PostgreSQL 5× (BR2 1,56× star) |
+| Bảng rộng phi chuẩn hóa | PostgreSQL `wide`, BigQuery `oulad_wide` (TV3) | Gấp đôi dung lượng; trên PostgreSQL 5× chậm hơn star ở truy vấn đọc fact lớn (BR1 2,02×, BR2 1,16×), nhanh hơn ở BR6 (0,61×) |
 | Lưu trữ theo cột | Parquet, BigQuery | BigQuery chỉ quét cột cần: star và 3NF quét đúng cùng số bytes |
 | Dạng lồng | BigQuery `nested_student_timeline` (`ARRAY<STRUCT>`) | 97,7 MB so với 123,9 MB bảng phẳng; BR4 quét 53,0 MB so với 79,2 MB, nhưng slot ms tăng 14,4× |
 | Tài liệu | PostgreSQL `doc.student_timeline` (JSONB) | 33,3 MB so với 247,3 MB; câu hỏi cắt ngang chậm 2,9× |
@@ -48,7 +48,7 @@ Kết luận của nhóm: chọn mô hình theo cách truy cập. Câu hỏi t�
 lưu theo cột. Hồ sơ trọn vẹn một sinh viên hợp với tài liệu hoặc dạng lồng. Cập nhật theo khóa hợp với khóa-giá trị.
 Mô hình đồ thị không dùng vì không câu hỏi nào cần duyệt quan hệ nhiều bước.
 
-Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / star / bảng rộng, runner mới của TV3). Số liệu 3NF / star / bảng rộng ở bảng trên là của lần đo 26/10 (`bench/results/historical_2026-10-26/`).
+Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / star / bảng rộng, runner mới của TV3). Số liệu 3NF / star / bảng rộng ở bảng trên là của lần đo chính thức 07/11/2026 (`bench/results/20261107T165028Z_55925b1a/`).
 
 ## 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn
 

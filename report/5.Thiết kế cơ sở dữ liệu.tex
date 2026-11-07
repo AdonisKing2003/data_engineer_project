@@ -382,7 +382,7 @@ Bảng phi chuẩn hóa toàn phần (wide table) & PostgreSQL, BigQuery & Truy 
 Lưu trữ theo cột & Parquet, BigQuery & Quét nhiều dòng trên ít cột; nén tốt & Đọc trọn một dòng; ghi từng dòng \\ \hline
 Dạng lồng (nested, repeated) & BigQuery, kiểu \texttt{ARRAY<STRUCT>} & Dữ liệu cha -- con luôn được đọc cùng nhau & Truy vấn cắt ngang phần tử con của mọi dòng \\ \hline
 Tài liệu (document) & PostgreSQL, kiểu \texttt{JSONB} & Đọc trọn hồ sơ của một đối tượng; cấu trúc linh hoạt & Tổng hợp trên nhiều tài liệu \\ \hline
-% Khóa-giá trị (key-value) & State store của Spark Structured Streaming & Cập nhật và tra cứu theo khóa & Truy vấn không đi theo khóa \\ \hline  % (bổ sung sau, cùng phần stream)
+Khóa-giá trị (key-value) & State store của Spark Structured Streaming, khóa là sinh viên $\times$ đợt $\times$ tuần & Cập nhật và tra cứu liên tục theo khóa & Truy vấn không đi theo khóa \\ \hline
 \end{tabularx}
 \caption{Các mô hình dữ liệu được hiện thực trên bộ dữ liệu OULAD}
 \label{tab:mo-hinh}
@@ -409,5 +409,7 @@ Kết quả trên dẫn đến nguyên tắc chọn mô hình theo kiểu truy c
 ngang nhiều sinh viên, chiếm 6 trên 8 yêu cầu nghiệp vụ, phù hợp nhất với dimensional model
 lưu theo cột; đây là lý do kho chính giữ mô hình này. Hồ sơ trọn vẹn của một sinh viên phù
 hợp với mô hình tài liệu hoặc dạng lồng. Việc cập nhật liên tục theo khóa phù hợp với mô hình
-khóa-giá trị. Mô hình đồ thị không được sử dụng vì không yêu cầu nào cần duyệt quan hệ qua
+khóa-giá trị: trong nhánh stream (mục~\ref{sec:stream}), Spark giữ tổng click của mỗi khóa sinh
+viên $\times$ đợt $\times$ tuần trong state store và cộng dồn mỗi micro-batch; không có watermark,
+state store giữ 627.031 khóa tới cuối lần chạy, có watermark thì lúc lớn nhất chỉ còn 65.274 khóa. Mô hình đồ thị không được sử dụng vì không yêu cầu nào cần duyệt quan hệ qua
 nhiều bước; quan hệ giữa sinh viên và học liệu chỉ có một bước, phép nối bảng là đủ.
