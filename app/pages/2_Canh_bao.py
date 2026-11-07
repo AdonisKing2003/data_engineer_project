@@ -1,9 +1,11 @@
-import streamlit as st
+import os
+import sys
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import sys
-from pathlib import Path
+import streamlit as st
 
 # Thêm đường dẫn app vào sys.path
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -13,7 +15,7 @@ if str(APP_DIR) not in sys.path:
 import db
 
 st.set_page_config(
-    page_title="Trang Cảnh báo & Rút lui (BR4 & BR5) | OULAD",
+    page_title="Cảnh báo Sớm & Tỷ lệ Duy trì | OULAD",
     page_icon="🚨",
     layout="wide"
 )
@@ -53,8 +55,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="page-header">🚨 Phân hệ Cảnh báo Sớm & Rút lui</div>', unsafe_allow_html=True)
-st.markdown('<div class="page-desc">Phụ trách: Thành viên 2 (TV2) · Nghiệp vụ BR4 (Cảnh báo sớm SV nguy cơ) và BR5 (Đường cong rút lui tích lũy)</div>', unsafe_allow_html=True)
+st.markdown('<div class="page-header">🚨 Hệ thống Cảnh báo Sớm & Tỷ lệ Duy trì</div>', unsafe_allow_html=True)
+st.markdown('<div class="page-desc">Theo dõi sinh viên có nguy cơ học tập cần can thiệp sớm và phân tích động thái rút lui tích lũy theo thời gian</div>', unsafe_allow_html=True)
 
 # Lấy danh sách đợt học
 pres_df = db.get_presentations()
@@ -64,10 +66,10 @@ pres_options = ["Tất cả các đợt (Toàn trường)"] + pres_df["presentat
 st.sidebar.header("🔍 Bộ lọc điều khiển")
 selected_pres_label = st.sidebar.selectbox("Chọn đợt học:", pres_options, index=0)
 
-tab1, tab2 = st.tabs(["🚨 BR4: Cảnh báo sớm SV nguy cơ theo tuần", "📉 BR5: Đường cong rút lui tích lũy"])
+tab1, tab2 = st.tabs(["🚨 Cảnh báo sớm SV nguy cơ theo tuần", "📉 Đường cong rút lui tích lũy & duy trì"])
 
 # ==============================================================================
-# TAB 1: BR4 - CẢNH BÁO SỚM THEO TUẦN (WEEKLY SNAPSHOT AS-OF)
+# TAB 1: CẢNH BÁO SỚM THEO TUẦN (WEEKLY SNAPSHOT AS-OF)
 # ==============================================================================
 with tab1:
     st.subheader("Cảnh báo sớm Sinh viên có nguy cơ học tập (Weekly Snapshot As-of)")
@@ -85,7 +87,8 @@ with tab1:
     if selected_pres_label != "Tất cả các đợt (Toàn trường)":
         mod, pres = selected_pres_label.split(" ")
 
-    with st.spinner("Đang truy vấn dữ liệu từ DuckDB..."):
+    backend_name = "BigQuery (Cloud)" if os.getenv("DATA_BACKEND", "bigquery").strip().lower() == "bigquery" else "DuckDB (Local)"
+    with st.spinner(f"Đang truy vấn dữ liệu từ {backend_name}..."):
         df_br4 = db.get_br4_at_risk_students(code_module=mod, code_presentation=pres, week_no=selected_week)
 
     if df_br4.empty:
@@ -195,7 +198,7 @@ with tab1:
 
 
 # ==============================================================================
-# TAB 2: BR5 - ĐƯỜNG CONG RÚT LUI TÍCH LŨY (RETENTION / DROPOUT CURVE)
+# TAB 2: ĐƯỜNG CONG RÚT LUI TÍCH LŨY (RETENTION / DROPOUT CURVE)
 # ==============================================================================
 with tab2:
     st.subheader("Đường cong Rút lui Tích lũy & Tỷ lệ Duy trì Người học")
@@ -212,7 +215,7 @@ with tab2:
     # Thống kê tổng quan 22 đợt
     summary_df = db.get_br5_withdrawal_summary()
 
-    # 3 Metrics cốt lõi của BR5
+    # 3 Metrics cốt lõi về rút lui
     b1, b2, b3 = st.columns(3)
     b1.metric("Tỷ lệ rút trước/đúng ngày 0", "30.4%", help="3.089 / 10.156 lượt rút toàn trường xảy ra trước hoặc đúng ngày khai giảng.")
     b2.metric("Ngày rút trung vị", "Ngày 27", help="50% sinh viên rút lui đưa ra quyết định trước hoặc đúng ngày 27 (cuối tuần 3).")
