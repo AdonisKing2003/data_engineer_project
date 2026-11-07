@@ -98,6 +98,14 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br5_withdrawal_summary.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br5_withdrawal_summary.sql",
     },
+    "br5_school_summary": {
+        "duckdb": PROJECT_ROOT / "sql" / "br5_school_summary.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br5_school_summary.sql",
+    },
+    "br5_retention_curve": {
+        "duckdb": PROJECT_ROOT / "sql" / "br5_retention_curve.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br5_retention_curve.sql",
+    },
     "br7_students_in_presentation": {
         "duckdb": PROJECT_ROOT / "sql" / "br7_students_in_presentation.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br7_students_in_presentation.sql",
@@ -143,6 +151,8 @@ QUERY_PARAMETER_ORDER = {
     "br4_at_risk_all": ("week_no",),
     "br4_at_risk_list": ("week_no", "code_module", "code_presentation"),
     "br5_withdrawal_summary": (),
+    "br5_school_summary": (),
+    "br5_retention_curve": (),
     "br7_students_in_presentation": ("code_module", "code_presentation"),
     "br7_cohort_benchmark": ("code_module", "code_presentation"),
     "br7_student_progress": ("id_student", "code_module", "code_presentation"),

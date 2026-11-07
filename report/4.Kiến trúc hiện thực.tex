@@ -89,7 +89,15 @@ bước lỗi đầu tiên. Nội dung và thời gian của từng bước đư
 % ------------------------------------------------------------
 \subsection{Luồng stream}
 \label{sec:kien-truc-stream}
-% TODO (bổ sung sau): nhánh stream, chỉ cần vị trí của nó trong kiến trúc.
+
+OULAD là dữ liệu lịch sử, không có luồng sự kiện thật, nên nhánh stream phát lại click theo
+từng ngày để mô phỏng dữ liệu đến dần. Nhánh này chạy song song với luồng batch và chỉ tính một
+phần của kho: tổng click theo sinh viên, đợt học và tuần, tức các cột \texttt{clicks\_week},
+\texttt{clicks\_cum} của bảng tiến độ theo tuần. Click của mỗi ngày được gửi vào Kafka, Spark
+Structured Streaming đọc Kafka và cộng dồn theo tuần, rồi ghi kết quả ra Parquet và nạp lên
+BigQuery sau mỗi lô nhỏ (micro-batch); trang dashboard đọc kết quả đó. Bản batch vẫn là nguồn
+chuẩn: kết quả stream được đối chiếu với bảng tiến độ theo tuần của batch để chứng minh hai nhánh
+cho cùng số liệu (mục~\ref{sec:stream}).
 
 % ------------------------------------------------------------
 \subsection{Điều phối}

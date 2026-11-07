@@ -361,7 +361,7 @@ nhất có đúng 627.031 dòng và 39.605.099 click. Số này được `stream
 
 ## 5. Kiểm thử
 
-`make test` chạy 289 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3). Kết quả: 286 qua, 2 xfail (câu hỏi mẫu dashboard chưa trả lời được), 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 10 test qua).
+`make test` chạy 289 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3). Kết quả: 288 qua, 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 10 test qua).
 Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. pytest chỉ tìm test trong `tests/` (`testpaths` trong `pytest.ini`): trước đó pytest lấy nhầm cả `scripts/bq_smoke_test.py` vì tên khớp mẫu `*_test.py`, nên mỗi lần `make test` lại chạy code nạp thử bảng `courses` lên BigQuery của file này.
 Bảng dưới liệt kê 182 test kho và 6 test điều phối.
 

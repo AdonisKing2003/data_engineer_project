@@ -10,10 +10,18 @@ presentation_milestones AS (
         e.code_presentation,
         COUNTIF(e.is_withdrawn AND e.date_unregistration <= 0) AS with_day_0,
         COUNTIF(e.is_withdrawn AND e.date_unregistration <= 27) AS with_day_27,
-        COUNTIF(e.is_withdrawn) AS with_total,
-        APPROX_QUANTILES(IF(e.is_withdrawn AND e.date_unregistration IS NOT NULL, e.date_unregistration, NULL), 100)[OFFSET(50)] AS median_unreg_day
+        COUNTIF(e.is_withdrawn) AS with_total
     FROM fact_enrollment e
     GROUP BY e.code_module, e.code_presentation
+),
+-- Trung vị chính xác (có nội suy) như MEDIAN của DuckDB.
+median_unreg AS (
+    SELECT DISTINCT
+        code_module,
+        code_presentation,
+        PERCENTILE_CONT(date_unregistration, 0.5) OVER (PARTITION BY code_module, code_presentation) AS median_unreg_day
+    FROM fact_enrollment
+    WHERE is_withdrawn AND date_unregistration IS NOT NULL
 )
 SELECT
     m.code_module || ' ' || m.code_presentation AS presentation,
@@ -24,8 +32,9 @@ SELECT
     ROUND(100.0 * m.with_day_27 / b.total_students, 1) AS pct_withdrawn_day_27,
     m.with_total,
     ROUND(100.0 * m.with_total / b.total_students, 1) AS pct_withdrawn_total,
-    m.median_unreg_day
+    u.median_unreg_day
 FROM presentation_milestones m
 JOIN presentation_base b USING (code_module, code_presentation)
+LEFT JOIN median_unreg u USING (code_module, code_presentation)
 ORDER BY pct_withdrawn_total DESC;
 

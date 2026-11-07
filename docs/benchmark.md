@@ -23,7 +23,7 @@ Một ô được chạy một warm-up và năm lượt đo. Vì vậy giao th�
 | BR4 | Q14 | Danh sách nguy cơ tuần 4 và precision/recall/baseline theo quy tắc tham chiếu trong `tests/test_student_week.py`. |
 | BR6 | Q18 | Tỷ lệ đạt của BBB/DDD/FFF kỳ 2014J giữa hai nhóm IMD; loại withdrawal trước kỳ và ẩn ô có dưới 30 sinh viên riêng biệt. |
 
-BR1/Q7 và BR4/Q14 là workload benchmark, chưa mặc nhiên là SQL sản xuất đã được TV2 nghiệm thu. BR4 dùng phân vị chính xác `PERCENTILE_CONT`; SQL TV2 dùng `APPROX_QUANTILES`, nên chưa được xem là tương đương nếu chưa đối chiếu sai số và hợp đồng kết quả. Báo cáo benchmark mô tả workload được đo, không thay thế phê duyệt nghiệp vụ.
+BR1/Q7 và BR4/Q14 là workload benchmark, chưa mặc nhiên là SQL sản xuất đã được TV2 nghiệm thu. BR4 dùng phân vị chính xác `PERCENTILE_CONT`; từ 07/11/2026 SQL BigQuery của dashboard cũng dùng `PERCENTILE_CONT` (trước đó là `APPROX_QUANTILES`) và cho cùng kết quả với DuckDB. Báo cáo benchmark mô tả workload được đo, không thay thế phê duyệt nghiệp vụ.
 
 Oracle 1× được kiểm tra theo kết quả tham chiếu đã có trong test/tài liệu: BR1 97.088 mẫu, 16.320 bài trễ, 16,8%; BR2 `oucontent`, 11.206.803 trên 39.605.099 click, 28,3%; BR4 27.250 lượt học, 3.958 được cảnh báo, 3.189 đúng, precision 80,6%, recall 26,9%, baseline 43,5%; BR6 nhóm IMD 0–10% có 615 sinh viên và đạt 41,1%, nhóm 90–100% có 436 và đạt 63,3%, chênh lệch 22,2 điểm phần trăm. Oracle được kiểm trên warm-up 1×. Với 5×, runner kiểm tra quy tắc nhân bản theo từng trường: các số đếm của dữ liệu nhân bản tăng theo hệ số 5, còn tỷ lệ giữ nguyên; không suy rộng quy tắc này cho mọi chỉ số.
 
@@ -64,7 +64,11 @@ docker compose exec -e CONFIRM_M3=1 -T app make bench
 
 `make bench` từ chối chạy nếu không có `CONFIRM_M3=1` và chuyển xác nhận tường minh sang `--confirm-m3`. Cờ này là xác nhận của người vận hành, không tự chứng minh checklist M3 đã được nhóm hoàn tất. `--runs` có thể cấu hình qua `RUNS` trên Makefile, nhưng giá trị nghiệm thu của task này là 5. Runner cũng giữ cổng kiểm tra bộ SQL câu hỏi Q1–Q20; có đủ file là điều kiện cần, không chứng minh nội dung đã được nhóm review.
 
-**Trạng thái hiện tại:** chưa chạy phép đo chính thức trong task 3.9. Bộ câu hỏi trên checkout hiện thiếu nhiều file, gồm Q7 và Q14; nhóm cần hoàn thành/xác nhận M3, chuẩn bị đủ dữ liệu 1×/5× và đạt preflight trước khi chạy. Không dùng `--confirm-m3` thay cho xác nhận của nhóm.
+**Trạng thái hiện tại:** đã chạy phép đo chính thức ngày 07/11/2026, run `bench/results/20261107T165028Z_55925b1a` (`latest_success.json` trỏ tới run này): 44/48 tổ hợp, 5 lượt đo mỗi tổ hợp, mọi cổng correctness đạt. Bộ câu hỏi Q1–Q20 đã đủ.
+
+Lần chạy đầu cùng ngày dừng ở cổng correctness của 5×/BR4: runner suy đáp án 5× bằng cách nhân 5 mọi số đếm, nhưng BR4 ra 19.770 SV vào danh sách (15.935 đúng) chứ không phải 19.790 (15.945). Nguyên nhân: BR4 so `clicks_cum` với phân vị 25 có nội suy của từng đợt; nhân bản mỗi dòng 5 lần làm điểm nội suy dịch đi, ngưỡng giảm nhẹ ở BBB 2014B, BBB 2014J, EEE 2014J, FFF 2014J (ví dụ 73,25 → 73,0), nên mỗi bản sao bớt 4 SV bị gắn cờ. Cả 5 tổ hợp 5× (PostgreSQL và BigQuery, star/3nf/wide) cho cùng kết quả này; các tỷ lệ làm tròn không đổi. Đáp án 5× của BR4 vì vậy được ghi tường minh trong `REFERENCE_5X_OVERRIDES` của `scripts/benchmark_layouts.py`.
+
+Thời gian BigQuery trong `median_s` là thời gian phía client, gồm khoảng 1,5 s lên lịch job; khi so các cách tổ chức trên BigQuery dùng `median_server_elapsed_seconds`.
 
 ## Kết quả và tính tái lập
 
@@ -84,7 +88,7 @@ Run được đánh dấu `incomplete` và manifest được ghi xuống đĩa t
 
 Số liệu lịch sử cho thấy BigQuery 5× star chậm hơn 3NF khoảng 2,48× ở BR2 và 4,52× ở BR4; do đó nhận định “star không bao giờ chậm hơn nhiều” đã bị loại bỏ. Ở 18/44 ô, khoảng `(max-min)/median` không quá 10%; trung vị tỷ lệ dao động là 21,6%. Kết quả nhỏ hơn mức dao động nên được mô tả là chưa phân biệt được bằng giao thức này. Giải thích dựa trên cache, join, song song hóa hoặc cách tạo bảng phải ghi là giả thuyết nếu không có metadata/thí nghiệm trực tiếp.
 
-Số liệu lịch sử chỉ để tham khảo và không trộn vào run mới. Không có số đo task 3.9 mới nào được tạo trong giai đoạn chờ M3.
+Số liệu lịch sử chỉ để tham khảo và không trộn vào run mới. Run 07/11/2026 cho cùng chiều chênh lệch trên BigQuery 5× (star chậm hơn 3NF 2,9× ở BR2 và 2,2× ở BR4 theo thời gian server, cùng bytes quét); trên PostgreSQL, star và 3NF chênh không quá 11%.
 
 ## Phụ lục: số liệu và phân tích lần đo 26/10/2026 (TV1)
 

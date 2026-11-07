@@ -1,0 +1,3464 @@
+{
+  "status": "success",
+  "run_id": "20261107T165028Z_55925b1a",
+  "started_at_utc": "2026-11-07T16:50:28Z",
+  "coverage": {
+    "planned": 48,
+    "selected": 44,
+    "excluded": [
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br1_q07",
+        "reason": "BigQuery Sandbox project storage quota is 10 GB; adding the 5x wide datasets to existing data would exceed the limit"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br2_q09",
+        "reason": "BigQuery Sandbox project storage quota is 10 GB; adding the 5x wide datasets to existing data would exceed the limit"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br4_q14",
+        "reason": "BigQuery Sandbox project storage quota is 10 GB; adding the 5x wide datasets to existing data would exceed the limit"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br6_q18",
+        "reason": "BigQuery Sandbox project storage quota is 10 GB; adding the 5x wide datasets to existing data would exceed the limit"
+      }
+    ]
+  },
+  "configuration": {
+    "python_version": "3.11.18 (main, Oct 28 2026, 02:05:49) [GCC 12.2.0]",
+    "platform": "Linux-6.8.0-149-generic-x86_64-with-glibc2.36",
+    "git": {
+      "branch": null,
+      "commit": null,
+      "working_tree": null
+    },
+    "script_sha256": "271b4cd60c7b8f1a327ea3dd777af063015a45d080e2fb56e01864b27b8ff4a5",
+    "environment": {
+      "gcp_project_id": "dataengineergroup32",
+      "bq_dataset": "oulad",
+      "bq_location": "US",
+      "postgres_host": "postgres",
+      "postgres_port": "5432",
+      "postgres_database": "oulad",
+      "postgres_user": "oulad"
+    },
+    "protocol": {
+      "runs": 5,
+      "warmups_per_variant": 1,
+      "selected_matrix_executions": 264,
+      "random_seed": 39,
+      "bigquery_use_query_cache": false,
+      "bigquery_cache_hit_expected": false,
+      "postgres_index_policy": "primary-key indexes only; read-only check, no index changes",
+      "client_elapsed_boundary": "prepared client call through complete result fetch"
+    },
+    "selected_sql_sha256": {
+      "sql/bench/bq/3nf/br1_q07.sql": "850b554692a99f90cde8cfda97cf0f68d31915964ce6332aff0e9fb773c30e33",
+      "sql/bench/bq/3nf/br2_q09.sql": "614c66d4d5903ec7ed17f7aa860a29fb61eef5d9d633ffea39ba7ee82540f7c4",
+      "sql/bench/bq/3nf/br4_q14.sql": "aa0701c317681707c67a095b81e94004ba2bb59a1ae6fffdae6465f8818e6475",
+      "sql/bench/bq/3nf/br6_q18.sql": "524646a1345327972859b51894285df98e35d9c1510b286639bd24b96188a900",
+      "sql/bench/bq/star/br1_q07.sql": "73f24c8e44d708a7bcd1f63e581204eff3ce0c59cad7f7737ba60559ccc8aedb",
+      "sql/bench/bq/star/br2_q09.sql": "f02ec6d391a7371e4ce5277437632897826325609f84b90fae2f6fda427a1737",
+      "sql/bench/bq/star/br4_q14.sql": "2187fb18c073db3eb8b0a1563b89b47ace3e0b6ee520a74b9d8977a45ee749c8",
+      "sql/bench/bq/star/br6_q18.sql": "a8883dadb68293eb669109e848f8695fa6e071ae9153b6de9de78f54c1ed581e",
+      "sql/bench/bq/wide/br1_q07.sql": "2c9d58b841b3fefa1e248ff016afebae5268734044003e1fc7bc57c18a910790",
+      "sql/bench/bq/wide/br2_q09.sql": "294679d4d6e51a55807fa6ae7c1c0b2787a97ebe921bd4e28314ba46048a6389",
+      "sql/bench/bq/wide/br4_q14.sql": "eaf77541c40476dd409493d410db8c499e21d1ec67fde3d48d269e8bdefe3b45",
+      "sql/bench/bq/wide/br6_q18.sql": "7684141ff6f44b9193c5688196efee9886671f9e68e66f904249a41d3484ebc0",
+      "sql/bench/pg/3nf/br1_q07.sql": "114d005736a6b8848a4663b89fa9bab07c0a4da43ca14a777cee4fb1a0a2b08b",
+      "sql/bench/pg/3nf/br2_q09.sql": "11d462838df368dbcd11c8b2a154b721aefbc3d4c68ba9242c16016ebce36a09",
+      "sql/bench/pg/3nf/br4_q14.sql": "f5664d3db0c87fab32c348f22c4a4e0d567ea5182f618e972876ad1c857809b6",
+      "sql/bench/pg/3nf/br6_q18.sql": "2a376f1bcb1ae4419d4fe50c9133f774baf4cd42b3919454fbf0b3f03c67dfd3",
+      "sql/bench/pg/star/br1_q07.sql": "0fe15f2c96aedcfea13a272ab251349888df0388ca1c90934a4d92d369db2689",
+      "sql/bench/pg/star/br2_q09.sql": "5d3c4b0788d202ba366df697aadc539ea1fe904397e4d8bb7f62c10402fcf7b9",
+      "sql/bench/pg/star/br4_q14.sql": "348ff7a1ffcafb50cb7bb3c24fb68e47339110aaf43368008ead66d7a46ee31a",
+      "sql/bench/pg/star/br6_q18.sql": "99a3994c4b1fbb184cb5bee6a7cb3e6b2b767f8c4571b25e56d9290122199f25",
+      "sql/bench/pg/wide/br1_q07.sql": "8710d10d3ef22840e649d33e487edc3a217744173c1e36658c31edb2100ec11d",
+      "sql/bench/pg/wide/br2_q09.sql": "e07f2e4e9300f1717f41ecec2078b00b6a523d805b8c71cb5e08528475e05e1a",
+      "sql/bench/pg/wide/br4_q14.sql": "9d3feca45cd19811cc4f8f57154787a8bd433b4a8f2e8a6fad6c30b7cc2139fb",
+      "sql/bench/pg/wide/br6_q18.sql": "c9eb3960d8cf7fec49f52660c560f9579a0b18fdd0f735172c1f4d8409e74581"
+    },
+    "question_sql_sha256": {
+      "sql/questions/q01.sql": "4d672701620c68d2b22b612b8480528df09328c10e66b23ca667850ce07a16f7",
+      "sql/questions/q02.sql": "95d21d20728670f7b33e4c0d65b526437e926be51fe2923c8e052c30668642d2",
+      "sql/questions/q03.sql": "00092725086074d03a5ef4abc9ab609621b7ea601c0cbfc627518275cd889353",
+      "sql/questions/q04.sql": "a3ca1c59e8b35e24bb1f40e0cd2023d931ebf49cc139371d50e4863d83080509",
+      "sql/questions/q05.sql": "07529ffcbc327b02561e5e6a1aadb832470cd17cf46987cb89bb05e1f9555499",
+      "sql/questions/q06.sql": "97a8049eeb090bd9f946f24bc2820213c6c994861fa6c7978e864aade2e2cac2",
+      "sql/questions/q07.sql": "6d6081733574ffeee559201b542b1b292dabb400d8a7717dcf6d39b07bb669eb",
+      "sql/questions/q08.sql": "3391d1dd21272a582891424dde7fe782101aebde77cc263935f1facecf1c75c9",
+      "sql/questions/q09.sql": "a11216ae80d13168ff64a7fcf6a926c4656c3a1d98f2be3ecfef373ff2afcd43",
+      "sql/questions/q10.sql": "d13bc271af99258f39605d845c138d0d597e8a3b9e741db3857b3644cfeb830c",
+      "sql/questions/q11.sql": "1c488ec82e1c41ccf8ccd5467587d77cd7f85da400d387035d6cdcf49bc432a2",
+      "sql/questions/q12.sql": "74b281eeef5a4a355b40ae007f240b4f4bb95986208017225032d0fad2251e37",
+      "sql/questions/q13.sql": "eeebda944eec4170551e69e20da545447ceb385c64e77b2535345e2c70d5fbfa",
+      "sql/questions/q14.sql": "abc484b017c55830f7e9166e04d760b00a3eeeb28310bfac0fb49dc17678eb81",
+      "sql/questions/q15.sql": "a9b267bd29c18a8bde69e6d9a74915a9105531e1fb6cb02056a0a5e4b1b168e9",
+      "sql/questions/q16.sql": "eb2ae65bfafa826504a755b36388e05e77315e17fa4498e73d7a7eacfc57404a",
+      "sql/questions/q17.sql": "5f5595570a893d9da1830d217d14e43886b80594bda91bdb109fa78e34ad2617",
+      "sql/questions/q18.sql": "1eedeba6c2d7a8cf830c1d26876cbb4f1acdf6567c424646f3bf31ad00cd699d",
+      "sql/questions/q19.sql": "3f99fb1a0e9265361f1978d0f156231068ed403cebd1c871d34f6ae5580f3232",
+      "sql/questions/q20.sql": "0e8c111c883501a9de253474eb3d38e6673f0243f1b30fb2150c66eba8d97016"
+    }
+  },
+  "preflight": {
+    "status": "passed",
+    "captured_at_utc": "2026-11-07T16:50:28Z",
+    "m3_question_files_missing": [],
+    "canonical_oracle_files_missing": [],
+    "selected_sql_files_missing": [],
+    "postgres": {
+      "status": "passed",
+      "captured_at_utc": "2026-11-07T16:50:34Z",
+      "analyze_started_at_utc": "2026-11-07T16:50:28Z",
+      "analyze_completed_at_utc": "2026-11-07T16:50:34Z",
+      "analyze_performed": true,
+      "server": {
+        "database": "oulad",
+        "user": "oulad",
+        "version": "16.15 (Debian 16.15-1.pgdg13+2)",
+        "encoding": "UTF8",
+        "shared_buffers": "128MB",
+        "work_mem": "4MB"
+      },
+      "schemas": [
+        {
+          "schema": "public",
+          "scale": 1,
+          "layout": "star",
+          "status": "passed",
+          "required_relations": [
+            "fact_submission",
+            "dim_assessment",
+            "fact_vle_daily",
+            "dim_vle_site",
+            "fact_student_week",
+            "fact_enrollment",
+            "dim_student"
+          ],
+          "missing_required_relations": [],
+          "table_count": 9,
+          "tables_without_primary_key": [],
+          "index_count": 9,
+          "primary_key_index_count": 9,
+          "indexes": [
+            {
+              "table": "dim_assessment",
+              "name": "dim_assessment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_assessment_pkey ON public.dim_assessment USING btree (id_assessment)"
+            },
+            {
+              "table": "dim_presentation",
+              "name": "dim_presentation_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_presentation_pkey ON public.dim_presentation USING btree (code_module, code_presentation)"
+            },
+            {
+              "table": "dim_student",
+              "name": "dim_student_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_student_pkey ON public.dim_student USING btree (id_student)"
+            },
+            {
+              "table": "dim_vle_site",
+              "name": "dim_vle_site_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_vle_site_pkey ON public.dim_vle_site USING btree (id_site)"
+            },
+            {
+              "table": "dim_week",
+              "name": "dim_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_week_pkey ON public.dim_week USING btree (week_no)"
+            },
+            {
+              "table": "fact_enrollment",
+              "name": "fact_enrollment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_enrollment_pkey ON public.fact_enrollment USING btree (id_student, code_module, code_presentation)"
+            },
+            {
+              "table": "fact_student_week",
+              "name": "fact_student_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_student_week_pkey ON public.fact_student_week USING btree (id_student, code_module, code_presentation, week_no)"
+            },
+            {
+              "table": "fact_submission",
+              "name": "fact_submission_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_submission_pkey ON public.fact_submission USING btree (id_student, id_assessment)"
+            },
+            {
+              "table": "fact_vle_daily",
+              "name": "fact_vle_daily_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_vle_daily_pkey ON public.fact_vle_daily USING btree (id_student, code_module, code_presentation, id_site, date)"
+            }
+          ],
+          "non_primary_indexes": [],
+          "invalid_indexes": [],
+          "stats_kind": "estimates from pg_stat_user_tables after ANALYZE",
+          "estimated_live_rows": 10042774,
+          "estimated_total_relation_bytes": 1635876864,
+          "table_stats": [
+            {
+              "table": "dim_assessment",
+              "estimated_live_rows": 206,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:28.799143+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:16.266603+00:00",
+              "total_bytes": 49152
+            },
+            {
+              "table": "dim_presentation",
+              "estimated_live_rows": 22,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:28.799649+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 32768
+            },
+            {
+              "table": "dim_student",
+              "estimated_live_rows": 28785,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:28.847303+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:16.421268+00:00",
+              "total_bytes": 3227648
+            },
+            {
+              "table": "dim_vle_site",
+              "estimated_live_rows": 6364,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:28.854036+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:16.446911+00:00",
+              "total_bytes": 614400
+            },
+            {
+              "table": "dim_week",
+              "estimated_live_rows": 43,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:28.854538+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 24576
+            },
+            {
+              "table": "fact_enrollment",
+              "estimated_live_rows": 32593,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:28.945450+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:16.693816+00:00",
+              "total_bytes": 5832704
+            },
+            {
+              "table": "fact_student_week",
+              "estimated_live_rows": 1342949,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.062562+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:23.079517+00:00",
+              "total_bytes": 247275520
+            },
+            {
+              "table": "fact_submission",
+              "estimated_live_rows": 173912,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.148367+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:23.684708+00:00",
+              "total_bytes": 23183360
+            },
+            {
+              "table": "fact_vle_daily",
+              "estimated_live_rows": 8457900,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.287010+00:00",
+              "last_autoanalyze": "2026-10-31T17:05:51.523045+00:00",
+              "total_bytes": 1355636736
+            }
+          ]
+        },
+        {
+          "schema": "three_nf",
+          "scale": 1,
+          "layout": "3nf",
+          "status": "passed",
+          "required_relations": [
+            "fact_submission",
+            "dim_assessment",
+            "fact_vle_daily",
+            "dim_vle_site",
+            "fact_student_week",
+            "fact_enrollment",
+            "dim_student"
+          ],
+          "missing_required_relations": [],
+          "table_count": 9,
+          "tables_without_primary_key": [],
+          "index_count": 9,
+          "primary_key_index_count": 9,
+          "indexes": [
+            {
+              "table": "dim_assessment",
+              "name": "dim_assessment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_assessment_pkey ON three_nf.dim_assessment USING btree (id_assessment)"
+            },
+            {
+              "table": "dim_presentation",
+              "name": "dim_presentation_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_presentation_pkey ON three_nf.dim_presentation USING btree (code_module, code_presentation)"
+            },
+            {
+              "table": "dim_student",
+              "name": "dim_student_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_student_pkey ON three_nf.dim_student USING btree (id_student)"
+            },
+            {
+              "table": "dim_vle_site",
+              "name": "dim_vle_site_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_vle_site_pkey ON three_nf.dim_vle_site USING btree (id_site)"
+            },
+            {
+              "table": "dim_week",
+              "name": "dim_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_week_pkey ON three_nf.dim_week USING btree (week_no)"
+            },
+            {
+              "table": "fact_enrollment",
+              "name": "fact_enrollment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_enrollment_pkey ON three_nf.fact_enrollment USING btree (id_student, code_module, code_presentation)"
+            },
+            {
+              "table": "fact_student_week",
+              "name": "fact_student_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_student_week_pkey ON three_nf.fact_student_week USING btree (id_student, code_module, code_presentation, week_no)"
+            },
+            {
+              "table": "fact_submission_n",
+              "name": "fact_submission_n_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_submission_n_pkey ON three_nf.fact_submission_n USING btree (id_student, id_assessment)"
+            },
+            {
+              "table": "fact_vle_daily_n",
+              "name": "fact_vle_daily_n_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_vle_daily_n_pkey ON three_nf.fact_vle_daily_n USING btree (id_student, id_site, date)"
+            }
+          ],
+          "non_primary_indexes": [],
+          "invalid_indexes": [],
+          "stats_kind": "estimates from pg_stat_user_tables after ANALYZE",
+          "estimated_live_rows": 10044294,
+          "estimated_total_relation_bytes": 1267048448,
+          "table_stats": [
+            {
+              "table": "dim_assessment",
+              "estimated_live_rows": 206,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.293531+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 81920
+            },
+            {
+              "table": "dim_presentation",
+              "estimated_live_rows": 22,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.294245+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 65536
+            },
+            {
+              "table": "dim_student",
+              "estimated_live_rows": 28785,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.335492+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 3227648
+            },
+            {
+              "table": "dim_vle_site",
+              "estimated_live_rows": 6364,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.342573+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 614400
+            },
+            {
+              "table": "dim_week",
+              "estimated_live_rows": 43,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.343178+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 57344
+            },
+            {
+              "table": "fact_enrollment",
+              "estimated_live_rows": 32593,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.426745+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 5570560
+            },
+            {
+              "table": "fact_student_week",
+              "estimated_live_rows": 1342949,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.549654+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 247242752
+            },
+            {
+              "table": "fact_submission_n",
+              "estimated_live_rows": 173912,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.592339+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 18866176
+            },
+            {
+              "table": "fact_vle_daily_n",
+              "estimated_live_rows": 8459420,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.704883+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 991322112
+            }
+          ]
+        },
+        {
+          "schema": "three_nf_x5",
+          "scale": 5,
+          "layout": "3nf",
+          "status": "passed",
+          "required_relations": [
+            "fact_submission",
+            "dim_assessment",
+            "fact_vle_daily",
+            "dim_vle_site",
+            "fact_student_week",
+            "fact_enrollment",
+            "dim_student"
+          ],
+          "missing_required_relations": [],
+          "table_count": 9,
+          "tables_without_primary_key": [],
+          "index_count": 9,
+          "primary_key_index_count": 9,
+          "indexes": [
+            {
+              "table": "dim_assessment",
+              "name": "dim_assessment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_assessment_pkey ON three_nf_x5.dim_assessment USING btree (id_assessment)"
+            },
+            {
+              "table": "dim_presentation",
+              "name": "dim_presentation_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_presentation_pkey ON three_nf_x5.dim_presentation USING btree (code_module, code_presentation)"
+            },
+            {
+              "table": "dim_student",
+              "name": "dim_student_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_student_pkey ON three_nf_x5.dim_student USING btree (id_student)"
+            },
+            {
+              "table": "dim_vle_site",
+              "name": "dim_vle_site_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_vle_site_pkey ON three_nf_x5.dim_vle_site USING btree (id_site)"
+            },
+            {
+              "table": "dim_week",
+              "name": "dim_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_week_pkey ON three_nf_x5.dim_week USING btree (week_no)"
+            },
+            {
+              "table": "fact_enrollment",
+              "name": "fact_enrollment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_enrollment_pkey ON three_nf_x5.fact_enrollment USING btree (id_student, code_module, code_presentation)"
+            },
+            {
+              "table": "fact_student_week",
+              "name": "fact_student_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_student_week_pkey ON three_nf_x5.fact_student_week USING btree (id_student, code_module, code_presentation, week_no)"
+            },
+            {
+              "table": "fact_submission_n",
+              "name": "fact_submission_n_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_submission_n_pkey ON three_nf_x5.fact_submission_n USING btree (id_student, id_assessment)"
+            },
+            {
+              "table": "fact_vle_daily_n",
+              "name": "fact_vle_daily_n_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_vle_daily_n_pkey ON three_nf_x5.fact_vle_daily_n USING btree (id_student, id_site, date)"
+            }
+          ],
+          "non_primary_indexes": [],
+          "invalid_indexes": [],
+          "stats_kind": "estimates from pg_stat_user_tables after ANALYZE",
+          "estimated_live_rows": 50194515,
+          "estimated_total_relation_bytes": 6330793984,
+          "table_stats": [
+            {
+              "table": "dim_assessment",
+              "estimated_live_rows": 206,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.707919+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 81920
+            },
+            {
+              "table": "dim_presentation",
+              "estimated_live_rows": 22,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.708653+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 65536
+            },
+            {
+              "table": "dim_student",
+              "estimated_live_rows": 143925,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.759715+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 15908864
+            },
+            {
+              "table": "dim_vle_site",
+              "estimated_live_rows": 6364,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.767423+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 614400
+            },
+            {
+              "table": "dim_week",
+              "estimated_live_rows": 43,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.768180+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 57344
+            },
+            {
+              "table": "fact_enrollment",
+              "estimated_live_rows": 162965,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:29.860829+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 27631616
+            },
+            {
+              "table": "fact_student_week",
+              "estimated_live_rows": 6714758,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:30.254746+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 1235992576
+            },
+            {
+              "table": "fact_submission_n",
+              "estimated_live_rows": 869560,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:30.414685+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 94060544
+            },
+            {
+              "table": "fact_vle_daily_n",
+              "estimated_live_rows": 42296672,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:30.831566+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 4956381184
+            }
+          ]
+        },
+        {
+          "schema": "wide",
+          "scale": 1,
+          "layout": "wide",
+          "status": "passed",
+          "required_relations": [
+            "wide_submission",
+            "wide_vle_daily",
+            "wide_student_week",
+            "wide_enrollment"
+          ],
+          "missing_required_relations": [],
+          "table_count": 5,
+          "tables_without_primary_key": [],
+          "index_count": 5,
+          "primary_key_index_count": 5,
+          "indexes": [
+            {
+              "table": "wide_enrollment",
+              "name": "wide_enrollment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_enrollment_pkey ON wide.wide_enrollment USING btree (id_student, code_module, code_presentation)"
+            },
+            {
+              "table": "wide_presentation",
+              "name": "wide_presentation_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_presentation_pkey ON wide.wide_presentation USING btree (code_module, code_presentation)"
+            },
+            {
+              "table": "wide_student_week",
+              "name": "wide_student_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_student_week_pkey ON wide.wide_student_week USING btree (id_student, code_module, code_presentation, week_no)"
+            },
+            {
+              "table": "wide_submission",
+              "name": "wide_submission_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_submission_pkey ON wide.wide_submission USING btree (id_student, id_assessment)"
+            },
+            {
+              "table": "wide_vle_daily",
+              "name": "wide_vle_daily_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_vle_daily_pkey ON wide.wide_vle_daily USING btree (id_student, code_module, code_presentation, id_site, date)"
+            }
+          ],
+          "non_primary_indexes": [],
+          "invalid_indexes": [],
+          "stats_kind": "estimates from pg_stat_user_tables after ANALYZE",
+          "estimated_live_rows": 10011423,
+          "estimated_total_relation_bytes": 2697928704,
+          "table_stats": [
+            {
+              "table": "wide_enrollment",
+              "estimated_live_rows": 32593,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:31.012347+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 8585216
+            },
+            {
+              "table": "wide_presentation",
+              "estimated_live_rows": 22,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:31.013572+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 65536
+            },
+            {
+              "table": "wide_student_week",
+              "estimated_live_rows": 1342928,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:31.239828+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 387661824
+            },
+            {
+              "table": "wide_submission",
+              "estimated_live_rows": 173912,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:31.405133+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 45129728
+            },
+            {
+              "table": "wide_vle_daily",
+              "estimated_live_rows": 8461968,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:31.894929+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 2256486400
+            }
+          ]
+        },
+        {
+          "schema": "wide_x5",
+          "scale": 5,
+          "layout": "wide",
+          "status": "passed",
+          "required_relations": [
+            "wide_submission",
+            "wide_vle_daily",
+            "wide_student_week",
+            "wide_enrollment"
+          ],
+          "missing_required_relations": [],
+          "table_count": 5,
+          "tables_without_primary_key": [],
+          "index_count": 5,
+          "primary_key_index_count": 5,
+          "indexes": [
+            {
+              "table": "wide_enrollment",
+              "name": "wide_enrollment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_enrollment_pkey ON wide_x5.wide_enrollment USING btree (id_student, code_module, code_presentation)"
+            },
+            {
+              "table": "wide_presentation",
+              "name": "wide_presentation_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_presentation_pkey ON wide_x5.wide_presentation USING btree (code_module, code_presentation)"
+            },
+            {
+              "table": "wide_student_week",
+              "name": "wide_student_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_student_week_pkey ON wide_x5.wide_student_week USING btree (id_student, code_module, code_presentation, week_no)"
+            },
+            {
+              "table": "wide_submission",
+              "name": "wide_submission_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_submission_pkey ON wide_x5.wide_submission USING btree (id_student, id_assessment)"
+            },
+            {
+              "table": "wide_vle_daily",
+              "name": "wide_vle_daily_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX wide_vle_daily_pkey ON wide_x5.wide_vle_daily USING btree (id_student, code_module, code_presentation, id_site, date)"
+            }
+          ],
+          "non_primary_indexes": [],
+          "invalid_indexes": [],
+          "stats_kind": "estimates from pg_stat_user_tables after ANALYZE",
+          "estimated_live_rows": 50045062,
+          "estimated_total_relation_bytes": 13484122112,
+          "table_stats": [
+            {
+              "table": "wide_enrollment",
+              "estimated_live_rows": 162965,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:32.137995+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 42622976
+            },
+            {
+              "table": "wide_presentation",
+              "estimated_live_rows": 22,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:32.139122+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 65536
+            },
+            {
+              "table": "wide_student_week",
+              "estimated_live_rows": 6714320,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:32.658770+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 1939587072
+            },
+            {
+              "table": "wide_submission",
+              "estimated_live_rows": 869560,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.210106+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 225320960
+            },
+            {
+              "table": "wide_vle_daily",
+              "estimated_live_rows": 42298195,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.788928+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 11276525568
+            }
+          ]
+        },
+        {
+          "schema": "x5",
+          "scale": 5,
+          "layout": "star",
+          "status": "passed",
+          "required_relations": [
+            "fact_submission",
+            "dim_assessment",
+            "fact_vle_daily",
+            "dim_vle_site",
+            "fact_student_week",
+            "fact_enrollment",
+            "dim_student"
+          ],
+          "missing_required_relations": [],
+          "table_count": 9,
+          "tables_without_primary_key": [],
+          "index_count": 9,
+          "primary_key_index_count": 9,
+          "indexes": [
+            {
+              "table": "dim_assessment",
+              "name": "dim_assessment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_assessment_pkey ON x5.dim_assessment USING btree (id_assessment)"
+            },
+            {
+              "table": "dim_presentation",
+              "name": "dim_presentation_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_presentation_pkey ON x5.dim_presentation USING btree (code_module, code_presentation)"
+            },
+            {
+              "table": "dim_student",
+              "name": "dim_student_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_student_pkey ON x5.dim_student USING btree (id_student)"
+            },
+            {
+              "table": "dim_vle_site",
+              "name": "dim_vle_site_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_vle_site_pkey ON x5.dim_vle_site USING btree (id_site)"
+            },
+            {
+              "table": "dim_week",
+              "name": "dim_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX dim_week_pkey ON x5.dim_week USING btree (week_no)"
+            },
+            {
+              "table": "fact_enrollment",
+              "name": "fact_enrollment_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_enrollment_pkey ON x5.fact_enrollment USING btree (id_student, code_module, code_presentation)"
+            },
+            {
+              "table": "fact_student_week",
+              "name": "fact_student_week_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_student_week_pkey ON x5.fact_student_week USING btree (id_student, code_module, code_presentation, week_no)"
+            },
+            {
+              "table": "fact_submission",
+              "name": "fact_submission_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_submission_pkey ON x5.fact_submission USING btree (id_student, id_assessment)"
+            },
+            {
+              "table": "fact_vle_daily",
+              "name": "fact_vle_daily_pkey",
+              "is_primary": true,
+              "is_valid": true,
+              "definition": "CREATE UNIQUE INDEX fact_vle_daily_pkey ON x5.fact_vle_daily USING btree (id_student, code_module, code_presentation, id_site, date)"
+            }
+          ],
+          "non_primary_indexes": [],
+          "invalid_indexes": [],
+          "stats_kind": "estimates from pg_stat_user_tables after ANALYZE",
+          "estimated_live_rows": 50194456,
+          "estimated_total_relation_bytes": 8171642880,
+          "table_stats": [
+            {
+              "table": "dim_assessment",
+              "estimated_live_rows": 206,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.791935+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 81920
+            },
+            {
+              "table": "dim_presentation",
+              "estimated_live_rows": 22,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.792578+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 65536
+            },
+            {
+              "table": "dim_student",
+              "estimated_live_rows": 143925,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.862361+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 15908864
+            },
+            {
+              "table": "dim_vle_site",
+              "estimated_live_rows": 6364,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.871936+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 614400
+            },
+            {
+              "table": "dim_week",
+              "estimated_live_rows": 43,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.872768+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 57344
+            },
+            {
+              "table": "fact_enrollment",
+              "estimated_live_rows": 162965,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:33.968791+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 27631616
+            },
+            {
+              "table": "fact_student_week",
+              "estimated_live_rows": 6714710,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:34.112171+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 1235992576
+            },
+            {
+              "table": "fact_submission",
+              "estimated_live_rows": 869560,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:34.344108+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 115449856
+            },
+            {
+              "table": "fact_vle_daily",
+              "estimated_live_rows": 42296661,
+              "estimated_dead_rows": 0,
+              "last_analyze": "2026-11-07T16:50:34.786479+00:00",
+              "last_autoanalyze": null,
+              "total_bytes": 6775840768
+            }
+          ]
+        }
+      ]
+    },
+    "bigquery": {
+      "status": "passed",
+      "captured_at_utc": "2026-11-07T16:50:48Z",
+      "query_cache_disabled": true,
+      "estimates": [
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "star",
+          "workload": "br1_q07",
+          "bytes_per_execution": 1741822,
+          "planned_executions": 6,
+          "planned_bytes": 10450932,
+          "target": "dataengineergroup32.oulad",
+          "sql_file": "sql/bench/bq/star/br1_q07.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "star",
+          "workload": "br2_q09",
+          "bytes_per_execution": 135458935,
+          "planned_executions": 6,
+          "planned_bytes": 812753610,
+          "target": "dataengineergroup32.oulad",
+          "sql_file": "sql/bench/bq/star/br2_q09.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "star",
+          "workload": "br4_q14",
+          "bytes_per_execution": 79196247,
+          "planned_executions": 6,
+          "planned_bytes": 475177482,
+          "target": "dataengineergroup32.oulad",
+          "sql_file": "sql/bench/bq/star/br4_q14.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "star",
+          "workload": "br6_q18",
+          "bytes_per_execution": 1412766,
+          "planned_executions": 6,
+          "planned_bytes": 8476596,
+          "target": "dataengineergroup32.oulad",
+          "sql_file": "sql/bench/bq/star/br6_q18.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "3nf",
+          "workload": "br1_q07",
+          "bytes_per_execution": 1741822,
+          "planned_executions": 6,
+          "planned_bytes": 10450932,
+          "target": "dataengineergroup32.oulad_3nf",
+          "sql_file": "sql/bench/bq/3nf/br1_q07.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "3nf",
+          "workload": "br2_q09",
+          "bytes_per_execution": 135458935,
+          "planned_executions": 6,
+          "planned_bytes": 812753610,
+          "target": "dataengineergroup32.oulad_3nf",
+          "sql_file": "sql/bench/bq/3nf/br2_q09.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "3nf",
+          "workload": "br4_q14",
+          "bytes_per_execution": 79196247,
+          "planned_executions": 6,
+          "planned_bytes": 475177482,
+          "target": "dataengineergroup32.oulad_3nf",
+          "sql_file": "sql/bench/bq/3nf/br4_q14.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "3nf",
+          "workload": "br6_q18",
+          "bytes_per_execution": 1412766,
+          "planned_executions": 6,
+          "planned_bytes": 8476596,
+          "target": "dataengineergroup32.oulad_3nf",
+          "sql_file": "sql/bench/bq/3nf/br6_q18.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "wide",
+          "workload": "br1_q07",
+          "bytes_per_execution": 1222343,
+          "planned_executions": 6,
+          "planned_bytes": 7334058,
+          "target": "dataengineergroup32.oulad_wide",
+          "sql_file": "sql/bench/bq/wide/br1_q07.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "wide",
+          "workload": "br2_q09",
+          "bytes_per_execution": 147732750,
+          "planned_executions": 6,
+          "planned_bytes": 886396500,
+          "target": "dataengineergroup32.oulad_wide",
+          "sql_file": "sql/bench/bq/wide/br2_q09.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "wide",
+          "workload": "br4_q14",
+          "bytes_per_execution": 79196247,
+          "planned_executions": 6,
+          "planned_bytes": 475177482,
+          "target": "dataengineergroup32.oulad_wide",
+          "sql_file": "sql/bench/bq/wide/br4_q14.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 1,
+          "layout": "wide",
+          "workload": "br6_q18",
+          "bytes_per_execution": 1213039,
+          "planned_executions": 6,
+          "planned_bytes": 7278234,
+          "target": "dataengineergroup32.oulad_wide",
+          "sql_file": "sql/bench/bq/wide/br6_q18.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "star",
+          "workload": "br1_q07",
+          "bytes_per_execution": 8698302,
+          "planned_executions": 6,
+          "planned_bytes": 52189812,
+          "target": "dataengineergroup32.oulad_5x",
+          "sql_file": "sql/bench/bq/star/br1_q07.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "star",
+          "workload": "br2_q09",
+          "bytes_per_execution": 676855415,
+          "planned_executions": 6,
+          "planned_bytes": 4061132490,
+          "target": "dataengineergroup32.oulad_5x",
+          "sql_file": "sql/bench/bq/star/br2_q09.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "star",
+          "workload": "br4_q14",
+          "bytes_per_execution": 395981235,
+          "planned_executions": 6,
+          "planned_bytes": 2375887410,
+          "target": "dataengineergroup32.oulad_5x",
+          "sql_file": "sql/bench/bq/star/br4_q14.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "star",
+          "workload": "br6_q18",
+          "bytes_per_execution": 7063830,
+          "planned_executions": 6,
+          "planned_bytes": 42382980,
+          "target": "dataengineergroup32.oulad_5x",
+          "sql_file": "sql/bench/bq/star/br6_q18.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "3nf",
+          "workload": "br1_q07",
+          "bytes_per_execution": 8698302,
+          "planned_executions": 6,
+          "planned_bytes": 52189812,
+          "target": "dataengineergroup32.oulad_3nf_5x",
+          "sql_file": "sql/bench/bq/3nf/br1_q07.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "3nf",
+          "workload": "br2_q09",
+          "bytes_per_execution": 676855415,
+          "planned_executions": 6,
+          "planned_bytes": 4061132490,
+          "target": "dataengineergroup32.oulad_3nf_5x",
+          "sql_file": "sql/bench/bq/3nf/br2_q09.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "3nf",
+          "workload": "br4_q14",
+          "bytes_per_execution": 395981235,
+          "planned_executions": 6,
+          "planned_bytes": 2375887410,
+          "target": "dataengineergroup32.oulad_3nf_5x",
+          "sql_file": "sql/bench/bq/3nf/br4_q14.sql"
+        },
+        {
+          "engine": "bq",
+          "scale": 5,
+          "layout": "3nf",
+          "workload": "br6_q18",
+          "bytes_per_execution": 7063830,
+          "planned_executions": 6,
+          "planned_bytes": 42382980,
+          "target": "dataengineergroup32.oulad_3nf_5x",
+          "sql_file": "sql/bench/bq/3nf/br6_q18.sql"
+        }
+      ],
+      "one_execution_bytes": 2842181483,
+      "planned_bytes_with_warmups_and_measured_runs": 17053088898,
+      "target_snapshots": {
+        "status": "passed",
+        "captured_at_utc": "2026-11-07T16:51:18Z",
+        "targets": [
+          {
+            "target": "dataengineergroup32.oulad",
+            "location": "US",
+            "created_at": "2026-10-08T15:34:26.074000+00:00",
+            "modified_at": "2026-10-08T15:34:26.074000+00:00",
+            "object_count": 17,
+            "metadata_row_count_total": 20833671,
+            "metadata_bytes_total": 1444775697,
+            "stats_kind": "BigQuery table metadata; view values may be unset or zero",
+            "objects": [
+              {
+                "table": "dim_assessment",
+                "type": "TABLE",
+                "metadata_row_count": 206,
+                "metadata_bytes": 12502,
+                "created_at": "2026-10-08T16:20:05.015000+00:00",
+                "modified_at": "2026-10-31T17:04:50.943000+00:00"
+              },
+              {
+                "table": "dim_presentation",
+                "type": "TABLE",
+                "metadata_row_count": 22,
+                "metadata_bytes": 902,
+                "created_at": "2026-10-08T16:20:10.532000+00:00",
+                "modified_at": "2026-10-31T17:04:57.193000+00:00"
+              },
+              {
+                "table": "dim_student",
+                "type": "TABLE",
+                "metadata_row_count": 28785,
+                "metadata_bytes": 1747449,
+                "created_at": "2026-10-08T16:20:17.194000+00:00",
+                "modified_at": "2026-10-31T17:05:02.279000+00:00"
+              },
+              {
+                "table": "dim_vle_site",
+                "type": "TABLE",
+                "metadata_row_count": 6364,
+                "metadata_bytes": 216847,
+                "created_at": "2026-10-08T16:20:22.908000+00:00",
+                "modified_at": "2026-10-31T17:05:07.705000+00:00"
+              },
+              {
+                "table": "dim_week",
+                "type": "TABLE",
+                "metadata_row_count": 43,
+                "metadata_bytes": 1075,
+                "created_at": "2026-10-08T16:20:28.397000+00:00",
+                "modified_at": "2026-10-31T17:05:13.469000+00:00"
+              },
+              {
+                "table": "fact_enrollment",
+                "type": "TABLE",
+                "metadata_row_count": 32593,
+                "metadata_bytes": 2964595,
+                "created_at": "2026-10-08T16:20:34.505000+00:00",
+                "modified_at": "2026-10-31T17:05:19.252000+00:00"
+              },
+              {
+                "table": "fact_student_week",
+                "type": "TABLE",
+                "metadata_row_count": 1342949,
+                "metadata_bytes": 123937147,
+                "created_at": "2026-10-08T16:35:54.800000+00:00",
+                "modified_at": "2026-10-31T17:05:29.251000+00:00"
+              },
+              {
+                "table": "fact_submission",
+                "type": "TABLE",
+                "metadata_row_count": 173912,
+                "metadata_bytes": 11287451,
+                "created_at": "2026-10-08T16:20:41.718000+00:00",
+                "modified_at": "2026-10-31T17:05:37.314000+00:00"
+              },
+              {
+                "table": "fact_vle_daily",
+                "type": "TABLE",
+                "metadata_row_count": 8459320,
+                "metadata_bytes": 516018520,
+                "created_at": "2026-10-08T16:21:00.262000+00:00",
+                "modified_at": "2026-10-31T17:05:58.142000+00:00"
+              },
+              {
+                "table": "nested_student_timeline",
+                "type": "TABLE",
+                "metadata_row_count": 32593,
+                "metadata_bytes": 97730027,
+                "created_at": "2026-10-26T17:31:35.775000+00:00",
+                "modified_at": "2026-10-26T17:31:35.776000+00:00"
+              },
+              {
+                "table": "opt_fact_student_week_part",
+                "type": "TABLE",
+                "metadata_row_count": 1342949,
+                "metadata_bytes": 123937147,
+                "created_at": "2026-10-26T15:51:56.522000+00:00",
+                "modified_at": "2026-10-26T15:51:56.523000+00:00"
+              },
+              {
+                "table": "opt_fact_vle_daily_clust",
+                "type": "TABLE",
+                "metadata_row_count": 8459320,
+                "metadata_bytes": 516018520,
+                "created_at": "2026-10-26T15:52:36.147000+00:00",
+                "modified_at": "2026-10-26T15:52:36.148000+00:00"
+              },
+              {
+                "table": "stream_student_week_latest",
+                "type": "VIEW",
+                "metadata_row_count": 0,
+                "metadata_bytes": 0,
+                "created_at": "2026-10-31T16:45:28.127000+00:00",
+                "modified_at": "2026-10-31T16:45:28.127000+00:00"
+              },
+              {
+                "table": "stream_student_week_updates",
+                "type": "TABLE",
+                "metadata_row_count": 916560,
+                "metadata_bytes": 47661120,
+                "created_at": "2026-10-31T16:45:27.324000+00:00",
+                "modified_at": "2026-10-31T16:49:48.710000+00:00"
+              },
+              {
+                "table": "tv3_br2_weekly_mart",
+                "type": "TABLE",
+                "metadata_row_count": 16340,
+                "metadata_bytes": 1940375,
+                "created_at": "2026-10-27T10:18:07.059000+00:00",
+                "modified_at": "2026-10-27T10:18:07.060000+00:00"
+              },
+              {
+                "table": "tv3_br3_student_mart",
+                "type": "TABLE",
+                "metadata_row_count": 21693,
+                "metadata_bytes": 1301580,
+                "created_at": "2026-10-27T10:18:15.198000+00:00",
+                "modified_at": "2026-10-27T10:18:15.199000+00:00"
+              },
+              {
+                "table": "zz_test_courses",
+                "type": "TABLE",
+                "metadata_row_count": 22,
+                "metadata_bytes": 440,
+                "created_at": "2026-10-08T15:36:42.535000+00:00",
+                "modified_at": "2026-11-07T15:26:51.433000+00:00"
+              }
+            ]
+          },
+          {
+            "target": "dataengineergroup32.oulad_3nf",
+            "location": "US",
+            "created_at": "2026-10-26T17:35:42.859000+00:00",
+            "modified_at": "2026-10-26T17:35:42.859000+00:00",
+            "object_count": 11,
+            "metadata_row_count_total": 10044194,
+            "metadata_bytes_total": 483521848,
+            "stats_kind": "BigQuery table metadata; view values may be unset or zero",
+            "objects": [
+              {
+                "table": "dim_assessment",
+                "type": "TABLE",
+                "metadata_row_count": 206,
+                "metadata_bytes": 12502,
+                "created_at": "2026-10-26T17:39:00.441000+00:00",
+                "modified_at": "2026-10-26T17:39:00.442000+00:00"
+              },
+              {
+                "table": "dim_presentation",
+                "type": "TABLE",
+                "metadata_row_count": 22,
+                "metadata_bytes": 902,
+                "created_at": "2026-10-26T17:39:04.198000+00:00",
+                "modified_at": "2026-10-26T17:39:04.199000+00:00"
+              },
+              {
+                "table": "dim_student",
+                "type": "TABLE",
+                "metadata_row_count": 28785,
+                "metadata_bytes": 1747449,
+                "created_at": "2026-10-26T17:39:08.351000+00:00",
+                "modified_at": "2026-10-26T17:39:08.352000+00:00"
+              },
+              {
+                "table": "dim_vle_site",
+                "type": "TABLE",
+                "metadata_row_count": 6364,
+                "metadata_bytes": 216847,
+                "created_at": "2026-10-26T17:39:12.365000+00:00",
+                "modified_at": "2026-10-26T17:39:12.366000+00:00"
+              },
+              {
+                "table": "dim_week",
+                "type": "TABLE",
+                "metadata_row_count": 43,
+                "metadata_bytes": 1075,
+                "created_at": "2026-10-26T17:39:16.328000+00:00",
+                "modified_at": "2026-10-26T17:39:16.329000+00:00"
+              },
+              {
+                "table": "fact_enrollment",
+                "type": "TABLE",
+                "metadata_row_count": 32593,
+                "metadata_bytes": 2964595,
+                "created_at": "2026-10-26T17:39:20.026000+00:00",
+                "modified_at": "2026-10-26T17:39:20.027000+00:00"
+              },
+              {
+                "table": "fact_student_week",
+                "type": "TABLE",
+                "metadata_row_count": 1342949,
+                "metadata_bytes": 123937147,
+                "created_at": "2026-10-26T17:39:27.059000+00:00",
+                "modified_at": "2026-10-26T17:39:27.060000+00:00"
+              },
+              {
+                "table": "fact_submission",
+                "type": "VIEW",
+                "metadata_row_count": 0,
+                "metadata_bytes": 0,
+                "created_at": "2026-10-26T17:41:55.645000+00:00",
+                "modified_at": "2026-10-26T17:41:55.645000+00:00"
+              },
+              {
+                "table": "fact_submission_n",
+                "type": "TABLE",
+                "metadata_row_count": 173912,
+                "metadata_bytes": 7809211,
+                "created_at": "2026-10-26T17:39:31.663000+00:00",
+                "modified_at": "2026-10-26T17:39:31.664000+00:00"
+              },
+              {
+                "table": "fact_vle_daily",
+                "type": "VIEW",
+                "metadata_row_count": 0,
+                "metadata_bytes": 0,
+                "created_at": "2026-10-26T17:41:59.028000+00:00",
+                "modified_at": "2026-10-26T17:41:59.028000+00:00"
+              },
+              {
+                "table": "fact_vle_daily_n",
+                "type": "TABLE",
+                "metadata_row_count": 8459320,
+                "metadata_bytes": 346832120,
+                "created_at": "2026-10-26T17:39:41.677000+00:00",
+                "modified_at": "2026-10-26T17:39:41.678000+00:00"
+              }
+            ]
+          },
+          {
+            "target": "dataengineergroup32.oulad_3nf_5x",
+            "location": "US",
+            "created_at": "2026-10-26T17:45:35.050000+00:00",
+            "modified_at": "2026-10-26T17:45:35.050000+00:00",
+            "object_count": 11,
+            "metadata_row_count_total": 50194430,
+            "metadata_bytes_total": 2416683936,
+            "stats_kind": "BigQuery table metadata; view values may be unset or zero",
+            "objects": [
+              {
+                "table": "dim_assessment",
+                "type": "TABLE",
+                "metadata_row_count": 206,
+                "metadata_bytes": 12502,
+                "created_at": "2026-10-26T17:45:37.594000+00:00",
+                "modified_at": "2026-10-26T17:45:37.594000+00:00"
+              },
+              {
+                "table": "dim_presentation",
+                "type": "TABLE",
+                "metadata_row_count": 22,
+                "metadata_bytes": 902,
+                "created_at": "2026-10-26T17:45:42.167000+00:00",
+                "modified_at": "2026-10-26T17:45:42.167000+00:00"
+              },
+              {
+                "table": "dim_student",
+                "type": "TABLE",
+                "metadata_row_count": 143925,
+                "metadata_bytes": 8737245,
+                "created_at": "2026-10-26T17:45:46.439000+00:00",
+                "modified_at": "2026-10-26T17:45:46.439000+00:00"
+              },
+              {
+                "table": "dim_vle_site",
+                "type": "TABLE",
+                "metadata_row_count": 6364,
+                "metadata_bytes": 216847,
+                "created_at": "2026-10-26T17:45:50.377000+00:00",
+                "modified_at": "2026-10-26T17:45:50.377000+00:00"
+              },
+              {
+                "table": "dim_week",
+                "type": "TABLE",
+                "metadata_row_count": 43,
+                "metadata_bytes": 1075,
+                "created_at": "2026-10-26T17:45:54.222000+00:00",
+                "modified_at": "2026-10-26T17:45:54.222000+00:00"
+              },
+              {
+                "table": "fact_enrollment",
+                "type": "TABLE",
+                "metadata_row_count": 162965,
+                "metadata_bytes": 14822975,
+                "created_at": "2026-10-26T17:45:58.847000+00:00",
+                "modified_at": "2026-10-26T17:45:58.847000+00:00"
+              },
+              {
+                "table": "fact_student_week",
+                "type": "TABLE",
+                "metadata_row_count": 6714745,
+                "metadata_bytes": 619685735,
+                "created_at": "2026-10-26T17:46:07.115000+00:00",
+                "modified_at": "2026-10-26T17:46:07.115000+00:00"
+              },
+              {
+                "table": "fact_submission",
+                "type": "VIEW",
+                "metadata_row_count": 0,
+                "metadata_bytes": 0,
+                "created_at": "2026-10-26T17:46:36.932000+00:00",
+                "modified_at": "2026-10-26T17:46:36.932000+00:00"
+              },
+              {
+                "table": "fact_submission_n",
+                "type": "TABLE",
+                "metadata_row_count": 869560,
+                "metadata_bytes": 39046055,
+                "created_at": "2026-10-26T17:46:13.299000+00:00",
+                "modified_at": "2026-10-26T17:46:13.299000+00:00"
+              },
+              {
+                "table": "fact_vle_daily",
+                "type": "VIEW",
+                "metadata_row_count": 0,
+                "metadata_bytes": 0,
+                "created_at": "2026-10-26T17:46:40.935000+00:00",
+                "modified_at": "2026-10-26T17:46:40.935000+00:00"
+              },
+              {
+                "table": "fact_vle_daily_n",
+                "type": "TABLE",
+                "metadata_row_count": 42296600,
+                "metadata_bytes": 1734160600,
+                "created_at": "2026-10-26T17:46:31.676000+00:00",
+                "modified_at": "2026-10-26T17:46:31.676000+00:00"
+              }
+            ]
+          },
+          {
+            "target": "dataengineergroup32.oulad_5x",
+            "location": "US",
+            "created_at": "2026-10-08T17:06:01.049000+00:00",
+            "modified_at": "2026-10-08T17:06:01.049000+00:00",
+            "object_count": 9,
+            "metadata_row_count_total": 50194430,
+            "metadata_bytes_total": 3280007136,
+            "stats_kind": "BigQuery table metadata; view values may be unset or zero",
+            "objects": [
+              {
+                "table": "dim_assessment",
+                "type": "TABLE",
+                "metadata_row_count": 206,
+                "metadata_bytes": 12502,
+                "created_at": "2026-10-08T17:06:06.416000+00:00",
+                "modified_at": "2026-10-08T17:06:06.416000+00:00"
+              },
+              {
+                "table": "dim_presentation",
+                "type": "TABLE",
+                "metadata_row_count": 22,
+                "metadata_bytes": 902,
+                "created_at": "2026-10-08T17:06:12.836000+00:00",
+                "modified_at": "2026-10-08T17:06:12.836000+00:00"
+              },
+              {
+                "table": "dim_student",
+                "type": "TABLE",
+                "metadata_row_count": 143925,
+                "metadata_bytes": 8737245,
+                "created_at": "2026-10-08T17:06:19.667000+00:00",
+                "modified_at": "2026-10-08T17:06:19.667000+00:00"
+              },
+              {
+                "table": "dim_vle_site",
+                "type": "TABLE",
+                "metadata_row_count": 6364,
+                "metadata_bytes": 216847,
+                "created_at": "2026-10-08T17:06:26.442000+00:00",
+                "modified_at": "2026-10-08T17:06:26.442000+00:00"
+              },
+              {
+                "table": "dim_week",
+                "type": "TABLE",
+                "metadata_row_count": 43,
+                "metadata_bytes": 1075,
+                "created_at": "2026-10-08T17:06:48.675000+00:00",
+                "modified_at": "2026-10-08T17:06:48.675000+00:00"
+              },
+              {
+                "table": "fact_enrollment",
+                "type": "TABLE",
+                "metadata_row_count": 162965,
+                "metadata_bytes": 14822975,
+                "created_at": "2026-10-08T17:06:54.812000+00:00",
+                "modified_at": "2026-10-08T17:06:54.812000+00:00"
+              },
+              {
+                "table": "fact_student_week",
+                "type": "TABLE",
+                "metadata_row_count": 6714745,
+                "metadata_bytes": 619685735,
+                "created_at": "2026-10-08T17:07:09.906000+00:00",
+                "modified_at": "2026-10-08T17:07:09.906000+00:00"
+              },
+              {
+                "table": "fact_submission",
+                "type": "TABLE",
+                "metadata_row_count": 869560,
+                "metadata_bytes": 56437255,
+                "created_at": "2026-10-08T17:07:18.272000+00:00",
+                "modified_at": "2026-10-08T17:07:18.272000+00:00"
+              },
+              {
+                "table": "fact_vle_daily",
+                "type": "TABLE",
+                "metadata_row_count": 42296600,
+                "metadata_bytes": 2580092600,
+                "created_at": "2026-10-08T17:08:08.234000+00:00",
+                "modified_at": "2026-10-08T17:08:08.234000+00:00"
+              }
+            ]
+          },
+          {
+            "target": "dataengineergroup32.oulad_wide",
+            "location": "US",
+            "created_at": "2026-10-26T17:42:04.556000+00:00",
+            "modified_at": "2026-10-26T17:42:04.556000+00:00",
+            "object_count": 5,
+            "metadata_row_count_total": 10008796,
+            "metadata_bytes_total": 1614248511,
+            "stats_kind": "BigQuery table metadata; view values may be unset or zero",
+            "objects": [
+              {
+                "table": "wide_enrollment",
+                "type": "TABLE",
+                "metadata_row_count": 32593,
+                "metadata_bytes": 5627509,
+                "created_at": "2026-10-26T17:42:07.293000+00:00",
+                "modified_at": "2026-10-26T17:42:07.293000+00:00"
+              },
+              {
+                "table": "wide_presentation",
+                "type": "TABLE",
+                "metadata_row_count": 22,
+                "metadata_bytes": 902,
+                "created_at": "2026-10-26T17:42:39.145000+00:00",
+                "modified_at": "2026-10-26T17:42:39.145000+00:00"
+              },
+              {
+                "table": "wide_student_week",
+                "type": "TABLE",
+                "metadata_row_count": 1342949,
+                "metadata_bytes": 255136443,
+                "created_at": "2026-10-26T17:42:35.209000+00:00",
+                "modified_at": "2026-10-26T17:42:35.209000+00:00"
+              },
+              {
+                "table": "wide_submission",
+                "type": "TABLE",
+                "metadata_row_count": 173912,
+                "metadata_bytes": 31240916,
+                "created_at": "2026-10-26T17:42:12.286000+00:00",
+                "modified_at": "2026-10-26T17:42:12.286000+00:00"
+              },
+              {
+                "table": "wide_vle_daily",
+                "type": "TABLE",
+                "metadata_row_count": 8459320,
+                "metadata_bytes": 1322242741,
+                "created_at": "2026-10-26T17:42:27.436000+00:00",
+                "modified_at": "2026-10-26T17:42:27.436000+00:00"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "measurement_ready": true
+  },
+  "execution_plan": {
+    "random_seed": 39,
+    "warmup_order": [
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "wide",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br4_q14"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "pg",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "3nf",
+        "workload": "br6_q18"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 1,
+        "layout": "star",
+        "workload": "br2_q09"
+      },
+      {
+        "engine": "pg",
+        "scale": 1,
+        "layout": "wide",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "3nf",
+        "workload": "br1_q07"
+      },
+      {
+        "engine": "bq",
+        "scale": 5,
+        "layout": "star",
+        "workload": "br2_q09"
+      }
+    ],
+    "measured_rounds": [
+      {
+        "repeat": 1,
+        "order": [
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          }
+        ]
+      },
+      {
+        "repeat": 2,
+        "order": [
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br2_q09"
+          }
+        ]
+      },
+      {
+        "repeat": 3,
+        "order": [
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          }
+        ]
+      },
+      {
+        "repeat": 4,
+        "order": [
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          }
+        ]
+      },
+      {
+        "repeat": 5,
+        "order": [
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br6_q18"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "star",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "pg",
+            "scale": 1,
+            "layout": "3nf",
+            "workload": "br1_q07"
+          },
+          {
+            "engine": "bq",
+            "scale": 5,
+            "layout": "3nf",
+            "workload": "br2_q09"
+          },
+          {
+            "engine": "bq",
+            "scale": 1,
+            "layout": "wide",
+            "workload": "br4_q14"
+          },
+          {
+            "engine": "pg",
+            "scale": 5,
+            "layout": "wide",
+            "workload": "br1_q07"
+          }
+        ]
+      }
+    ]
+  },
+  "progress": {
+    "completed_executions": 264,
+    "planned_executions": 264
+  },
+  "artifacts": {
+    "raw_csv": "raw.csv",
+    "medians_csv": "medians.csv",
+    "correctness_json": "correctness.json",
+    "chart_html": "chart.html"
+  },
+  "engine_versions": {
+    "python": "3.11.18",
+    "postgresql_server": "16.15 (Debian 16.15-1.pgdg13+2)",
+    "bigquery_client_module": "google.cloud.bigquery",
+    "libraries": {
+      "google-cloud-bigquery": "3.47.0",
+      "google-api-core": "2.43.2",
+      "pandas": "2.3.3",
+      "psycopg": "3.3.6"
+    },
+    "libpq_version_number": 180006
+  },
+  "source_snapshot": {
+    "snapshot_id": "20261107T165028Z_55925b1a-preflight-metadata",
+    "snapshot_kind": "preflight metadata capture; source tables are not transactionally frozen",
+    "captured_at_utc": "2026-11-07T16:51:18Z",
+    "targets": [
+      {
+        "engine": "pg",
+        "target": "public",
+        "scale": 1,
+        "layout": "star",
+        "row_count": 10042774,
+        "bytes": 1635876864,
+        "stats_kind": "estimates from pg_stat_user_tables after ANALYZE"
+      },
+      {
+        "engine": "pg",
+        "target": "three_nf",
+        "scale": 1,
+        "layout": "3nf",
+        "row_count": 10044294,
+        "bytes": 1267048448,
+        "stats_kind": "estimates from pg_stat_user_tables after ANALYZE"
+      },
+      {
+        "engine": "pg",
+        "target": "three_nf_x5",
+        "scale": 5,
+        "layout": "3nf",
+        "row_count": 50194515,
+        "bytes": 6330793984,
+        "stats_kind": "estimates from pg_stat_user_tables after ANALYZE"
+      },
+      {
+        "engine": "pg",
+        "target": "wide",
+        "scale": 1,
+        "layout": "wide",
+        "row_count": 10011423,
+        "bytes": 2697928704,
+        "stats_kind": "estimates from pg_stat_user_tables after ANALYZE"
+      },
+      {
+        "engine": "pg",
+        "target": "wide_x5",
+        "scale": 5,
+        "layout": "wide",
+        "row_count": 50045062,
+        "bytes": 13484122112,
+        "stats_kind": "estimates from pg_stat_user_tables after ANALYZE"
+      },
+      {
+        "engine": "pg",
+        "target": "x5",
+        "scale": 5,
+        "layout": "star",
+        "row_count": 50194456,
+        "bytes": 8171642880,
+        "stats_kind": "estimates from pg_stat_user_tables after ANALYZE"
+      },
+      {
+        "engine": "bq",
+        "target": "dataengineergroup32.oulad",
+        "scale": 1,
+        "layout": "star",
+        "row_count": 20833671,
+        "bytes": 1444775697,
+        "stats_kind": "BigQuery table metadata; view values may be unset or zero"
+      },
+      {
+        "engine": "bq",
+        "target": "dataengineergroup32.oulad_3nf",
+        "scale": 1,
+        "layout": "3nf",
+        "row_count": 10044194,
+        "bytes": 483521848,
+        "stats_kind": "BigQuery table metadata; view values may be unset or zero"
+      },
+      {
+        "engine": "bq",
+        "target": "dataengineergroup32.oulad_3nf_5x",
+        "scale": 5,
+        "layout": "3nf",
+        "row_count": 50194430,
+        "bytes": 2416683936,
+        "stats_kind": "BigQuery table metadata; view values may be unset or zero"
+      },
+      {
+        "engine": "bq",
+        "target": "dataengineergroup32.oulad_5x",
+        "scale": 5,
+        "layout": "star",
+        "row_count": 50194430,
+        "bytes": 3280007136,
+        "stats_kind": "BigQuery table metadata; view values may be unset or zero"
+      },
+      {
+        "engine": "bq",
+        "target": "dataengineergroup32.oulad_wide",
+        "scale": 1,
+        "layout": "wide",
+        "row_count": 10008796,
+        "bytes": 1614248511,
+        "stats_kind": "BigQuery table metadata; view values may be unset or zero"
+      }
+    ]
+  },
+  "completed_at_utc": "2026-11-07T16:57:06Z",
+  "correctness": "passed"
+}

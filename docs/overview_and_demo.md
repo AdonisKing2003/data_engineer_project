@@ -53,7 +53,7 @@ Airflow: lập lịch và điều phối toàn bộ nhánh batch, có cổng ch�
 | Đúng trên nhiều nơi lưu | 20 câu hỏi mẫu ra cùng đáp án trên BigQuery, PostgreSQL, DuckDB |
 | Stream | Kafka → Spark có watermark, lệch 0 dòng so với batch trên 1.342.949 dòng; trạng thái lớn nhất nhỏ hơn ~10 lần so với không có watermark |
 | Tối ưu | Giảm 5,4× (chỉ mục PostgreSQL) tới 330× (bảng tổng hợp sẵn trên BigQuery) |
-| Kiểm thử | 289 test: 286 qua, 2 xfail, 1 bỏ qua (test DAG, chạy riêng trong container airflow: 10 qua) |
+| Kiểm thử | 289 test: 288 qua, 1 bỏ qua (test DAG, chạy riêng trong container airflow: 10 qua) |
 | Dashboard | 9 trang, chia theo 6 nhóm: Chung, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống |
 
 **Phân công.** TV1: môi trường, ETL, kho, stream, Airflow, kiểm thử, tối ưu. TV2: BR1, BR4, BR5, BR7 và các trang tương
@@ -155,7 +155,7 @@ docker compose exec app make check             # phải ra 5 dòng [OK ]: Spark,
 
 ```bash
 docker compose exec app make all               # khoảng 5 phút, mọi dòng tóm tắt phải là OK
-docker compose exec app make test              # mong đợi: 286 passed, 1 skipped, 2 xfailed
+docker compose exec app make test              # mong đợi: 288 passed, 1 skipped
 ```
 
 Bảng trên BigQuery Sandbox tự xóa sau 60 ngày kể từ lần nạp. `make all` nạp lại nên luôn an toàn.

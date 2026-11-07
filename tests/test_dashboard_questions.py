@@ -5,9 +5,6 @@ tests/test_questions.py kiểm SQL của 20 câu; file này kiểm người dùn
 Câu đánh dấu xfail là câu dashboard chưa trả lời được; xfail strict nên khi trang được sửa, test báo XPASS
 để gỡ dấu. Chạy trên kho Parquet (DATA_BACKEND=duckdb):
     pytest -q -rx tests/test_dashboard_questions.py
-
-Lưu ý cho chương Đánh giá: câu 15 (30,4%) và câu 16 (ngày 27) đạt nhưng là số viết cứng trong
-app/pages/2_Canh_bao.py, không tính từ dữ liệu.
 """
 import base64
 import json
@@ -119,14 +116,16 @@ def q06(d):
 
 def q07(d):
     at = open_page(d, "Hoc_phan")
-    # Ô "Tỷ lệ nộp trễ TB (TMA)" là trung bình các bài của một đợt, không phải tỷ lệ chung mọi TMA.
-    assert "16.8%" in metrics(at).values()
+    # Ô "Tỷ lệ nộp trễ TB (TMA)" phía trên là trung bình các bài của một đợt; câu này đọc ở phần toàn trường.
+    assert metrics(at)["Tỷ lệ nộp trễ chung (mọi TMA)"] == "16.8%"
+    assert "16,320" in metric_help(at, "Tỷ lệ nộp trễ chung (mọi TMA)")
 
 
 def q08(d):
     at = open_page(d, "Hoc_phan")
-    text = " ".join(str(v) for v in metrics(at).values())
-    assert "EEE" in text and "81.2" in text
+    shown = metrics(at)
+    assert shown["Môn có điểm TMA TB cao nhất"] == "EEE: 81.2"
+    assert shown["Môn có điểm TMA TB thấp nhất"] == "GGG: 68.5"
 
 
 def q09(d):
@@ -179,6 +178,7 @@ def q14(d):
 def q15(d):
     at = open_page(d, "Canh_bao")
     assert metrics(at)["Tỷ lệ rút trước/đúng ngày 0"] == "30.4%"
+    assert "3,089 / 10,156" in metric_help(at, "Tỷ lệ rút trước/đúng ngày 0")
 
 
 def q16(d):
@@ -216,10 +216,7 @@ def q20(d):
     assert (shown["Sinh viên"], shown["Trung vị"]) == ("1,072", "5 click")
 
 
-NOT_ANSWERED = {
-    7: "Trang Nộp bài & điểm chỉ xem từng đợt; không có tỷ lệ trễ chung mọi TMA",
-    8: "Trang Nộp bài & điểm chỉ xem từng đợt; không có điểm TMA trung bình theo môn",
-}
+NOT_ANSWERED: dict[int, str] = {}  # câu dashboard chưa trả lời được: số câu -> lý do
 QUESTIONS = {number: globals()[f"q{number:02d}"] for number in range(1, 21)}
 
 

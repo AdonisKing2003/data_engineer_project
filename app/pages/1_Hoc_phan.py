@@ -123,3 +123,34 @@ else:
         }),
         use_container_width=True
     )
+
+# Toàn trường: không phụ thuộc đợt đang chọn ở thanh bên.
+st.markdown("---")
+st.subheader("🏫 Toàn trường: bài TMA của cả 22 đợt")
+st.caption("Bỏ bài chuyển điểm; trễ chỉ tính bài TMA. Điểm trung bình tính trên bài có điểm.")
+
+school_df = db.get_br1_school_tma()
+if not school_df.empty:
+    n_tma = int(school_df["n_tma_submissions"].sum())
+    n_late = int(school_df["n_late"].sum())
+    by_score = school_df.assign(avg_score=school_df["avg_score"].astype(float).round(1)).sort_values(
+        "avg_score", ascending=False
+    )
+    best, worst = by_score.iloc[0], by_score.iloc[-1]
+
+    s1, s2, s3 = st.columns(3)
+    s1.metric(
+        "Tỷ lệ nộp trễ chung (mọi TMA)",
+        f"{100 * n_late / n_tma:.1f}%",
+        help=f"{n_late:,} bài trễ trên {n_tma:,} bài TMA của toàn trường.",
+    )
+    s2.metric("Môn có điểm TMA TB cao nhất", f"{best['code_module']}: {best['avg_score']}")
+    s3.metric("Môn có điểm TMA TB thấp nhất", f"{worst['code_module']}: {worst['avg_score']}")
+
+    fig_module = px.bar(
+        by_score, x="code_module", y="avg_score", text="avg_score",
+        labels={"code_module": "Môn", "avg_score": "Điểm TMA trung bình"},
+    )
+    fig_module.update_traces(marker_color="#2563EB", textposition="outside")
+    fig_module.update_layout(height=340, yaxis=dict(range=[0, 100]))
+    st.plotly_chart(fig_module, use_container_width=True)

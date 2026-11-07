@@ -97,7 +97,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `tests/test_questions.py` | 20 file `sql/questions/qNN.sql` ra đúng đáp án câu hỏi mẫu; đảo nhãn `final_result` rồi chạy lại câu 14 thì danh sách cảnh báo không đổi |
 | `tests/test_tv3_*.py` | Mart BR2, BR3; các trang Học phần, Khoa, Sinh viên ra đúng đáp án BR2, BR3, BR6, BR8 (TV3). `RUN_TV3_BIGQUERY_DEMO=1` để chạy trên BigQuery |
 | `tests/test_benchmark_*.py` | Runner benchmark mới: ma trận 44/48 ô, cổng câu hỏi, kiểm đáp án từng lượt; trang Chất lượng chỉ hiện lượt chạy thành công (TV3) |
-| `tests/test_dashboard_questions.py` | Chấm 20 câu hỏi mẫu qua dashboard: mở đúng trang, chọn đợt/tuần như đề hỏi, tìm đáp án trong nội dung trang. Câu dashboard chưa trả lời được đánh dấu xfail; xem bằng `pytest -rx` |
+| `tests/test_dashboard_questions.py` | Chấm 20 câu hỏi mẫu qua dashboard: mở đúng trang, chọn đợt/tuần như đề hỏi, tìm đáp án trong nội dung trang. Hiện dashboard trả lời được cả 20 câu; câu nào hỏng thì đánh dấu xfail trong `NOT_ANSWERED` và xem bằng `pytest -rx` |
 | `tests/test_app.py` | Mọi trang dashboard mở được không lỗi; số ở trang Tổng quan khớp contract; đợt học được giữ khi đổi trang |
 | `tests/test_alerts.py` | Báo lỗi của DAG Airflow: ghi log, gửi webhook đúng dạng Discord/Slack, webhook lỗi không làm hỏng lần chạy |
 | `tests/test_dag.py` | DAG Airflow nạp được, đúng thứ tự, mọi task có báo lỗi. Cần Airflow nên `make test` tự bỏ qua; chạy bằng `docker compose exec airflow make test-dag` |

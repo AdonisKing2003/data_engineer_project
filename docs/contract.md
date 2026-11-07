@@ -206,7 +206,7 @@ Khác biệt cú pháp hay gặp:
 | DuckDB | BigQuery |
 |---|---|
 | `FROM fact_x` | `` FROM `oulad.fact_x` `` |
-| `median(x)` | `APPROX_QUANTILES(x, 2)[OFFSET(1)]`, hoặc `PERCENTILE_CONT(x, 0.5) OVER (...)` |
+| `median(x)` | `PERCENTILE_CONT(x, 0.5) OVER (...)`. Không dùng `APPROX_QUANTILES`: đó là phân vị xấp xỉ, không nội suy, nên lệch đáp án (BR4 tuần 4 ra 3.953 thay vì 3.958) |
 | `quantile_cont(x, 0.25)` | `PERCENTILE_CONT(x, 0.25) OVER (...)` (nội suy tuyến tính, đúng như BR4, BR7 yêu cầu) |
 | `CAST(FLOOR(date / 7) AS INTEGER)` | `CAST(FLOOR(date / 7) AS INT64)` (cả hai cần CAST vì `FLOOR` trả về số thực) |
 | `SUM(is_late::INT)` | `COUNTIF(is_late)` |

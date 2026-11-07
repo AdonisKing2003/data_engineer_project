@@ -1,0 +1,1542 @@
+{
+  "status": "passed",
+  "warmup": {
+    "status": "passed",
+    "check": "one warm-up per selected variant; 1x PostgreSQL star matches the checked-in reference answer; 5x PostgreSQL star follows explicit count/rate replication rules; every same-scale engine/layout matches its baseline",
+    "matrix_executions": 44,
+    "groups": [
+      {
+        "scale": 1,
+        "workload": "br1_q07",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "tma_nonbanked_submissions": 97088,
+          "late_submissions": 16320,
+          "late_rate_pct": 16.8
+        },
+        "scale_replication": null,
+        "reference_source": [
+          "tests/test_postgres.py",
+          "tests/test_warehouse.py"
+        ],
+        "expected_variants": 6,
+        "actual_warmup_records": 6,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3933df4b3ee689eea4c397634f10c113bcc6870941af0bcfe65c4f248d5079c9"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3933df4b3ee689eea4c397634f10c113bcc6870941af0bcfe65c4f248d5079c9"
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3933df4b3ee689eea4c397634f10c113bcc6870941af0bcfe65c4f248d5079c9"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3933df4b3ee689eea4c397634f10c113bcc6870941af0bcfe65c4f248d5079c9"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3933df4b3ee689eea4c397634f10c113bcc6870941af0bcfe65c4f248d5079c9"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3933df4b3ee689eea4c397634f10c113bcc6870941af0bcfe65c4f248d5079c9"
+          }
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br1_q07",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "tma_nonbanked_submissions": 485440,
+          "late_submissions": 81600,
+          "late_rate_pct": 16.8
+        },
+        "scale_replication": {
+          "factor": 5,
+          "count_columns_scaled": [
+            "tma_nonbanked_submissions",
+            "late_submissions"
+          ],
+          "derived_count_labels": {},
+          "other_columns_unchanged": true
+        },
+        "reference_source": [
+          "tests/test_postgres.py",
+          "tests/test_warehouse.py"
+        ],
+        "expected_variants": 5,
+        "actual_warmup_records": 5,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "a7ad56f1a5abe44d2ce1b4b9f78de32dd37a1e3939c16d024e6a4b084cbe5fc4"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "a7ad56f1a5abe44d2ce1b4b9f78de32dd37a1e3939c16d024e6a4b084cbe5fc4"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "a7ad56f1a5abe44d2ce1b4b9f78de32dd37a1e3939c16d024e6a4b084cbe5fc4"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "a7ad56f1a5abe44d2ce1b4b9f78de32dd37a1e3939c16d024e6a4b084cbe5fc4"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "a7ad56f1a5abe44d2ce1b4b9f78de32dd37a1e3939c16d024e6a4b084cbe5fc4"
+          }
+        ]
+      },
+      {
+        "scale": 1,
+        "workload": "br2_q09",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "activity_type": "oucontent",
+          "activity_type_total_clicks": 11206803,
+          "global_total_clicks": 39605099,
+          "global_activity_type_click_share_pct": 28.3
+        },
+        "scale_replication": null,
+        "reference_source": [
+          "tests/test_postgres.py",
+          "sql/questions/q09.sql"
+        ],
+        "expected_variants": 6,
+        "actual_warmup_records": 6,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d29ae6e4997ad2d6e7cc63bbeb65f6de02a18fada7bf852d3c15f83dbd7bd0db"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d29ae6e4997ad2d6e7cc63bbeb65f6de02a18fada7bf852d3c15f83dbd7bd0db"
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d29ae6e4997ad2d6e7cc63bbeb65f6de02a18fada7bf852d3c15f83dbd7bd0db"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d29ae6e4997ad2d6e7cc63bbeb65f6de02a18fada7bf852d3c15f83dbd7bd0db"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d29ae6e4997ad2d6e7cc63bbeb65f6de02a18fada7bf852d3c15f83dbd7bd0db"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d29ae6e4997ad2d6e7cc63bbeb65f6de02a18fada7bf852d3c15f83dbd7bd0db"
+          }
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br2_q09",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "activity_type": "oucontent",
+          "activity_type_total_clicks": 56034015,
+          "global_total_clicks": 198025495,
+          "global_activity_type_click_share_pct": 28.3
+        },
+        "scale_replication": {
+          "factor": 5,
+          "count_columns_scaled": [
+            "activity_type_total_clicks",
+            "global_total_clicks"
+          ],
+          "derived_count_labels": {},
+          "other_columns_unchanged": true
+        },
+        "reference_source": [
+          "tests/test_postgres.py",
+          "sql/questions/q09.sql"
+        ],
+        "expected_variants": 5,
+        "actual_warmup_records": 5,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "20fe1273764587beca2ba85aa05c29a67b4fed438128ad33d99b4eed51d55be6"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "20fe1273764587beca2ba85aa05c29a67b4fed438128ad33d99b4eed51d55be6"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "20fe1273764587beca2ba85aa05c29a67b4fed438128ad33d99b4eed51d55be6"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "20fe1273764587beca2ba85aa05c29a67b4fed438128ad33d99b4eed51d55be6"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "20fe1273764587beca2ba85aa05c29a67b4fed438128ad33d99b4eed51d55be6"
+          }
+        ]
+      },
+      {
+        "scale": 1,
+        "workload": "br4_q14",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "n_enrolled": 27250,
+          "n_listed": 3958,
+          "n_true_positives": 3189,
+          "precision_pct": 80.6,
+          "recall_pct": 26.9,
+          "baseline_bad_rate_pct": 43.5
+        },
+        "scale_replication": null,
+        "reference_source": [
+          "tests/test_student_week.py",
+          "tests/test_tv2_sql.py"
+        ],
+        "expected_variants": 6,
+        "actual_warmup_records": 6,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "b6407900be7dabb1815590a21b58d145f1fc86347afd2b654441e922753862e6"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "b6407900be7dabb1815590a21b58d145f1fc86347afd2b654441e922753862e6"
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "b6407900be7dabb1815590a21b58d145f1fc86347afd2b654441e922753862e6"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "b6407900be7dabb1815590a21b58d145f1fc86347afd2b654441e922753862e6"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "b6407900be7dabb1815590a21b58d145f1fc86347afd2b654441e922753862e6"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "b6407900be7dabb1815590a21b58d145f1fc86347afd2b654441e922753862e6"
+          }
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br4_q14",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "n_enrolled": 136250,
+          "n_listed": 19770,
+          "n_true_positives": 15935,
+          "precision_pct": 80.6,
+          "recall_pct": 26.9,
+          "baseline_bad_rate_pct": 43.5
+        },
+        "scale_replication": {
+          "factor": 5,
+          "count_columns_scaled": [
+            "n_enrolled",
+            "n_listed",
+            "n_true_positives"
+          ],
+          "derived_count_labels": {},
+          "other_columns_unchanged": true
+        },
+        "reference_source": [
+          "tests/test_student_week.py",
+          "tests/test_tv2_sql.py"
+        ],
+        "expected_variants": 5,
+        "actual_warmup_records": 5,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d13ab64ed16c12efd78629b9c7171ad0cf4082969099d958355da9dd18c7765e"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d13ab64ed16c12efd78629b9c7171ad0cf4082969099d958355da9dd18c7765e"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d13ab64ed16c12efd78629b9c7171ad0cf4082969099d958355da9dd18c7765e"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d13ab64ed16c12efd78629b9c7171ad0cf4082969099d958355da9dd18c7765e"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "d13ab64ed16c12efd78629b9c7171ad0cf4082969099d958355da9dd18c7765e"
+          }
+        ]
+      },
+      {
+        "scale": 1,
+        "workload": "br6_q18",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "n_students_0_10": 615,
+          "n_enrollments_0_10": 615,
+          "n_students_0_10_label": "615",
+          "rate_0_10_pct": 41.1,
+          "n_students_90_100": 436,
+          "n_enrollments_90_100": 436,
+          "n_students_90_100_label": "436",
+          "rate_90_100_pct": 63.3,
+          "gap_pp": 22.2
+        },
+        "scale_replication": null,
+        "reference_source": [
+          "sql/questions/q18.sql",
+          "docs/br6_validation.md"
+        ],
+        "expected_variants": 6,
+        "actual_warmup_records": 6,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "c591d78004f8458148c1f021b369309c45bab181e2b6f2fe8c45994466aa1c04"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "c591d78004f8458148c1f021b369309c45bab181e2b6f2fe8c45994466aa1c04"
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "c591d78004f8458148c1f021b369309c45bab181e2b6f2fe8c45994466aa1c04"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "c591d78004f8458148c1f021b369309c45bab181e2b6f2fe8c45994466aa1c04"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "c591d78004f8458148c1f021b369309c45bab181e2b6f2fe8c45994466aa1c04"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "c591d78004f8458148c1f021b369309c45bab181e2b6f2fe8c45994466aa1c04"
+          }
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br6_q18",
+        "status": "passed",
+        "baseline": {
+          "engine": "pg",
+          "layout": "star"
+        },
+        "semantic_reference_status": "passed",
+        "semantic_reference": {
+          "n_students_0_10": 3075,
+          "n_enrollments_0_10": 3075,
+          "n_students_0_10_label": "3075",
+          "rate_0_10_pct": 41.1,
+          "n_students_90_100": 2180,
+          "n_enrollments_90_100": 2180,
+          "n_students_90_100_label": "2180",
+          "rate_90_100_pct": 63.3,
+          "gap_pp": 22.2
+        },
+        "scale_replication": {
+          "factor": 5,
+          "count_columns_scaled": [
+            "n_students_0_10",
+            "n_enrollments_0_10",
+            "n_students_90_100",
+            "n_enrollments_90_100"
+          ],
+          "derived_count_labels": {
+            "n_students_0_10_label": "n_students_0_10",
+            "n_students_90_100_label": "n_students_90_100"
+          },
+          "other_columns_unchanged": true
+        },
+        "reference_source": [
+          "sql/questions/q18.sql",
+          "docs/br6_validation.md"
+        ],
+        "expected_variants": 5,
+        "actual_warmup_records": 5,
+        "missing_variants": [],
+        "duplicate_variants": [],
+        "variants": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3384fa036b4e6573f24eff1eab8b3f0af56fa0b870014d11d5322240dfbd5df8"
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3384fa036b4e6573f24eff1eab8b3f0af56fa0b870014d11d5322240dfbd5df8"
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3384fa036b4e6573f24eff1eab8b3f0af56fa0b870014d11d5322240dfbd5df8"
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3384fa036b4e6573f24eff1eab8b3f0af56fa0b870014d11d5322240dfbd5df8"
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "warmup_count": 1,
+            "status": "passed",
+            "matches_scale_baseline": true,
+            "row_count": 1,
+            "result_hash": "3384fa036b4e6573f24eff1eab8b3f0af56fa0b870014d11d5322240dfbd5df8"
+          }
+        ]
+      }
+    ]
+  },
+  "measured": {
+    "status": "passed",
+    "check": "exactly the configured runs per selected variant; every measured row count and result hash matches its warm-up baseline and all variants at the same scale",
+    "groups": [
+      {
+        "scale": 1,
+        "workload": "br1_q07",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 1,
+        "workload": "br2_q09",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 1,
+        "workload": "br4_q14",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 1,
+        "workload": "br6_q18",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br1_q07",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br2_q09",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br4_q14",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      },
+      {
+        "scale": 5,
+        "workload": "br6_q18",
+        "status": "passed",
+        "expected_runs_per_variant": 5,
+        "expected_repeats": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "missing_variants": [],
+        "variant_checks": [
+          {
+            "engine": "bq",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "bq",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "3nf",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "star",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          },
+          {
+            "engine": "pg",
+            "layout": "wide",
+            "status": "passed",
+            "runs": 5,
+            "repeats": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "hashes_match_within_variant": true,
+            "row_counts_match_within_variant": true,
+            "every_run_matches_warmup_baseline": true
+          }
+        ],
+        "matrix_hashes_match_at_scale": true,
+        "distinct_row_counts": [
+          1
+        ]
+      }
+    ]
+  }
+}

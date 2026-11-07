@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OULAD layout benchmark</title>
+<style>
+body{font:15px system-ui,sans-serif;color:#20252b;margin:2rem;max-width:1200px}
+h1,h2{color:#172b4d}section{margin:2rem 0;padding:1rem;border:1px solid #dfe3e8;border-radius:8px}
+svg{width:100%;height:auto}.tick{font:12px system-ui;fill:#59636e}.label{font:11px system-ui;fill:#20252b}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:.45rem .55rem;border-bottom:1px solid #dfe3e8;text-align:right}
+th:first-child,td:first-child,th:nth-child(4),td:nth-child(4){text-align:left}
+th{background:#f4f6f8;position:sticky;top:0}.legend span{display:inline-block;margin-right:1.25rem}
+.swatch{display:inline-block;width:.8rem;height:.8rem;margin-right:.35rem}
+</style>
+</head>
+<body>
+<h1>OULAD layout benchmark</h1>
+<p>Run ID: <code>20261107T165028Z_55925b1a</code>. Coverage: 44 selected of 48 planned cells.</p><p>Excluded: the four BigQuery 5x wide workload cells because adding the 5x wide datasets to existing data would exceed the BigQuery Sandbox 10 GB project storage quota.</p>
+<p>Bars show median client elapsed time from the prepared client call through full result fetch. Server/job time and billing metrics are in the CSV output.</p>
+<p class="legend"><span><i class="swatch" style="background:#4c78a8"></i>1x</span>
+<span><i class="swatch" style="background:#f58518"></i>5x</span></p>
+<section><h2>BR1 Q07</h2><svg viewBox="0 0 960 330" role="img" aria-label="Median client elapsed seconds for br1_q07">
+<line x1="48" y1="255" x2="940" y2="255" stroke="#444" />
+<line x1="48" y1="207.5" x2="940" y2="207.5" stroke="#e1e5ea" /><text x="4" y="212.5" class="tick">0.421s</text>
+<line x1="48" y1="160.0" x2="940" y2="160.0" stroke="#e1e5ea" /><text x="4" y="165.0" class="tick">0.843s</text>
+<line x1="48" y1="112.5" x2="940" y2="112.5" stroke="#e1e5ea" /><text x="4" y="117.5" class="tick">1.26s</text>
+<line x1="48" y1="65.0" x2="940" y2="65.0" stroke="#e1e5ea" /><text x="4" y="70.0" class="tick">1.69s</text>
+<rect x="64" y="71.2" width="26" height="183.8" fill="#4c78a8"><title>BQ star 1x: median 1.63073s, IQR 0.101634s, n=5</title></rect>
+<rect x="100" y="65.6" width="26" height="189.4" fill="#f58518"><title>BQ star 5x: median 1.6799s, IQR 0.0809656s, n=5</title></rect>
+<text x="95" y="275" text-anchor="middle" class="label">BQ / star</text>
+<rect x="204" y="65.0" width="26" height="190.0" fill="#4c78a8"><title>BQ 3nf 1x: median 1.68548s, IQR 0.24852s, n=5</title></rect>
+<rect x="240" y="72.4" width="26" height="182.6" fill="#f58518"><title>BQ 3nf 5x: median 1.61961s, IQR 0.109456s, n=5</title></rect>
+<text x="235" y="275" text-anchor="middle" class="label">BQ / partial normalization [ID: 3nf]</text>
+<rect x="344" y="66.9" width="26" height="188.1" fill="#4c78a8"><title>BQ wide 1x: median 1.66888s, IQR 0.0794816s, n=5</title></rect>
+<text x="375" y="275" text-anchor="middle" class="label">BQ / wide</text>
+<rect x="484" y="252.4" width="26" height="2.6" fill="#4c78a8"><title>PG star 1x: median 0.02323s, IQR 0.00491116s, n=5</title></rect>
+<rect x="520" y="248.2" width="26" height="6.8" fill="#f58518"><title>PG star 5x: median 0.0599127s, IQR 0.0072753s, n=5</title></rect>
+<text x="515" y="275" text-anchor="middle" class="label">PG / star</text>
+<rect x="624" y="252.5" width="26" height="2.5" fill="#4c78a8"><title>PG 3nf 1x: median 0.0218073s, IQR 0.000249558s, n=5</title></rect>
+<rect x="660" y="249.0" width="26" height="6.0" fill="#f58518"><title>PG 3nf 5x: median 0.0530893s, IQR 0.00637075s, n=5</title></rect>
+<text x="655" y="275" text-anchor="middle" class="label">PG / partial normalization [ID: 3nf]</text>
+<rect x="764" y="251.8" width="26" height="3.2" fill="#4c78a8"><title>PG wide 1x: median 0.0285782s, IQR 0.0070497s, n=5</title></rect>
+<rect x="800" y="241.4" width="26" height="13.6" fill="#f58518"><title>PG wide 5x: median 0.120989s, IQR 0.0104553s, n=5</title></rect>
+<text x="795" y="275" text-anchor="middle" class="label">PG / wide</text>
+</svg></section>
+<section><h2>BR2 Q09</h2><svg viewBox="0 0 960 330" role="img" aria-label="Median client elapsed seconds for br2_q09">
+<line x1="48" y1="255" x2="940" y2="255" stroke="#444" />
+<line x1="48" y1="207.5" x2="940" y2="207.5" stroke="#e1e5ea" /><text x="4" y="212.5" class="tick">0.887s</text>
+<line x1="48" y1="160.0" x2="940" y2="160.0" stroke="#e1e5ea" /><text x="4" y="165.0" class="tick">1.77s</text>
+<line x1="48" y1="112.5" x2="940" y2="112.5" stroke="#e1e5ea" /><text x="4" y="117.5" class="tick">2.66s</text>
+<line x1="48" y1="65.0" x2="940" y2="65.0" stroke="#e1e5ea" /><text x="4" y="70.0" class="tick">3.55s</text>
+<rect x="64" y="141.6" width="26" height="113.4" fill="#4c78a8"><title>BQ star 1x: median 2.11735s, IQR 0.240935s, n=5</title></rect>
+<rect x="100" y="80.0" width="26" height="175.0" fill="#f58518"><title>BQ star 5x: median 3.26681s, IQR 0.37076s, n=5</title></rect>
+<text x="95" y="275" text-anchor="middle" class="label">BQ / star</text>
+<rect x="204" y="149.3" width="26" height="105.7" fill="#4c78a8"><title>BQ 3nf 1x: median 1.97359s, IQR 0.234295s, n=5</title></rect>
+<rect x="240" y="146.6" width="26" height="108.4" fill="#f58518"><title>BQ 3nf 5x: median 2.0232s, IQR 0.223314s, n=5</title></rect>
+<text x="235" y="275" text-anchor="middle" class="label">BQ / partial normalization [ID: 3nf]</text>
+<rect x="344" y="163.0" width="26" height="92.0" fill="#4c78a8"><title>BQ wide 1x: median 1.7181s, IQR 0.353807s, n=5</title></rect>
+<text x="375" y="275" text-anchor="middle" class="label">BQ / wide</text>
+<rect x="484" y="216.5" width="26" height="38.5" fill="#4c78a8"><title>PG star 1x: median 0.719563s, IQR 0.0097135s, n=5</title></rect>
+<rect x="520" y="90.7" width="26" height="164.3" fill="#f58518"><title>PG star 5x: median 3.06804s, IQR 0.165188s, n=5</title></rect>
+<text x="515" y="275" text-anchor="middle" class="label">PG / star</text>
+<rect x="624" y="214.8" width="26" height="40.2" fill="#4c78a8"><title>PG 3nf 1x: median 0.750242s, IQR 0.012398s, n=5</title></rect>
+<rect x="660" y="88.6" width="26" height="166.4" fill="#f58518"><title>PG 3nf 5x: median 3.1073s, IQR 0.0426705s, n=5</title></rect>
+<text x="655" y="275" text-anchor="middle" class="label">PG / partial normalization [ID: 3nf]</text>
+<rect x="764" y="202.4" width="26" height="52.6" fill="#4c78a8"><title>PG wide 1x: median 0.981409s, IQR 0.0184245s, n=5</title></rect>
+<rect x="800" y="65.0" width="26" height="190.0" fill="#f58518"><title>PG wide 5x: median 3.54708s, IQR 0.0343238s, n=5</title></rect>
+<text x="795" y="275" text-anchor="middle" class="label">PG / wide</text>
+</svg></section>
+<section><h2>BR4 Q14</h2><svg viewBox="0 0 960 330" role="img" aria-label="Median client elapsed seconds for br4_q14">
+<line x1="48" y1="255" x2="940" y2="255" stroke="#444" />
+<line x1="48" y1="207.5" x2="940" y2="207.5" stroke="#e1e5ea" /><text x="4" y="212.5" class="tick">0.902s</text>
+<line x1="48" y1="160.0" x2="940" y2="160.0" stroke="#e1e5ea" /><text x="4" y="165.0" class="tick">1.8s</text>
+<line x1="48" y1="112.5" x2="940" y2="112.5" stroke="#e1e5ea" /><text x="4" y="117.5" class="tick">2.71s</text>
+<line x1="48" y1="65.0" x2="940" y2="65.0" stroke="#e1e5ea" /><text x="4" y="70.0" class="tick">3.61s</text>
+<rect x="64" y="125.6" width="26" height="129.4" fill="#4c78a8"><title>BQ star 1x: median 2.45638s, IQR 0.269037s, n=5</title></rect>
+<rect x="100" y="65.0" width="26" height="190.0" fill="#f58518"><title>BQ star 5x: median 3.60736s, IQR 1.05679s, n=5</title></rect>
+<text x="95" y="275" text-anchor="middle" class="label">BQ / star</text>
+<rect x="204" y="142.0" width="26" height="113.0" fill="#4c78a8"><title>BQ 3nf 1x: median 2.14595s, IQR 0.406027s, n=5</title></rect>
+<rect x="240" y="139.7" width="26" height="115.3" fill="#f58518"><title>BQ 3nf 5x: median 2.18874s, IQR 0.0997536s, n=5</title></rect>
+<text x="235" y="275" text-anchor="middle" class="label">BQ / partial normalization [ID: 3nf]</text>
+<rect x="344" y="152.7" width="26" height="102.3" fill="#4c78a8"><title>BQ wide 1x: median 1.94294s, IQR 0.32257s, n=5</title></rect>
+<text x="375" y="275" text-anchor="middle" class="label">BQ / wide</text>
+<rect x="484" y="245.9" width="26" height="9.1" fill="#4c78a8"><title>PG star 1x: median 0.172716s, IQR 0.0203266s, n=5</title></rect>
+<rect x="520" y="197.3" width="26" height="57.7" fill="#f58518"><title>PG star 5x: median 1.09518s, IQR 0.335253s, n=5</title></rect>
+<text x="515" y="275" text-anchor="middle" class="label">PG / star</text>
+<rect x="624" y="244.0" width="26" height="11.0" fill="#4c78a8"><title>PG 3nf 1x: median 0.20888s, IQR 0.0482813s, n=5</title></rect>
+<rect x="660" y="203.0" width="26" height="52.0" fill="#f58518"><title>PG 3nf 5x: median 0.987287s, IQR 0.213754s, n=5</title></rect>
+<text x="655" y="275" text-anchor="middle" class="label">PG / partial normalization [ID: 3nf]</text>
+<rect x="764" y="244.7" width="26" height="10.3" fill="#4c78a8"><title>PG wide 1x: median 0.196159s, IQR 0.113998s, n=5</title></rect>
+<rect x="800" y="201.3" width="26" height="53.7" fill="#f58518"><title>PG wide 5x: median 1.01999s, IQR 0.349731s, n=5</title></rect>
+<text x="795" y="275" text-anchor="middle" class="label">PG / wide</text>
+</svg></section>
+<section><h2>BR6 Q18</h2><svg viewBox="0 0 960 330" role="img" aria-label="Median client elapsed seconds for br6_q18">
+<line x1="48" y1="255" x2="940" y2="255" stroke="#444" />
+<line x1="48" y1="207.5" x2="940" y2="207.5" stroke="#e1e5ea" /><text x="4" y="212.5" class="tick">0.418s</text>
+<line x1="48" y1="160.0" x2="940" y2="160.0" stroke="#e1e5ea" /><text x="4" y="165.0" class="tick">0.837s</text>
+<line x1="48" y1="112.5" x2="940" y2="112.5" stroke="#e1e5ea" /><text x="4" y="117.5" class="tick">1.26s</text>
+<line x1="48" y1="65.0" x2="940" y2="65.0" stroke="#e1e5ea" /><text x="4" y="70.0" class="tick">1.67s</text>
+<rect x="64" y="71.0" width="26" height="184.0" fill="#4c78a8"><title>BQ star 1x: median 1.62085s, IQR 0.0954289s, n=5</title></rect>
+<rect x="100" y="65.0" width="26" height="190.0" fill="#f58518"><title>BQ star 5x: median 1.67397s, IQR 0.145948s, n=5</title></rect>
+<text x="95" y="275" text-anchor="middle" class="label">BQ / star</text>
+<rect x="204" y="67.5" width="26" height="187.5" fill="#4c78a8"><title>BQ 3nf 1x: median 1.65151s, IQR 0.143523s, n=5</title></rect>
+<rect x="240" y="72.0" width="26" height="183.0" fill="#f58518"><title>BQ 3nf 5x: median 1.61193s, IQR 0.277208s, n=5</title></rect>
+<text x="235" y="275" text-anchor="middle" class="label">BQ / partial normalization [ID: 3nf]</text>
+<rect x="344" y="77.0" width="26" height="178.0" fill="#4c78a8"><title>BQ wide 1x: median 1.56851s, IQR 0.105508s, n=5</title></rect>
+<text x="375" y="275" text-anchor="middle" class="label">BQ / wide</text>
+<rect x="484" y="253.7" width="26" height="1.3" fill="#4c78a8"><title>PG star 1x: median 0.0111837s, IQR 0.00243527s, n=5</title></rect>
+<rect x="520" y="251.3" width="26" height="3.7" fill="#f58518"><title>PG star 5x: median 0.0323419s, IQR 0.00597544s, n=5</title></rect>
+<text x="515" y="275" text-anchor="middle" class="label">PG / star</text>
+<rect x="624" y="253.9" width="26" height="1.1" fill="#4c78a8"><title>PG 3nf 1x: median 0.00958035s, IQR 0.00101409s, n=5</title></rect>
+<rect x="660" y="251.5" width="26" height="3.5" fill="#f58518"><title>PG 3nf 5x: median 0.0306839s, IQR 0.00566355s, n=5</title></rect>
+<text x="655" y="275" text-anchor="middle" class="label">PG / partial normalization [ID: 3nf]</text>
+<rect x="764" y="254.4" width="26" height="0.6" fill="#4c78a8"><title>PG wide 1x: median 0.0051951s, IQR 0.000253348s, n=5</title></rect>
+<rect x="800" y="252.7" width="26" height="2.3" fill="#f58518"><title>PG wide 5x: median 0.0198252s, IQR 0.000829755s, n=5</title></rect>
+<text x="795" y="275" text-anchor="middle" class="label">PG / wide</text>
+</svg></section>
+<section><h2>Run statistics</h2>
+<table><thead><tr><th>Query</th><th>Engine</th><th>Scale</th><th>Layout</th>
+<th>Median seconds</th><th>Min</th><th>Max</th><th>IQR</th><th>Runs</th></tr></thead>
+<tbody><tr><td>br1_q07</td><td>BQ</td><td>1x</td><td>star</td><td>1.63073</td><td>1.47629</td><td>1.89092</td><td>0.101634</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>BQ</td><td>1x</td><td>star</td><td>2.11735</td><td>1.90929</td><td>3.00989</td><td>0.240935</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>BQ</td><td>1x</td><td>star</td><td>2.45638</td><td>2.04858</td><td>3.36618</td><td>0.269037</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>BQ</td><td>1x</td><td>star</td><td>1.62085</td><td>1.59347</td><td>1.98724</td><td>0.0954289</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>BQ</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>1.68548</td><td>1.55278</td><td>1.9437</td><td>0.24852</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>BQ</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>1.97359</td><td>1.74287</td><td>2.12523</td><td>0.234295</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>BQ</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>2.14595</td><td>1.74059</td><td>2.52489</td><td>0.406027</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>BQ</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>1.65151</td><td>1.53504</td><td>1.89277</td><td>0.143523</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>BQ</td><td>1x</td><td>wide</td><td>1.66888</td><td>1.54944</td><td>1.75753</td><td>0.0794816</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>BQ</td><td>1x</td><td>wide</td><td>1.7181</td><td>1.43139</td><td>5.03579</td><td>0.353807</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>BQ</td><td>1x</td><td>wide</td><td>1.94294</td><td>1.69471</td><td>2.42952</td><td>0.32257</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>BQ</td><td>1x</td><td>wide</td><td>1.56851</td><td>1.47591</td><td>1.78244</td><td>0.105508</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>BQ</td><td>5x</td><td>star</td><td>1.6799</td><td>1.39397</td><td>1.88234</td><td>0.0809656</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>BQ</td><td>5x</td><td>star</td><td>3.26681</td><td>2.83457</td><td>4.17542</td><td>0.37076</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>BQ</td><td>5x</td><td>star</td><td>3.60736</td><td>3.2463</td><td>4.71066</td><td>1.05679</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>BQ</td><td>5x</td><td>star</td><td>1.67397</td><td>1.54631</td><td>1.985</td><td>0.145948</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>BQ</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>1.61961</td><td>1.4894</td><td>1.84948</td><td>0.109456</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>BQ</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>2.0232</td><td>1.90679</td><td>2.37563</td><td>0.223314</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>BQ</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>2.18874</td><td>2.15398</td><td>2.40725</td><td>0.0997536</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>BQ</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>1.61193</td><td>1.42509</td><td>2.06417</td><td>0.277208</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>PG</td><td>1x</td><td>star</td><td>0.02323</td><td>0.0166522</td><td>0.0249677</td><td>0.00491116</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>PG</td><td>1x</td><td>star</td><td>0.719563</td><td>0.697393</td><td>0.732153</td><td>0.0097135</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>PG</td><td>1x</td><td>star</td><td>0.172716</td><td>0.164337</td><td>0.228051</td><td>0.0203266</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>PG</td><td>1x</td><td>star</td><td>0.0111837</td><td>0.0101063</td><td>0.0418081</td><td>0.00243527</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>PG</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>0.0218073</td><td>0.0193248</td><td>0.0231148</td><td>0.000249558</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>PG</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>0.750242</td><td>0.730921</td><td>0.819292</td><td>0.012398</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>PG</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>0.20888</td><td>0.168014</td><td>0.218812</td><td>0.0482813</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>PG</td><td>1x</td><td>partial normalization [ID: 3nf]</td><td>0.00958035</td><td>0.00829391</td><td>0.0104181</td><td>0.00101409</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>PG</td><td>1x</td><td>wide</td><td>0.0285782</td><td>0.0253599</td><td>0.0557965</td><td>0.0070497</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>PG</td><td>1x</td><td>wide</td><td>0.981409</td><td>0.486051</td><td>0.994342</td><td>0.0184245</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>PG</td><td>1x</td><td>wide</td><td>0.196159</td><td>0.175361</td><td>0.30419</td><td>0.113998</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>PG</td><td>1x</td><td>wide</td><td>0.0051951</td><td>0.00486561</td><td>0.00523422</td><td>0.000253348</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>PG</td><td>5x</td><td>star</td><td>0.0599127</td><td>0.0546019</td><td>0.0704926</td><td>0.0072753</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>PG</td><td>5x</td><td>star</td><td>3.06804</td><td>2.93278</td><td>3.3605</td><td>0.165188</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>PG</td><td>5x</td><td>star</td><td>1.09518</td><td>0.787297</td><td>1.17533</td><td>0.335253</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>PG</td><td>5x</td><td>star</td><td>0.0323419</td><td>0.0285119</td><td>0.046713</td><td>0.00597544</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>PG</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>0.0530893</td><td>0.0524889</td><td>0.0632389</td><td>0.00637075</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>PG</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>3.1073</td><td>3.06032</td><td>3.1987</td><td>0.0426705</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>PG</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>0.987287</td><td>0.796203</td><td>1.15631</td><td>0.213754</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>PG</td><td>5x</td><td>partial normalization [ID: 3nf]</td><td>0.0306839</td><td>0.0278602</td><td>0.0364344</td><td>0.00566355</td><td>5</td></tr>
+<tr><td>br1_q07</td><td>PG</td><td>5x</td><td>wide</td><td>0.120989</td><td>0.108771</td><td>0.149914</td><td>0.0104553</td><td>5</td></tr>
+<tr><td>br2_q09</td><td>PG</td><td>5x</td><td>wide</td><td>3.54708</td><td>3.53332</td><td>3.57582</td><td>0.0343238</td><td>5</td></tr>
+<tr><td>br4_q14</td><td>PG</td><td>5x</td><td>wide</td><td>1.01999</td><td>0.909818</td><td>1.30683</td><td>0.349731</td><td>5</td></tr>
+<tr><td>br6_q18</td><td>PG</td><td>5x</td><td>wide</td><td>0.0198252</td><td>0.0182053</td><td>0.0205047</td><td>0.000829755</td><td>5</td></tr></tbody></table></section>
+</body></html>

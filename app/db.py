@@ -66,6 +66,12 @@ def get_br1_assessment_stats(code_module: str, code_presentation: str) -> pd.Dat
 
 
 @st.cache_data(ttl=3600)
+def get_br1_school_tma() -> pd.DataFrame:
+    """Bài TMA toàn trường theo môn: số bài, số bài trễ, điểm trung bình (câu 7, 8)."""
+    return run_query("br1_school_summary")
+
+
+@st.cache_data(ttl=3600)
 def get_br1_assessment_scores(code_module: str, code_presentation: str) -> pd.DataFrame:
     """Lấy danh sách điểm số chi tiết của từng bài kiểm tra để vẽ biểu đồ Box Plot."""
     return run_query(
@@ -108,100 +114,23 @@ def get_br5_withdrawal_summary() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600)
+def get_br5_school_summary() -> dict:
+    """Số lượt rút toàn trường, số lượt rút từ ngày 0 trở về trước và ngày rút trung vị (câu 15, 16)."""
+    return run_query("br5_school_summary").iloc[0].to_dict()
+
+
+@st.cache_data(ttl=3600)
+def _br5_retention_curve_all() -> pd.DataFrame:
+    """Đường cong rút lui tích lũy theo tuần của cả 22 đợt (bảng nhỏ, đọc một lần)."""
+    return run_query("br5_retention_curve")
+
+
 def get_br5_retention_curve(cohorts: List[str]) -> pd.DataFrame:
-    """Truy vấn đường cong rút lui tích lũy theo tuần cho danh sách các đợt học được chọn."""
+    """Đường cong rút lui tích lũy theo tuần cho các đợt được chọn (dạng "AAA 2013J")."""
     if not cohorts:
         return pd.DataFrame()
-
-    backend = os.getenv("DATA_BACKEND", "bigquery").strip().lower()
-
-    if backend == "bigquery":
-        conditions = [
-            f"(p.code_module = '{c.split(' ')[0]}' AND p.code_presentation = '{c.split(' ')[1]}')"
-            for c in cohorts
-        ]
-        where_clause = " OR ".join(conditions)
-        sql = f"""
-        WITH presentation_weeks AS (
-            SELECT p.code_module, p.code_presentation,
-                   p.code_module || ' ' || p.code_presentation AS cohort,
-                   w.week_no, w.day_to
-            FROM dim_presentation p
-            CROSS JOIN dim_week w
-            WHERE ({where_clause}) AND w.week_no >= -4 AND w.week_no < p.n_weeks
-        ),
-        enrollment_base AS (
-            SELECT code_module, code_presentation, COUNT(*) AS total_students
-            FROM fact_enrollment GROUP BY code_module, code_presentation
-        ),
-        weekly_dropouts AS (
-            SELECT pw.cohort, pw.week_no, pw.day_to,
-                   COUNTIF(e.date_unregistration IS NOT NULL AND e.date_unregistration <= pw.day_to) AS cum_withdrawn_students
-            FROM presentation_weeks pw
-            LEFT JOIN fact_enrollment e
-              ON e.code_module = pw.code_module AND e.code_presentation = pw.code_presentation
-            GROUP BY pw.cohort, pw.week_no, pw.day_to
-        )
-        SELECT w.cohort, w.week_no, w.day_to, w.cum_withdrawn_students, b.total_students,
-               ROUND(100.0 * w.cum_withdrawn_students / b.total_students, 2) AS cum_withdrawal_rate_pct,
-               ROUND(100.0 * (b.total_students - w.cum_withdrawn_students) / b.total_students, 2) AS retention_rate_pct
-        FROM weekly_dropouts w
-        JOIN enrollment_base b 
-          ON b.code_module = SPLIT(w.cohort, ' ')[OFFSET(0)] 
-         AND b.code_presentation = SPLIT(w.cohort, ' ')[OFFSET(1)]
-        ORDER BY w.cohort, w.week_no;
-        """
-        from google.cloud import bigquery
-        from app.data import _bigquery_client
-        project = os.getenv("GCP_PROJECT_ID", "dataengineergroup32").strip()
-        dataset = os.getenv("BQ_DATASET", "oulad").strip()
-        client = _bigquery_client(project, os.getenv("BQ_LOCATION", "US"))
-        job_config = bigquery.QueryJobConfig(default_dataset=f"{project}.{dataset}")
-        return client.query_and_wait(sql, job_config=job_config).to_dataframe(create_bqstorage_client=False)
-
-    # DuckDB local
-    import duckdb
-    wh = Path(__file__).resolve().parents[1] / "data" / "warehouse"
-    conditions = [
-        f"(p.code_module = '{c.split(' ')[0]}' AND p.code_presentation = '{c.split(' ')[1]}')"
-        for c in cohorts
-    ]
-    where_clause = " OR ".join(conditions)
-    sql = f"""
-    WITH presentation_weeks AS (
-        SELECT p.code_module, p.code_presentation,
-               p.code_module || ' ' || p.code_presentation AS cohort,
-               w.week_no, w.day_to
-        FROM dim_presentation p
-        CROSS JOIN dim_week w
-        WHERE ({where_clause}) AND w.week_no >= -4 AND w.week_no < p.n_weeks
-    ),
-    enrollment_base AS (
-        SELECT code_module, code_presentation, COUNT(*) AS total_students
-        FROM fact_enrollment GROUP BY code_module, code_presentation
-    ),
-    weekly_dropouts AS (
-        SELECT pw.cohort, pw.week_no, pw.day_to,
-               COUNT(*) FILTER (WHERE e.date_unregistration IS NOT NULL AND e.date_unregistration <= pw.day_to) AS cum_withdrawn_students
-        FROM presentation_weeks pw
-        LEFT JOIN fact_enrollment e
-          ON e.code_module = pw.code_module AND e.code_presentation = pw.code_presentation
-        GROUP BY pw.cohort, pw.week_no, pw.day_to
-    )
-    SELECT w.cohort, w.week_no, w.day_to, w.cum_withdrawn_students, b.total_students,
-           ROUND(100.0 * w.cum_withdrawn_students / b.total_students, 2) AS cum_withdrawal_rate_pct,
-           ROUND(100.0 * (b.total_students - w.cum_withdrawn_students) / b.total_students, 2) AS retention_rate_pct
-    FROM weekly_dropouts w
-    JOIN enrollment_base b 
-      ON b.code_module = SPLIT_PART(w.cohort, ' ', 1) 
-     AND b.code_presentation = SPLIT_PART(w.cohort, ' ', 2)
-    ORDER BY w.cohort, w.week_no;
-    """
-    with duckdb.connect(":memory:") as con:
-        con.execute(f"CREATE VIEW dim_presentation AS SELECT * FROM read_parquet('{wh.as_posix()}/dim_presentation/*.parquet')")
-        con.execute(f"CREATE VIEW dim_week AS SELECT * FROM read_parquet('{wh.as_posix()}/dim_week/*.parquet')")
-        con.execute(f"CREATE VIEW fact_enrollment AS SELECT * FROM read_parquet('{wh.as_posix()}/fact_enrollment/*.parquet')")
-        return con.execute(sql).df()
+    df = _br5_retention_curve_all()
+    return df[df["cohort"].isin(cohorts)].reset_index(drop=True)
 
 
 # ==============================================================================

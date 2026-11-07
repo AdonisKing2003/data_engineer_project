@@ -20,12 +20,11 @@ WITH cohort_all AS (
       AND w.is_enrolled
 ),
 p25_all AS (
-    SELECT
+    SELECT DISTINCT
         code_module,
         code_presentation,
-        APPROX_QUANTILES(clicks_cum, 100)[OFFSET(25)] AS p25_clicks_cum
+        PERCENTILE_CONT(clicks_cum, 0.25) OVER (PARTITION BY code_module, code_presentation) AS p25_clicks_cum
     FROM cohort_all
-    GROUP BY code_module, code_presentation
 ),
 scored_all AS (
     SELECT

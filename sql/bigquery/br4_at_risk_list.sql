@@ -22,12 +22,11 @@ WITH cohort AS (
       AND w.code_presentation = @code_presentation
 ),
 cohort_p25 AS (
-    SELECT
+    SELECT DISTINCT
         code_module,
         code_presentation,
-        APPROX_QUANTILES(clicks_cum, 100)[OFFSET(25)] AS p25_clicks_cum
+        PERCENTILE_CONT(clicks_cum, 0.25) OVER (PARTITION BY code_module, code_presentation) AS p25_clicks_cum
     FROM cohort
-    GROUP BY code_module, code_presentation
 ),
 scored_students AS (
     SELECT

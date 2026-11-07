@@ -99,6 +99,14 @@ COUNT_COLUMNS = {
         "n_students_90_100", "n_enrollments_90_100",
     ),
 }
+# Counts that do not scale by exactly 5 on the replicated warehouse. BR4 flags clicks_cum below the
+# offering's interpolated 25th percentile (QUANTILE_CONT / PERCENTILE_CONT); replicating every row 5 times
+# moves the interpolation point, so the threshold drops slightly in BBB 2014B, BBB 2014J, EEE 2014J and
+# FFF 2014J (e.g. 73.25 -> 73.0) and 4 students per copy stop being flagged. Rates still round the same.
+# Values checked on 07/11/2026: identical on PostgreSQL and BigQuery, star/3nf/wide.
+REFERENCE_5X_OVERRIDES = {
+    "br4_q14": {"n_listed": 19770, "n_true_positives": 15935},
+}
 DERIVED_COUNT_LABELS = {
     "br6_q18": {
         "n_students_0_10_label": "n_students_0_10",
@@ -455,6 +463,8 @@ def _scaled_reference(values: list[dict[str, Any]], workload: str, factor: int) 
     for label_column, count_column in DERIVED_COUNT_LABELS.get(workload, {}).items():
         count = scaled.get(count_column)
         scaled[label_column] = "n < 30" if count is None or count < 30 else str(int(count))
+    if factor == 5:
+        scaled.update(REFERENCE_5X_OVERRIDES.get(workload, {}))
     return scaled
 
 

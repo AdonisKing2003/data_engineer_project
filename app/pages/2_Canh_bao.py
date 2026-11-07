@@ -202,7 +202,13 @@ with tab1:
 # ==============================================================================
 with tab2:
     st.subheader("Đường cong Rút lui Tích lũy & Tỷ lệ Duy trì Người học")
-    st.caption("Phân tích động thái rút lui (Unregistration) theo thời gian. Mốc then chốt: Ngày 0 (Khai giảng) và Ngày 27 (Hạn chót rút học phí).")
+    school_w = db.get_br5_school_summary()
+    median_day = int(round(float(school_w["median_unreg_day"])))
+    median_week = median_day // 7
+    st.caption(
+        f"Phân tích động thái rút lui (Unregistration) theo thời gian. Hai mốc: ngày 0 (khai giảng) "
+        f"và ngày {median_day} (ngày rút trung vị toàn trường)."
+    )
 
     # Multiselect các đợt học để vẽ biểu đồ so sánh chồng đợt
     all_pres_list = pres_df["presentation_label"].tolist()
@@ -217,8 +223,20 @@ with tab2:
 
     # 3 Metrics cốt lõi về rút lui
     b1, b2, b3 = st.columns(3)
-    b1.metric("Tỷ lệ rút trước/đúng ngày 0", "30.4%", help="3.089 / 10.156 lượt rút toàn trường xảy ra trước hoặc đúng ngày khai giảng.")
-    b2.metric("Ngày rút trung vị", "Ngày 27", help="50% sinh viên rút lui đưa ra quyết định trước hoặc đúng ngày 27 (cuối tuần 3).")
+    n_withdrawn = int(school_w["n_withdrawn"])
+    n_by_day_0 = int(school_w["n_by_day_0"])
+    n_no_date = int(school_w["n_no_date"])
+    b1.metric(
+        "Tỷ lệ rút trước/đúng ngày 0",
+        f"{100 * n_by_day_0 / n_withdrawn:.1f}%",
+        help=f"{n_by_day_0:,} / {n_withdrawn:,} lượt Withdrawn toàn trường rút trước hoặc đúng ngày khai giảng "
+             f"(mẫu số gồm cả {n_no_date} lượt không có ngày rút).",
+    )
+    b2.metric(
+        "Ngày rút trung vị",
+        f"Ngày {median_day}",
+        help=f"Một nửa số lượt Withdrawn có ngày rút đã rút trước hoặc đúng ngày {median_day} (tuần {median_week}).",
+    )
     top_with = summary_df.iloc[0]
     b3.metric("Đợt rút cao nhất", f"{top_with['presentation']}: {top_with['pct_withdrawn_total']}%")
 
@@ -240,9 +258,9 @@ with tab2:
                 "cohort": "Đợt học"
             }
         )
-        # Thêm đường mốc ngày 0 (tuần 0) và ngày 27 (tuần 3)
+        # Đường mốc khai giảng (tuần 0) và tuần chứa ngày rút trung vị
         fig_curve.add_vline(x=0, line_dash="dash", line_color="#EF4444", annotation_text="Khai giảng (Tuần 0)", annotation_position="top left")
-        fig_curve.add_vline(x=3, line_dash="dash", line_color="#F59E0B", annotation_text="Hạn phí (Tuần 3 - Ngày 27)", annotation_position="bottom right")
+        fig_curve.add_vline(x=median_week, line_dash="dash", line_color="#F59E0B", annotation_text=f"Ngày rút trung vị (ngày {median_day}, tuần {median_week})", annotation_position="bottom right")
         fig_curve.update_layout(height=420, hovermode="x unified")
         st.plotly_chart(fig_curve, use_container_width=True)
 

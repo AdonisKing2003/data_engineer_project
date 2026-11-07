@@ -6,18 +6,12 @@
 \label{sec:mo-dau}
 
 \subsection{Bối cảnh}
-% TODO: 1-2 đoạn. Dữ liệu học trực tuyến nằm rải rác (đăng ký, bài nộp, click VLE),
-% nhà trường cần phát hiện sớm sinh viên có nguy cơ rớt hoặc rút học phần.
-% Giới thiệu bộ dữ liệu OULAD (Open University, giấy phép CC BY 4.0).
 \textbf{Hệ thống Phân tích Hành vi Học tập và Cảnh báo Sớm Học vụ} là một giải pháp quản lý và phân tích dữ liệu giáo dục, được xây dựng nhằm hỗ trợ nhà trường phát hiện sớm các dấu hiệu rủi ro trong quá trình học tập của sinh viên, từ đó đưa ra các can thiệp kịp thời.
 
 Trong bối cảnh đào tạo theo học chế tín chỉ, việc theo dõi tiến độ học tập và phát hiện sinh viên có nguy cơ bị cảnh báo học vụ, bỏ học hay không hoàn thành chương trình thường bị chậm trễ do dữ liệu nằm rời rạc ở nhiều nguồn (điểm số, bài tập, mức độ truy cập học liệu, tiến độ tích lũy tín chỉ...). Hệ thống này hướng đến việc tập hợp, chuẩn hóa và phân tích các dữ liệu hành vi học tập để tạo ra bức tranh toàn diện về từng sinh viên, lớp học phần và khóa đào tạo.
 
 \subsection{Mục tiêu và phạm vi}
-% TODO: Xây kho dữ liệu phân tích từ 7 file CSV của OULAD, trả lời 8 yêu cầu nghiệp vụ
-% (BR1--BR8) và 20 câu hỏi mẫu, hiển thị trên dashboard chia theo vai trò.
-% Nêu rõ ngoài phạm vi: không dựng CSDL vận hành (OLTP), lý do ở mục \ref{sec:nguon-du-lieu}.
-Mục tiêu của project là xây dựng kho dữ liệu phân tích học tập từ bộ Open University Learning Analytics Dataset (OULAD), trả lời 8 yêu cầu nghiệp vụ (BR1--BR8, mô tả ở Bảng~\ref{tab:br}) và 20 câu hỏi mẫu, rồi hiển thị kết quả trên dashboard chia theo vai trò người dùng
+Mục tiêu của project là xây dựng kho dữ liệu phân tích học tập từ bộ Open University Learning Analytics Dataset (OULAD), trả lời 8 yêu cầu nghiệp vụ (BR1--BR8, mô tả ở Bảng~\ref{tab:br}) và 20 câu hỏi mẫu, rồi hiển thị kết quả trên dashboard chia theo vai trò người dùng.
 
 Để đạt mục tiêu đó, hệ thống cần:
 \begin{itemize}
@@ -55,9 +49,9 @@ Sinh viên & Tiến độ cá nhân so với lớp, hoạt động diễn đàn 
 \textbf{Thành viên} & \textbf{Họ tên} & \textbf{Phụ trách} \\ \hline
 TV1 & Nguyễn Hoàng Vương
 & Môi trường, ETL, kho dữ liệu, điều phối Airflow, kiểm thử, tối ưu \\ \hline
-TV2 & Vũ Nguyễn Mai Linh
+TV2 & Lê Đức Tài
 & BR1, BR4, BR5, BR7 và các trang dashboard tương ứng \\ \hline
-TV3 & Lê Đức Tài
+TV3 & Vũ Nguyễn Mai Linh
 & BR2, BR3, BR6, BR8, bảng tổng hợp sẵn cho app, benchmark bố trí dữ liệu, ghép báo cáo \\ \hline
 \end{tabularx}
 \caption{Phân công công việc}

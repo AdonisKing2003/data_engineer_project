@@ -139,7 +139,76 @@ BigQuery.
 % ------------------------------------------------------------
 \subsection{Xử lý stream}
 \label{sec:stream}
-% TODO (bổ sung sau).
+
+Nhánh stream tính lại tổng click theo sinh viên, đợt học và tuần bằng Spark Structured
+Streaming, rồi đối chiếu với bảng tiến độ theo tuần của batch. Có hai nguồn cho cùng một phép
+tính: một thư mục nhận file theo từng ngày (không cần thêm hệ thống nào), và Kafka (gần với hệ
+thống thật hơn, có watermark để giới hạn bộ nhớ). Bảng~\ref{tab:stream-buoc} tóm tắt các bước.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.2cm}|X|}
+\hline
+\textbf{Bước} & \textbf{Nội dung} \\ \hline
+Chia ngày & Chia \texttt{studentVle} thành 295 file, mỗi file một ngày (ngày $-25$ đến 269) \\ \hline
+Gửi & Nguồn thư mục: thả từng file theo thứ tự ngày; file được chép vào tên ẩn rồi đổi tên, nên Spark không đọc phải file đang chép dở. Nguồn Kafka: mỗi dòng click là một message lên topic \texttt{oulad.clicks} (4 partition), khóa là mã sinh viên nên click của một sinh viên luôn giữ đúng thứ tự \\ \hline
+Xử lý & Spark gom click theo cửa sổ 7 ngày của thời gian sự kiện, ghi ở chế độ \texttt{update}: mỗi micro-batch chỉ ghi các dòng vừa thay đổi, kèm số thứ tự micro-batch \\ \hline
+Phục vụ & Mỗi micro-batch được nạp lên BigQuery; trang dashboard đọc giá trị mới nhất của mỗi dòng \\ \hline
+Đối chiếu & Lấy giá trị mới nhất của mỗi dòng, cộng dồn ra \texttt{clicks\_cum}, so với bảng tiến độ theo tuần của batch \\ \hline
+\end{tabularx}
+\caption{Các bước của nhánh stream}
+\label{tab:stream-buoc}
+\end{table}
+
+\textbf{Thời gian sự kiện và watermark.} OULAD chỉ có số ngày tính từ khai giảng, không có ngày
+giờ thật. Mỗi click được gán mốc thời gian là ngày 06/01/2000 cộng số ngày đó; ngày gốc này cách
+01/01/1970 đúng 1.566 tuần, mà cửa sổ 7 ngày của Spark được tính từ 01/01/1970, nên mỗi cửa sổ
+trùng đúng một tuần của OULAD. Watermark là mốc thời gian sự kiện lớn nhất đã thấy trừ đi 7 ngày;
+khi watermark vượt qua cuối một tuần, Spark coi tuần đó đã đóng và xóa nó khỏi bộ nhớ, click nào
+của tuần đó đến sau sẽ bị bỏ và được đếm lại. Chế độ \texttt{update} được chọn thay cho
+\texttt{append} vì \texttt{append} chỉ ghi một tuần khi tuần đó đã đóng, nên một hai tuần cuối sẽ
+không bao giờ được ghi.
+
+\textbf{Không trùng, không mất.} Producer bật chế độ idempotent nên gửi lại khi lỗi mạng không
+tạo message trùng; Spark lưu offset đã đọc vào checkpoint nên khởi động lại thì đọc tiếp đúng chỗ;
+mỗi micro-batch ghi đè vào thư mục riêng của nó nên chạy lại một micro-batch không sinh dòng trùng.
+Trên BigQuery, gói Sandbox không cho dùng lệnh sửa dữ liệu, nên mỗi micro-batch được ghi thêm vào
+một bảng nhật ký, và một view chọn dòng có số thứ tự micro-batch lớn nhất cho mỗi khóa; micro-batch
+có bị nạp hai lần thì view vẫn trả đúng một dòng.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Chỉ số} & \textbf{Nguồn thư mục} & \textbf{Nguồn Kafka} \\ \hline
+Số dòng click đưa vào & 10.655.280 & 10.655.280 \\ \hline
+Số micro-batch & 44 & 63 \\ \hline
+Thời gian & 97,5 s & 130,3 s \\ \hline
+Trạng thái lúc lớn nhất & 627.031 khóa & 65.274 khóa \\ \hline
+Trạng thái lúc kết thúc & 627.031 khóa & 4.803 khóa \\ \hline
+Dòng bị watermark bỏ & không có watermark & 0 \\ \hline
+Lệch so với batch (1.342.949 dòng) & 0 & 0 \\ \hline
+Tổng click & 39.605.099 & 39.605.099 \\ \hline
+\end{tabular}
+\caption{Kết quả hai nguồn stream so với batch (lần chạy ngày 31/10/2026)}
+\label{tab:stream-ket-qua}
+\end{table}
+
+Bảng~\ref{tab:stream-ket-qua} cho thấy hai nguồn ra cùng kết quả và khớp batch từng dòng.
+Khác biệt chính nằm ở bộ nhớ: không có watermark, Spark giữ tổng click của mọi tuần đã gặp tới
+cuối lần chạy, nên với luồng chạy mãi bộ nhớ sẽ tăng không giới hạn; có watermark, trạng thái lúc
+lớn nhất nhỏ hơn khoảng 10 lần và được dọn gần hết khi luồng kết thúc. Cái giá của watermark là
+dữ liệu đến quá trễ bị bỏ: khi cố ý giữ lại 0,1\% số click và gửi sau cùng, Spark bỏ đúng các
+click đó và kết quả lệch so với batch. Bản Kafka chậm hơn 33 giây, chủ yếu do gửi 10,6 triệu
+message qua mạng và phân tích JSON.
+
+Khi bật ghi lên BigQuery, mỗi micro-batch là một load job mất khoảng 5 giây dù chỉ vài chục
+nghìn dòng. Spark đợi job xong mới chạy micro-batch sau, nên click dồn lại và micro-batch lớn hơn
+(44 thay vì 63); dữ liệu không mất, nhưng độ trễ từ lúc click vào Kafka tới lúc hiện trên
+dashboard khoảng 5--10 giây. Muốn nhanh hơn cần ghi stream trực tiếp vào BigQuery, vốn phải bật
+tính phí.
 
 % ------------------------------------------------------------
 \subsection{Điều phối bằng Airflow}
