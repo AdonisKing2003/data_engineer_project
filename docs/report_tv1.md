@@ -361,7 +361,7 @@ nhất có đúng 627.031 dòng và 39.605.099 click. Số này được `stream
 
 ## 5. Kiểm thử
 
-`make test` chạy 289 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3). Kết quả: 288 qua, 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 10 test qua).
+`make test` chạy 289 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3). Kết quả: 288 qua, 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 11 test qua).
 Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. pytest chỉ tìm test trong `tests/` (`testpaths` trong `pytest.ini`): trước đó pytest lấy nhầm cả `scripts/bq_smoke_test.py` vì tên khớp mẫu `*_test.py`, nên mỗi lần `make test` lại chạy code nạp thử bảng `courses` lên BigQuery của file này.
 Bảng dưới liệt kê 182 test kho và 6 test điều phối.
 
@@ -390,16 +390,18 @@ Distinction ↔ Fail): danh sách nguy cơ giữ nguyên 3.958 SV, chỉ độ c
 
 ## 6. Tối ưu truy vấn
 
-Bốn ví dụ, đo bằng `make optimize` (`scripts/optimize.py`). Mỗi truy vấn chạy 5 lần, lấy trung vị; BigQuery tắt cache.
+Bốn kỹ thuật, đã áp dụng cho kho chính: `etl/04_load_bq.py` nạp thẳng vào bảng phân vùng / gom cụm, `etl/05_load_pg.py`
+tạo chỉ mục khi nạp, DAG dựng lại mart ngay sau bước nạp BigQuery. Đo bằng `make optimize` (`scripts/optimize.py`), mốc
+"trước" là bản sao bảng thường tạo tạm. Mỗi truy vấn chạy 5 lần, lấy trung vị; BigQuery tắt cache. Đo ngày 07/11/2026.
 Mỗi ví dụ đều kiểm kết quả trước và sau tối ưu giống hệt nhau. Chi tiết, mã và kế hoạch truy vấn ở
 [optimization.md](optimization.md).
 
 | # | Kỹ thuật | Truy vấn của app | Chỉ số | Trước | Sau | Giảm |
 |---|---|---|---|---:|---:|---:|
 | 1 | Phân vùng `fact_student_week` theo `week_no` (BigQuery) | Danh sách nguy cơ BR4 tại tuần 4 | bytes quét | 79,2 MB | 4,7 MB | 16,8× |
-| 2 | Gom cụm `fact_vle_daily` theo module, kỳ (BigQuery) | Click theo tuần × loại hoạt động của một đợt | bytes quét | 304,6 MB | 12,0 MB | 25,5× |
+| 2 | Gom cụm `fact_vle_daily` theo module, kỳ (BigQuery) | Click theo tuần × loại hoạt động của một đợt | bytes quét | 304,6 MB | 19,2 MB | 15,9× |
 | 3 | Bảng tổng hợp sẵn cho app, mart BR2 (BigQuery) | Biểu đồ BR2 của một đợt | bytes quét | 381,6 MB | 1,2 MB | ~330× |
-| 4 | Chỉ mục có `INCLUDE` trên `fact_vle_daily` (PostgreSQL) | Như ví dụ 2 | thời gian | ~390 ms | ~73 ms | ~5× |
+| 4 | Chỉ mục có `INCLUDE` trên `fact_vle_daily` (PostgreSQL) | Như ví dụ 2 | thời gian | 200,5 ms | 37,6 ms | 5,3× |
 
 Với BigQuery, chỉ số chính là bytes quét vì chi phí và hạn mức tính theo bytes. Thời gian ở cỡ dữ liệu dưới 1 GB chủ
 yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, thời gian dao động vài phần trăm giữa các lần chạy.
@@ -410,7 +412,7 @@ yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, 
   `p.week_no = w.week_no - 1`. Trên bảng đã phân vùng, bytes quét vẫn là 79,2 MB vì phía `p` đọc cả bảng. Chỉ khi
   thêm điều kiện `p.week_no = 3` (không đổi kết quả) thì bytes mới giảm còn 4,7 MB.
 - **Gom cụm hợp với cột chuỗi hay được lọc** như mã module, mã kỳ: không cần cột kiểu ngày/số, không giới hạn số giá
-  trị. Truy vấn một đợt chỉ đọc khoảng 1/25 bảng.
+  trị. Truy vấn một đợt chỉ đọc khoảng 1/16 bảng.
 - **Bảng tổng hợp sẵn** đổi chi phí mỗi lần mở trang lấy chi phí dựng một lần, nhưng phải dựng lại sau mỗi lần nạp kho.
 - **Chỉ mục PostgreSQL** phải bắt đầu bằng cột được lọc. Khóa chính có sẵn bắt đầu bằng `id_student` nên không giúp
   được truy vấn theo đợt. Kèm cột cần đọc (`INCLUDE`) cho phép quét chỉ trên chỉ mục, không mở bảng. Đổi lại, chỉ mục
@@ -421,8 +423,9 @@ yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, 
 - BigQuery Sandbox tự xóa bảng sau 60 ngày và không cho dùng DML (`INSERT`, `UPDATE`), nên kho batch được nạp lại toàn
   bộ mỗi lần thay vì nạp tăng dần. Riêng nhánh stream đã nạp tăng dần bằng load job ghi thêm và view lấy bản mới nhất
   (mục 4.3); cùng cách này áp được cho kho batch nếu nguồn có thay đổi.
-- Các tối ưu ở mục 6 được dựng thành bảng riêng (`opt_*`) để đo, chưa thay vào luồng nạp chính. Muốn dùng thật thì
-  `04_load_bq.py` cần nạp thẳng vào bảng có phân vùng/gom cụm, và `05_load_pg.py` cần tạo chỉ mục sau khi nạp.
+- Phân vùng, gom cụm và chỉ mục ở mục 6 làm benchmark star / 3NF / bảng rộng không còn cùng điều kiện, nên trước
+  `make bench` phải chạy `make load-plain`, đo xong chạy `make tune`. Bộ chạy benchmark tự từ chối khi PostgreSQL còn
+  chỉ mục phụ, nhưng không tự kiểm phân vùng / gom cụm trên BigQuery.
 - Kho 5× là các bản sao, nên giữ nguyên phân bố nhưng không tạo thêm sự đa dạng thật của dữ liệu.
 - Stream là phát lại dữ liệu lịch sử, không phải luồng thật; Kafka chạy 1 broker (xem mục 4.4).
 - Lần build lại image ngày 31/10 tự kéo DuckDB 2.0, pandas 3, pytest 9 vì `requirements.txt` chỉ ghi phiên bản tối

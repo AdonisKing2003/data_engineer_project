@@ -52,8 +52,8 @@ Airflow: lập lịch và điều phối toàn bộ nhánh batch, có cổng ch�
 | Dựng lại toàn bộ kho | `make all` 303 s; DAG Airflow 223 s (2 bước nạp chạy song song) |
 | Đúng trên nhiều nơi lưu | 20 câu hỏi mẫu ra cùng đáp án trên BigQuery, PostgreSQL, DuckDB |
 | Stream | Kafka → Spark có watermark, lệch 0 dòng so với batch trên 1.342.949 dòng; trạng thái lớn nhất nhỏ hơn ~10 lần so với không có watermark |
-| Tối ưu | Giảm 5,4× (chỉ mục PostgreSQL) tới 330× (bảng tổng hợp sẵn trên BigQuery) |
-| Kiểm thử | 289 test: 288 qua, 1 bỏ qua (test DAG, chạy riêng trong container airflow: 10 qua) |
+| Tối ưu (đã áp dụng cho kho chính) | Giảm 5,3× (chỉ mục PostgreSQL) tới 330× (bảng tổng hợp sẵn trên BigQuery) |
+| Kiểm thử | 289 test: 288 qua, 1 bỏ qua (test DAG, chạy riêng trong container airflow: 11 qua) |
 | Dashboard | 9 trang, chia theo 6 nhóm: Chung, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống |
 
 **Phân công.** TV1: môi trường, ETL, kho, stream, Airflow, kiểm thử, tối ưu. TV2: BR1, BR4, BR5, BR7 và các trang tương
@@ -101,7 +101,7 @@ Airflow: lập lịch và điều phối toàn bộ nhánh batch, có cổng ch�
 | Không trùng, không mất (exactly-once) | Producer idempotent, checkpoint của Spark, ghi theo `batch_id` | Chạy lại một micro-batch không sinh dòng trùng, cả trên Parquet lẫn BigQuery |
 | Kho dữ liệu đám mây không máy chủ | BigQuery | Tính tiền theo bytes quét; mọi tối ưu đo bằng bytes |
 | Lưu trữ theo cột | Parquet, BigQuery, DuckDB | BigQuery chỉ quét cột cần; DuckDB chạy SQL thẳng trên Parquet |
-| Tối ưu có số đo | Phân vùng, gom cụm, bảng tổng hợp sẵn, chỉ mục | 16,8×, 25,5×, 330× bytes quét; 5,4× thời gian |
+| Tối ưu có số đo | Phân vùng, gom cụm, bảng tổng hợp sẵn, chỉ mục | 16,8×, 15,9×, 330× bytes quét; 5,3× thời gian |
 | Điều phối pipeline | Airflow | Lập lịch, sensor, cổng chất lượng, chạy song song, retries, báo lỗi qua log và webhook |
 | Hạ tầng như code, tái lập được | Docker Compose, Makefile, `requirements.lock` | Một lệnh dựng lại toàn bộ; build ở đâu cũng ra cùng một bộ thư viện |
 
@@ -261,7 +261,7 @@ Lệnh với `--delay 1` mất khoảng 6 phút. Nếu thời gian ngắn, bỏ 
 Chiếu ảnh Airflow Graph và Gantt: chờ dữ liệu → các bước Spark → cổng chất lượng → 2 bước nạp song song → test.
 Câu để nói: "Cổng chất lượng chạy trước khi nạp, lỗi thì BigQuery giữ bản cũ. Task lỗi hẳn thì báo qua log và webhook."
 
-Slide tối ưu: phân vùng 16,8×, gom cụm 25,5×, bảng tổng hợp sẵn 330× (bytes quét BigQuery), chỉ mục 5,4× (PostgreSQL).
+Slide tối ưu: phân vùng 16,8×, gom cụm 15,9×, bảng tổng hợp sẵn 330× (bytes quét BigQuery), chỉ mục 5,3× (PostgreSQL); cả bốn đã nằm trong kho chính.
 
 **Nếu bị hỏi chuẩn 1.1, 1.2** (chấm qua tiểu luận và bài thi, không bắt buộc demo): mở
 [design_levels.md](design_levels.md) (sơ đồ 3 mức) và [data_models.md](data_models.md) (7 mô hình, số đo dạng lồng và

@@ -58,9 +58,15 @@ python scripts/benchmark_layouts.py run --confirm-m3 --runs 5
 
 Hoặc trong container:
 
+Kho chính 1× có phân vùng, gom cụm (BigQuery) và chỉ mục phụ (PostgreSQL); các bố trí 3NF / bảng rộng thì không. Để so cùng điều kiện, nạp lại kho chính ở dạng bảng thường trước khi đo và bật lại tối ưu sau đó:
+
 ```powershell
+docker compose exec -T app make load-plain
 docker compose exec -e CONFIRM_M3=1 -T app make bench
+docker compose exec -T app make tune
 ```
+
+Quên `make load-plain` thì preflight PostgreSQL từ chối chạy (còn chỉ mục phụ); phía BigQuery runner không tự kiểm phân vùng / gom cụm. Run ngày 07/11/2026 được đo khi kho chính còn là bảng thường, trước khi tối ưu được đưa vào luồng nạp.
 
 `make bench` từ chối chạy nếu không có `CONFIRM_M3=1` và chuyển xác nhận tường minh sang `--confirm-m3`. Cờ này là xác nhận của người vận hành, không tự chứng minh checklist M3 đã được nhóm hoàn tất. `--runs` có thể cấu hình qua `RUNS` trên Makefile, nhưng giá trị nghiệm thu của task này là 5. Runner cũng giữ cổng kiểm tra bộ SQL câu hỏi Q1–Q20; có đủ file là điều kiện cần, không chứng minh nội dung đã được nhóm review.
 

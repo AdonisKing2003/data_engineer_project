@@ -18,7 +18,7 @@ Về hiện thực, pipeline ETL bằng Spark dựng lại toàn bộ kho trong 
 hệ lưu trữ nhất quán với nhau. Airflow điều phối pipeline theo lịch, với cổng chất lượng ngăn
 dữ liệu sai đến tay người dùng. Bộ 289 bài kiểm thử bảo đảm số liệu của kho khớp với dữ liệu
 nguồn và với đặc tả nghiệp vụ; 20 câu hỏi mẫu cho cùng đáp án trên cả ba hệ lưu trữ. Các kỹ
-thuật tối ưu giảm lượng dữ liệu quét trên BigQuery từ 16,8 đến 330 lần.
+thuật tối ưu, đã áp dụng cho kho chính, giảm lượng dữ liệu quét trên BigQuery từ 15,9 đến 330 lần.
 
 Về nghiệp vụ, hệ thống trả lời được cả 8 yêu cầu. Kết quả nổi bật là quy tắc cảnh báo sớm:
 chỉ với dữ liệu đến hết tuần 4, 80,6\% sinh viên trong danh sách cảnh báo thực sự rớt hoặc rút
@@ -43,10 +43,6 @@ Một bước trung gian nhẹ hơn là nạp tăng dần theo đợt học: m�
 có dữ liệu mới. Spark hỗ trợ ghi đè từng phân vùng, còn BigQuery cho phép load job ghi đè đúng
 một phân vùng của bảng. Cách này phù hợp với OULAD vì dữ liệu vốn đã chia theo đợt học, nhưng
 chưa được thử nghiệm trong project.
-
-\textbf{Đưa các tối ưu vào luồng chính.} Phân vùng, gom cụm và chỉ mục cần được áp dụng ngay
-khi nạp kho thay vì chỉ thử nghiệm trên bản sao, và bước làm mới data mart cần được thêm vào
-DAG sau bước nạp BigQuery.
 
 \textbf{Tiến tới môi trường production.} Bảng~\ref{tab:production} so sánh hiện trạng của
 project với yêu cầu của một hệ thống vận hành thật.

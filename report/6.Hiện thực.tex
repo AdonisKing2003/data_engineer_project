@@ -118,17 +118,24 @@ danh sách không thay đổi.
 
 Trên BigQuery, mỗi bảng được nạp bằng một load job ở chế độ thay thế toàn bộ bảng
 (\texttt{WRITE\_TRUNCATE}). Load job thành công thì bảng mới thay bảng cũ trong một lần; thất
-bại thì bảng cũ được giữ nguyên, nên không bao giờ có trạng thái nạp dở dang. Sau khi nạp,
-số dòng của bảng trên BigQuery được so với số dòng trên Parquet.
+bại thì bảng cũ được giữ nguyên, nên không bao giờ có trạng thái nạp dở dang. Load job của
+bảng tiến độ theo tuần đặt sẵn phân vùng theo tuần, của bảng click đặt sẵn gom cụm theo đợt
+(mục~\ref{sec:toi-uu}). Sau khi nạp, số dòng và cách phân vùng, gom cụm của bảng trên BigQuery
+được kiểm tra lại.
 
 Trên PostgreSQL, mỗi bảng được nạp trong một giao dịch: xóa bảng cũ, tạo bảng, nạp dữ liệu
-bằng lệnh \texttt{COPY}, thêm khóa chính, rồi mới xác nhận giao dịch; sau đó cập nhật thống kê
-cho bộ tối ưu truy vấn. Số dòng của cả 9 bảng trên PostgreSQL được so với Parquet và BigQuery.
+bằng lệnh \texttt{COPY}, thêm khóa chính và chỉ mục, rồi mới xác nhận giao dịch; sau đó chạy
+\texttt{VACUUM ANALYZE} để cập nhật thống kê cho bộ tối ưu truy vấn và cho phép đọc thẳng từ chỉ
+mục. Số dòng của cả 9 bảng trên PostgreSQL được so với Parquet và BigQuery.
 
 Mọi bước của pipeline đều ghi đè thay vì ghi thêm: Spark ghi Parquet ở chế độ overwrite,
 BigQuery thay thế toàn bộ bảng, PostgreSQL tạo lại bảng trong cùng giao dịch. Nhờ vậy, chạy
 lại pipeline bao nhiêu lần cũng cho cùng một kết quả mà không sinh dòng trùng (idempotent);
 tính chất này có bài kiểm thử nạp hai lần liên tiếp.
+
+Bản mở rộng quy mô 5$\times$ và các bố trí 3NF, wide table chỉ dùng bảng thường có khóa chính,
+để phép so sánh ở mục~\ref{sec:benchmark} công bằng; trước khi đo, kho chính cũng được nạp lại
+ở dạng bảng thường bằng một lệnh riêng, đo xong thì nạp lại dạng tối ưu.
 
 Ngoài kho chính, một bản mở rộng quy mô gấp 5 lần được dựng để đo hiệu năng. Mỗi sinh viên
 được nhân thành 5 bản với mã sinh viên khác nhau, kéo theo toàn bộ dữ liệu fact của sinh viên
@@ -216,14 +223,15 @@ tính phí.
 
 Lệnh tổng hợp ở mục~\ref{sec:moi-truong} chạy tuần tự, cần người khởi động và dừng hẳn khi
 gặp lỗi. Một DAG Airflow chạy cùng các bước đó nhưng bổ sung các cơ chế điều phối. Thứ tự
-các task như sau, trong đó hai bước nạp chạy song song:
+các task như sau, trong đó hai nhánh nạp chạy song song và hai data mart được dựng lại ngay sau
+bước nạp BigQuery:
 
 \begin{center}
 \small
 \texttt{wait\_raw\_csv} $\rightarrow$ \texttt{staging} $\rightarrow$ \texttt{dims}
 $\rightarrow$ \texttt{facts} $\rightarrow$ \texttt{student\_week}
 $\rightarrow$ \texttt{quality\_gate} \\
-$\rightarrow$ (\texttt{load\_bq} $\parallel$ \texttt{load\_pg})
+$\rightarrow$ (\texttt{load\_bq} $\rightarrow$ \texttt{marts} $\parallel$ \texttt{load\_pg})
 $\rightarrow$ \texttt{test\_all} $\rightarrow$ \texttt{give\_back\_files}
 \end{center}
 
@@ -237,6 +245,7 @@ Lập lịch & Chạy lúc 2 giờ sáng (UTC) hằng ngày; không chạy bù c
 Chờ dữ liệu đầu vào & Sensor kiểm tra đủ 7 file CSV mỗi phút, tối đa 1 giờ, không chiếm chỗ chạy trong lúc chờ & Nguồn đến muộn thì chờ thay vì báo lỗi ngay \\ \hline
 Cổng chất lượng & Chạy các bài kiểm thử trên kho Parquet trước khi nạp & Lỗi thì dừng; BigQuery và PostgreSQL giữ bản cũ \\ \hline
 Chạy song song & Nạp BigQuery và nạp PostgreSQL cùng lúc & Hai bước chỉ đọc Parquet, không phụ thuộc nhau \\ \hline
+Làm mới data mart & Dựng lại hai data mart ngay sau khi nạp BigQuery & Dashboard không hiện số cũ sau khi kho được nạp lại \\ \hline
 Chạy lại khi lỗi & Mỗi task thử lại một lần sau 2 phút; quá 20 phút thì dừng & An toàn vì mọi bước đều ghi đè \\ \hline
 Báo lỗi & Task lỗi hẳn thì ghi một bản ghi vào file log và gửi webhook (Discord, Slack) nếu được cấu hình & Lịch chạy lúc 2 giờ sáng, không có người theo dõi trực tiếp \\ \hline
 \end{tabularx}
@@ -267,7 +276,9 @@ trong PostgreSQL, cho phép dùng \texttt{LocalExecutor} để chạy các task 
 \texttt{give\_back\_files} & 0,8 \\ \hline
 \textbf{Cả lần chạy} & \textbf{222,8} \\ \hline
 \end{tabular}
-\caption{Thời gian một lần chạy DAG theo lịch}
+\caption{Thời gian một lần chạy DAG theo lịch, đo trước khi thêm task \texttt{marts} và chỉ mục
+khi nạp PostgreSQL. Khi chạy tay, dựng lại hai mart mất khoảng 15 giây; nạp bảng click vào
+PostgreSQL kèm chỉ mục mất khoảng 19 giây.}
 \label{tab:airflow-thoi-gian}
 \end{table}
 
@@ -288,7 +299,8 @@ kết quả trên ba hệ có thể đối chiếu trực tiếp với nhau.
 Hai bảng tổng hợp sẵn (data mart) được dựng trên BigQuery cho hai trang có truy vấn nặng nhất
 (Bảng~\ref{tab:mart}). Cả hai được tạo bằng câu lệnh \texttt{CREATE OR REPLACE TABLE ... AS
 SELECT} chạy trực tiếp trên các bảng của kho, nên thay thế toàn bộ nội dung mỗi lần làm mới.
-Việc làm mới hiện được thực hiện thủ công, chưa nằm trong DAG.
+Task \texttt{marts} của DAG làm mới cả hai ngay sau bước nạp BigQuery; khi chạy tay thì dùng
+lệnh \texttt{make marts}.
 
 \begin{table}[htbp]
 \centering

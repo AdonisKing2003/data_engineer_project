@@ -15,7 +15,7 @@ mục cuối gợi ý slide và trang demo cho từng chuẩn.
 | 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn | [report_tv1.md](report_tv1.md) mục 1, 3 | 7 nguồn CSV, 4 tầng, 3 nơi lưu, 2 đường nạp batch và stream; `make all` 303 s |
 | 2.2 Thiết kế kho dữ liệu | [design_levels.md](design_levels.md) mục 2, [benchmark.md](benchmark.md) | Constellation 4 fact; bảng ảnh chụp SV-tuần 1.342.949 dòng; star / 3NF / bảng rộng ở 1× và 5× |
 | 3.1 Quản lý dữ liệu phức tạp | [report_tv1.md](report_tv1.md) mục 3, 5 | 3.810.465 dòng click trùng được gộp; 289 test; đảo nhãn không đổi danh sách cảnh báo 3.958 SV |
-| 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại | [report_tv1.md](report_tv1.md) mục 4, 6, [optimization.md](optimization.md) | Stream từ Kafka có watermark khớp batch 0 lệch trên 1.342.949 dòng, trạng thái lúc lớn nhất nhỏ hơn ~10× so với không có watermark; tối ưu giảm 5,4× đến 330× |
+| 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại | [report_tv1.md](report_tv1.md) mục 4, 6, [optimization.md](optimization.md) | Stream từ Kafka có watermark khớp batch 0 lệch trên 1.342.949 dòng, trạng thái lúc lớn nhất nhỏ hơn ~10× so với không có watermark; tối ưu giảm 5,3× đến 330× |
 
 ---
 
@@ -99,7 +99,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Stream, nguồn Kafka | Kafka làm hàng đợi sự kiện; cửa sổ 7 ngày theo thời gian sự kiện, watermark 7 ngày: 10.655.280 message, 63 micro-batch, 130,3 s, 0 dòng bị watermark bỏ, lệch 0 so với batch; trạng thái lớn nhất 65.274 khóa so với 627.031 khi không có watermark. Không trùng, không mất nhờ producer idempotent + checkpoint + ghi đè theo `batch_id` ([report_tv1.md](report_tv1.md) mục 4.2) |
 | Kho dữ liệu đám mây không máy chủ | BigQuery, tính tiền theo bytes quét |
 | Lưu trữ theo cột | Parquet, BigQuery; DuckDB chạy SQL thẳng trên Parquet |
-| Tối ưu có số đo | Phân vùng 16,8×, gom cụm 25,5×, bảng tổng hợp sẵn 330× (bytes quét BigQuery); chỉ mục 5,4× (thời gian PostgreSQL) ([optimization.md](optimization.md)) |
+| Tối ưu có số đo, áp dụng cho kho chính | Phân vùng 16,8×, gom cụm 15,9×, bảng tổng hợp sẵn 330× (bytes quét BigQuery); chỉ mục 5,3× (thời gian PostgreSQL). Đặt ngay khi nạp (`etl/04_load_bq.py`, `etl/05_load_pg.py`); mart dựng lại trong DAG ([optimization.md](optimization.md)) |
 | Container, chạy một lệnh | Docker Compose; Makefile; `scripts/run_all.py` dừng ở bước lỗi đầu tiên và ghi thời gian từng bước. `requirements.lock` khóa đủ 70 gói, build lại ở đâu cũng ra cùng một bộ thư viện |
 | Điều phối pipeline | Airflow 2.10 (`LocalExecutor`, CSDL trên PostgreSQL): sensor chờ dữ liệu nguồn, cổng chất lượng trước khi nạp, 2 bước nạp chạy song song, retries, báo lỗi qua log và webhook khi task lỗi hẳn; mỗi task gọi đúng một mục Makefile nên logic ETL không đổi ([report_tv1.md](report_tv1.md) mục 1.4) |
 | Phục vụ người dùng | Dashboard Streamlit chia theo vai trò, đọc BigQuery; test khói `tests/test_app.py`. Trang Click thời gian thực tự tải lại mỗi 10 giây khi bật (mặc định tắt vì mỗi lần quét ~48 MB), độ trễ cỡ 5–10 s do mỗi load job BigQuery mất khoảng 5 s |

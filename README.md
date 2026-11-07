@@ -70,16 +70,18 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 | `make dims` | 1.4 | Làm sạch, 5 dimension + `fact_enrollment` → `data/warehouse/` | ~30 s |
 | `make facts` | 1.5 | `fact_vle_daily` (gộp click trùng) + `fact_submission` | ~40 s |
 | `make student-week` | 1.8 | `fact_student_week` (SV × đợt × tuần, as-of) | ~65 s |
-| `make load-bq` | 1.6 | Nạp mọi bảng lên BigQuery, so số dòng | ~80 s |
-| `make load-pg` | 1.7 | Nạp mọi bảng vào PostgreSQL, so số dòng | ~35 s |
+| `make load-bq` | 1.6 | Nạp mọi bảng lên BigQuery, so số dòng; `fact_student_week` phân vùng theo tuần, `fact_vle_daily` gom cụm theo đợt | ~80 s |
+| `make marts` | 1.11 | Dựng lại 2 data mart của app (BR2, BR3) trên BigQuery; chạy sau `make load-bq` (`make all` và DAG đã gồm bước này) | ~15 s |
+| `make load-pg` | 1.7 | Nạp mọi bảng vào PostgreSQL, so số dòng; kèm chỉ mục `ix_fact_vle_daily_offering` cho trang Học phần | ~35 s |
 | `make test` | 1.10 | Toàn bộ pytest | ~30 s |
 | `make lock` | | Ghi phiên bản chính xác của mọi gói đang cài ra `requirements.lock` (xem [Phiên bản thư viện](#phiên-bản-thư-viện)) | vài giây |
 | `make stream` | 1.9 | Phát lại click theo ngày qua Spark Streaming, so với batch | ~2 phút |
 | `make stream-kafka` | | Như trên nhưng nguồn là Kafka, gom theo cửa sổ tuần có watermark; cần bật Kafka trước (xem [Demo phần stream](#demo-phần-stream)). Thêm `STREAM_ARGS="--produce --to-bq"` để ghi kết quả lên BigQuery cho dashboard | ~2,5 phút, ~4,5 phút nếu có BigQuery |
 | `make all` | 1.13 | Tất cả các bước trên trừ stream | ~5 phút |
 | `make scale` | 1.12 | Sinh kho 5× cho benchmark, nạp vào BigQuery `oulad_5x` và PostgreSQL schema `x5` (chạy sau `make all`) | xem dưới |
-| `make optimize` | 1.11 | 4 ví dụ tối ưu có số đo, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all` và `python scripts/build_tv3_marts.py --apply`) | ~1 phút |
-| `make bench` | 3.9 | Benchmark star / 3NF / bảng rộng trên PostgreSQL và BigQuery, 1× và 5×, có kiểm đáp án từng lượt; ghi `bench/results/<run_id>/`. Phải đặt `CONFIRM_M3=1` (sau mốc kiểm tra cuối tuần 2): `docker compose exec -e CONFIRM_M3=1 app make bench`. Quy trình ở [docs/benchmark.md](docs/benchmark.md), cần `make scale` và dựng bố trí theo [docs/layouts.md](docs/layouts.md) | ~10 phút |
+| `make optimize` | 1.11 | Đo 4 kỹ thuật tối ưu của kho chính so với bản sao bảng thường, ghi [docs/optimization.md](docs/optimization.md) (chạy sau `make all`) | ~2 phút |
+| `make load-plain` / `make tune` | | Nạp lại 2 bảng fact lớn ở dạng bảng thường (bỏ phân vùng, gom cụm, chỉ mục phụ) để benchmark công bằng / bật lại tối ưu sau khi đo | ~1 phút |
+| `make bench` | 3.9 | Benchmark star / 3NF / bảng rộng trên PostgreSQL và BigQuery, 1× và 5×, có kiểm đáp án từng lượt; ghi `bench/results/<run_id>/`. Phải đặt `CONFIRM_M3=1` (sau mốc kiểm tra cuối tuần 2): `docker compose exec -e CONFIRM_M3=1 app make bench`. Quy trình ở [docs/benchmark.md](docs/benchmark.md), cần `make scale` và dựng bố trí theo [docs/layouts.md](docs/layouts.md). Chạy `make load-plain` trước, `make tune` sau | ~10 phút |
 | `make models` | | Dựng 2 mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) và đo so với bảng phẳng, ghi [docs/data_models.md](docs/data_models.md) | ~1 phút |
 
 ## Kiểm thử

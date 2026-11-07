@@ -1,6 +1,6 @@
 """Việc 1.13: chạy toàn bộ pipeline bằng một lệnh, đo thời gian từng bước, ghi docs/etl_timing.md.
 
-Thứ tự: staging -> dims -> facts -> student-week -> load-bq -> load-pg -> test (mỗi bước là một mục Makefile).
+Thứ tự: staging -> dims -> facts -> student-week -> load-bq -> marts -> load-pg -> test (mỗi bước là một mục Makefile).
 Dừng ngay ở bước đầu tiên bị lỗi.
 
 Chạy trong container:
@@ -31,6 +31,7 @@ STEPS = [  # (việc, mục Makefile, mô tả)
     ("1.5", "facts", "fact_vle_daily + fact_submission"),
     ("1.8", "student-week", "fact_student_week"),
     ("1.6", "load-bq", "nạp kho lên BigQuery"),
+    ("1.11", "marts", "dựng lại 2 data mart của app trên BigQuery"),
     ("1.7", "load-pg", "nạp kho vào PostgreSQL"),
     ("1.10", "test", "pytest"),
     ("1.9", "stream", "phát lại click qua Spark Streaming, so với batch"),
@@ -126,7 +127,7 @@ def main():
     args = ap.parse_args()
 
     steps = [s for s in STEPS
-             if not (args.skip_bq and s[1] == "load-bq") and (args.stream or s[1] != "stream")]
+             if not (args.skip_bq and s[1] in ("load-bq", "marts")) and (args.stream or s[1] != "stream")]
     timings = {}
     for task, target, desc in steps:
         print(f"\n===== [{task}] make {target}: {desc} =====", flush=True)

@@ -30,7 +30,7 @@ def dag():
 
 def test_dag_loads_with_all_tasks(dag):
     assert dag is not None
-    assert set(dag.task_ids) == set(ORDER) | {"load_bq", "load_pg", "test_all", "give_back_files"}
+    assert set(dag.task_ids) == set(ORDER) | {"load_bq", "marts", "load_pg", "test_all", "give_back_files"}
 
 
 def test_steps_run_in_order(dag):
@@ -40,7 +40,12 @@ def test_steps_run_in_order(dag):
 
 def test_quality_gate_before_both_loads_which_run_in_parallel(dag):
     assert dag.get_task("quality_gate").downstream_task_ids == {"load_bq", "load_pg"}
-    assert dag.get_task("test_all").upstream_task_ids == {"load_bq", "load_pg"}
+    assert dag.get_task("test_all").upstream_task_ids == {"marts", "load_pg"}
+
+
+def test_marts_rebuilt_right_after_bigquery_load(dag):
+    assert dag.get_task("load_bq").downstream_task_ids == {"marts"}
+    assert dag.get_task("marts").downstream_task_ids == {"test_all"}
 
 
 def test_files_given_back_even_after_failure(dag):

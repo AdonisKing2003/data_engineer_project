@@ -1,16 +1,17 @@
-"""Việc 1.11: 4 ví dụ tối ưu có số đo, ghi docs/optimization.md.
+"""Việc 1.11: đo 4 kỹ thuật tối ưu của kho chính, ghi docs/optimization.md.
 
   1. Phân vùng fact_student_week theo week_no (BigQuery)
   2. Gom cụm fact_vle_daily theo code_module, code_presentation (BigQuery)
   3. Bảng tổng hợp sẵn cho app: mart BR2 của TV3 (BigQuery)
   4. Chỉ mục PostgreSQL trên fact_vle_daily
 
+Kỹ thuật 1, 2, 4 đã nằm trong kho chính: etl/04_load_bq.py nạp thẳng vào bảng phân vùng / gom cụm,
+etl/05_load_pg.py tạo chỉ mục khi nạp. Mốc "trước" vì vậy là bản sao bảng thường (opt_*_plain) tạo
+tạm trong dataset BQ_DATASET rồi xóa sau khi đo; với PostgreSQL, script xóa chỉ mục để đo rồi tạo lại.
 Mỗi truy vấn chạy --runs lần (tắt cache BigQuery), lấy trung vị thời gian; bytes quét lấy từ job.
-Mỗi ví dụ kiểm hai bên trước/sau ra cùng kết quả. Bảng tối ưu tên opt_* nằm cạnh bảng gốc
-trong dataset BQ_DATASET; bảng gốc không bị đụng tới. Chỉ mục PostgreSQL được giữ lại sau khi chạy
-(make load-pg tạo lại bảng nên sẽ mất, chạy lại script này để có lại).
+Mỗi ví dụ kiểm hai bên trước/sau ra cùng kết quả.
 
-Chạy trong container, sau make all. Ví dụ 3 cần mart: python scripts/build_tv3_marts.py --apply
+Chạy trong container, sau make all (đã gồm make marts):
     python scripts/optimize.py              # cũng chính là: make optimize
     python scripts/optimize.py --runs 3
 """
@@ -33,23 +34,24 @@ from common import give_back_to_owner  # noqa: E402
 SQL_DIR = ROOT / "sql" / "optimize"
 DOC = ROOT / "docs" / "optimization.md"
 
-PART_TABLE = "opt_fact_student_week_part"
-CLUST_TABLE = "opt_fact_vle_daily_clust"
+PLAIN_WEEK = "opt_fact_student_week_plain"   # bản sao bảng thường, mốc "trước" của ví dụ 1
+PLAIN_VLE = "opt_fact_vle_daily_plain"       # mốc "trước" của ví dụ 2, 3
+OLD_TABLES = ("opt_fact_student_week_part", "opt_fact_vle_daily_clust")  # bản cũ, khi tối ưu còn là bản sao
 MART_TABLE = "tv3_br2_weekly_mart"
 PG_INDEX = "ix_fact_vle_daily_offering"
 MODULE, PRESENTATION = "BBB", "2014J"  # đợt dùng cho ví dụ 3 (ví dụ 2, 4 ghi sẵn trong file SQL)
 PRUNE_LINE = "      AND p.week_no = 3\n"  # dòng lọc hằng số trong sql/optimize/br4_week4.sql
 
-PART_DDL = (
-    "CREATE OR REPLACE TABLE `{ds}.{table}`\n"
-    "PARTITION BY RANGE_BUCKET(week_no, GENERATE_ARRAY(-4, 39, 1))\n"
-    "AS SELECT * FROM `{ds}.fact_student_week`"
+# Cách lưu của kho chính, viết dạng DDL để đọc; etl/04_load_bq.py đặt đúng các thông số này trong load job.
+PART_SPEC = (
+    "CREATE TABLE fact_student_week (...)\n"
+    "PARTITION BY RANGE_BUCKET(week_no, GENERATE_ARRAY(-4, 39, 1))"
 )
-CLUST_DDL = (
-    "CREATE OR REPLACE TABLE `{ds}.{table}`\n"
-    "CLUSTER BY code_module, code_presentation\n"
-    "AS SELECT * FROM `{ds}.fact_vle_daily`"
+CLUST_SPEC = (
+    "CREATE TABLE fact_vle_daily (...)\n"
+    "CLUSTER BY code_module, code_presentation"
 )
+PLAIN_COPY = "CREATE OR REPLACE TABLE `{ds}.{table}` AS SELECT * FROM `{ds}.{source}`"
 PG_INDEX_DDL = (
     f"CREATE INDEX {PG_INDEX} ON fact_vle_daily\n"
     "    (code_module, code_presentation, week_no) INCLUDE (id_site, sum_click)"
@@ -100,13 +102,21 @@ class BigQuery:
         self.ds = f"{self.project}.{self.dataset}"
         self.client = bigquery.Client(project=self.project, location=os.getenv("BQ_LOCATION", "US"))
 
-    def ddl(self, template, table):
-        sql = template.format(ds=self.ds, table=table)
-        started = time.perf_counter()
-        job = self.client.query(sql, job_config=self.bq.QueryJobConfig(default_dataset=self.ds))
-        job.result()
-        return {"sql": sql.replace(f"{self.project}.", ""), "seconds": time.perf_counter() - started,
-                "bytes": job.total_bytes_processed}
+    def plain_copy(self, table, source):
+        """Bản sao bảng thường của một bảng kho chính (không phân vùng, không gom cụm)."""
+        sql = PLAIN_COPY.format(ds=self.ds, table=table, source=source)
+        self.client.query(sql, job_config=self.bq.QueryJobConfig(default_dataset=self.ds)).result()
+
+    def drop(self, table):
+        self.client.delete_table(f"{self.ds}.{table}", not_found_ok=True)
+
+    def check_tuned(self):
+        """Kho chính phải đang ở dạng tối ưu, nếu không thì so trước/sau là so hai bảng thường."""
+        week = self.client.get_table(f"{self.ds}.fact_student_week")
+        vle = self.client.get_table(f"{self.ds}.fact_vle_daily")
+        if week.range_partitioning is None or not vle.clustering_fields:
+            sys.exit("Kho chính trên BigQuery chưa phân vùng / gom cụm (có thể vừa chạy make load-plain): "
+                     "chạy make tune hoặc make load-bq rồi chạy lại.")
 
     def has_table(self, table):
         from google.api_core.exceptions import NotFound
@@ -152,17 +162,16 @@ def rows_read(job):
 
 
 def example_partition(bq):
-    """Ví dụ 1: BR4 tuần 4 trên bảng gốc và bảng phân vùng, có và không có dòng lọc hằng số."""
+    """Ví dụ 1: BR4 tuần 4 trên bảng thường và bảng phân vùng, có và không có dòng lọc hằng số."""
     print("== Ví dụ 1: phân vùng fact_student_week theo week_no")
-    ddl = bq.ddl(PART_DDL, PART_TABLE)
     explicit = (SQL_DIR / "br4_week4.sql").read_text(encoding="utf-8")
     assert PRUNE_LINE in explicit, "sql/optimize/br4_week4.sql thiếu dòng lọc p.week_no = 3"
     via_join = explicit.replace(PRUNE_LINE, "")
     variants = [
-        ("Bảng gốc", "lọc tuần qua phép nối", via_join, "fact_student_week"),
-        ("Bảng gốc", "thêm `p.week_no = 3`", explicit, "fact_student_week"),
-        ("Phân vùng", "lọc tuần qua phép nối", via_join, PART_TABLE),
-        ("Phân vùng", "thêm `p.week_no = 3`", explicit, PART_TABLE),
+        ("Bảng thường", "lọc tuần qua phép nối", via_join, PLAIN_WEEK),
+        ("Bảng thường", "thêm `p.week_no = 3`", explicit, PLAIN_WEEK),
+        ("Phân vùng", "lọc tuần qua phép nối", via_join, "fact_student_week"),
+        ("Phân vùng", "thêm `p.week_no = 3`", explicit, "fact_student_week"),
     ]
     rows, frames = [], []
     for table_label, query_label, sql, table in variants:
@@ -170,19 +179,18 @@ def example_partition(bq):
         frames.append(df)
         rows.append({"table": table_label, "query": query_label, **m})
         print(f"   {table_label:10} {query_label:24} {mb(m['bytes']):>10} {m['rows_read']:>10,} dòng {m['seconds']:.2f}s")
-    return {"ddl": ddl, "rows": rows, "same": all(same_result(frames[0], f) for f in frames[1:]),
+    return {"rows": rows, "same": all(same_result(frames[0], f) for f in frames[1:]),
             "answer": frames[0].iloc[0].to_dict()}
 
 
 def example_cluster(bq):
     print("== Ví dụ 2: gom cụm fact_vle_daily theo code_module, code_presentation")
-    ddl = bq.ddl(CLUST_DDL, CLUST_TABLE)
     sql = (SQL_DIR / "vle_offering_week.sql").read_text(encoding="utf-8")
-    before_df, before = bq.measure(sql)
-    after_df, after = bq.measure(rename_table(sql, "fact_vle_daily", CLUST_TABLE))
+    before_df, before = bq.measure(rename_table(sql, "fact_vle_daily", PLAIN_VLE))
+    after_df, after = bq.measure(sql)
     for label, m in (("trước", before), ("sau", after)):
         print(f"   {label:6} {mb(m['bytes']):>10} {m['rows_read']:>10,} dòng {m['seconds']:.2f}s")
-    return {"ddl": ddl, "before": before, "after": after, "same": same_result(before_df, after_df),
+    return {"before": before, "after": after, "same": same_result(before_df, after_df),
             "n_rows": len(after_df)}
 
 
@@ -192,6 +200,7 @@ def example_mart(bq):
         sys.exit(f"Thiếu {bq.dataset}.{MART_TABLE}: chạy python scripts/build_tv3_marts.py --apply trước")
     raw = (ROOT / "sql" / "bigquery" / "br2_vle_weekly.sql").read_text(encoding="utf-8").strip().rstrip(";")
     raw = raw[: raw.rfind("ORDER BY")]  # bỏ ORDER BY cuối để bọc thành truy vấn con
+    raw = rename_table(raw, "fact_vle_daily", PLAIN_VLE)  # mốc trước: kho star chưa tối ưu
     before_sql = (
         f"SELECT * FROM (\n{raw}\n)\n"
         "WHERE code_module = @code_module AND code_presentation = @code_presentation"
@@ -275,7 +284,7 @@ def ok(flag):
 def write_doc(r1, r2, r3, r4, runs):
     now = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
     p1 = {(row["table"], row["query"]): row for row in r1["rows"]}
-    base1 = p1[("Bảng gốc", "lọc tuần qua phép nối")]
+    base1 = p1[("Bảng thường", "lọc tuần qua phép nối")]
     best1 = p1[("Phân vùng", "thêm `p.week_no = 3`")]
     a1 = r1["answer"]
     lines = [
@@ -284,6 +293,11 @@ def write_doc(r1, r2, r3, r4, runs):
         f"Đo lúc {now}. Mỗi truy vấn chạy {runs} lần, thời gian lấy trung vị; BigQuery tắt cache kết quả.",
         "File này do `scripts/optimize.py` tự sinh; chạy lại `make optimize` để cập nhật.",
         "Mỗi ví dụ đều so kết quả trước/sau tối ưu, hai bên phải ra giống hệt.",
+        "",
+        "Kỹ thuật 1, 2, 4 đã nằm trong kho chính: `etl/04_load_bq.py` nạp thẳng vào bảng phân vùng / gom cụm,",
+        "`etl/05_load_pg.py` tạo chỉ mục khi nạp; `make marts` (cũng là một task trong DAG Airflow, ngay sau",
+        f"bước nạp BigQuery) dựng lại mart của kỹ thuật 3. Mốc \"trước\" là bản sao bảng thường (`{PLAIN_WEEK}`,",
+        f"`{PLAIN_VLE}`) tạo tạm khi đo rồi xóa; với PostgreSQL, script xóa chỉ mục để đo rồi tạo lại.",
         "",
         "## Tóm tắt",
         "",
@@ -308,13 +322,12 @@ def write_doc(r1, r2, r3, r4, runs):
         "**Truy vấn:** [sql/optimize/br4_week4.sql](../sql/optimize/br4_week4.sql), danh sách nguy cơ BR4 tại tuần 4",
         "trên mọi đợt (câu 14). Trang Cảnh báo luôn hỏi theo một tuần cụ thể, nên phân vùng theo tuần khớp với cách app đọc.",
         "",
-        "**Thay đổi:** tạo bảng phân vùng theo khoảng số nguyên, mỗi tuần một phân vùng (43 phân vùng, tuần −4 đến 38):",
+        "**Cách lưu của kho chính:** phân vùng theo khoảng số nguyên, mỗi tuần một phân vùng (43 phân vùng, tuần −4",
+        "đến 38). `etl/04_load_bq.py` đặt phân vùng này trong load job, tương đương:",
         "",
         "```sql",
-        r1["ddl"]["sql"],
+        PART_SPEC,
         "```",
-        "",
-        f"Tạo bảng mất {r1['ddl']['seconds']:.1f} s, quét {mb(r1['ddl']['bytes'])}.",
         "",
         "| Bảng | Truy vấn | Bytes quét | Bytes tính tiền | Dòng đọc từ bảng | Slot ms | Thời gian (s) |",
         "|---|---|---:|---:|---:|---:|---:|",
@@ -337,29 +350,31 @@ def write_doc(r1, r2, r3, r4, runs):
         "  nhưng phía `p` vẫn đọc cả bảng nên bytes quét không giảm.",
         "- Thêm điều kiện hằng số `p.week_no = 3` (không đổi kết quả) thì cả hai phía chỉ đọc đúng 1 phân vùng.",
         "  Bài học: phân vùng chỉ có tác dụng khi truy vấn lọc cột phân vùng bằng hằng số hoặc tham số.",
-        "- Trên bảng gốc chưa phân vùng, thêm điều kiện đó không giảm bytes: BigQuery vẫn phải đọc cả cột.",
+        "  Vì vậy truy vấn BR4 của app trên BigQuery (`sql/bigquery/br4_at_risk_all.sql`, `br4_at_risk_list.sql`) có thêm",
+        "  `p.week_no = @week_no - 1`: mỗi lần mở trang Cảnh báo chỉ quét khoảng 4,7 MB thay vì 79,2 MB.",
+        "- Trên bảng thường, thêm điều kiện đó không giảm bytes: BigQuery vẫn phải đọc cả cột.",
         "",
         "**Đánh đổi:** Google khuyên mỗi phân vùng nên lớn (cỡ từ 1 GB); ở đây mỗi phân vùng chỉ vài MB nên",
         "phân vùng là để minh họa, ở cỡ thật nên cân nhắc gom cụm theo `week_no` thay vì phân vùng.",
-        "Mỗi lần nạp lại kho phải tạo lại bảng (hoặc cho `04_load_bq.py` nạp thẳng vào bảng có phân vùng).",
+        "Load job `WRITE_TRUNCATE` không đổi được cách phân vùng của bảng đã có, nên khi chuyển giữa bảng thường",
+        "và bảng phân vùng (`make load-plain`, `make tune`), `04_load_bq.py` xóa bảng cũ trước khi nạp.",
         "",
         "## 2. Gom cụm `fact_vle_daily` theo `code_module`, `code_presentation` (BigQuery)",
         "",
         "**Truy vấn:** [sql/optimize/vle_offering_week.sql](../sql/optimize/vle_offering_week.sql), click theo tuần ×",
         "loại hoạt động của BBB 2014J. Đây là phần nặng nhất của trang Học phần (BR2) khi người dùng chọn một đợt.",
         "",
-        "**Thay đổi:** sắp dữ liệu theo module, kỳ khi ghi để các khối lưu trữ của một đợt nằm cạnh nhau:",
+        "**Cách lưu của kho chính:** sắp dữ liệu theo module, kỳ khi ghi để các khối lưu trữ của một đợt nằm cạnh",
+        "nhau. `etl/04_load_bq.py` đặt gom cụm này trong load job, tương đương:",
         "",
         "```sql",
-        r2["ddl"]["sql"],
+        CLUST_SPEC,
         "```",
-        "",
-        f"Tạo bảng mất {r2['ddl']['seconds']:.1f} s, quét {mb(r2['ddl']['bytes'])}.",
         "",
         "| | Bytes quét | Bytes tính tiền | Dòng đọc từ bảng | Slot ms | Thời gian (s) |",
         "|---|---:|---:|---:|---:|---:|",
     ]
-    for label, m in (("Bảng gốc", r2["before"]), ("Gom cụm", r2["after"])):
+    for label, m in (("Bảng thường", r2["before"]), ("Gom cụm", r2["after"])):
         lines.append(
             f"| {label} | {mb(m['bytes'])} | {mb(m['billed'])} | {m['rows_read']:,} | {m['slot_ms']:,} | {m['seconds']:.2f} |"
         )
@@ -367,7 +382,7 @@ def write_doc(r1, r2, r3, r4, runs):
         "",
         f"Kết quả: {ok(r2['same'])} ({r2['n_rows']} dòng).",
         "",
-        "**Đọc kết quả:** bảng gốc phải đọc 5 cột của cả 8,5 triệu dòng rồi mới lọc. Bảng gom cụm cho BigQuery",
+        "**Đọc kết quả:** bảng thường phải đọc 5 cột của cả 8,5 triệu dòng rồi mới lọc. Bảng gom cụm cho BigQuery",
         "bỏ qua các khối không chứa BBB 2014J nên chỉ đọc khoảng 1/22 bảng (22 đợt). Khác phân vùng, gom cụm không",
         "cần cột kiểu ngày/số và không giới hạn số giá trị, hợp với cột chuỗi như mã module, mã kỳ.",
         "",
@@ -379,9 +394,10 @@ def write_doc(r1, r2, r3, r4, runs):
         "**Truy vấn:** biểu đồ BR2 của trang Học phần cho BBB 2014J (tham số `@code_module`, `@code_presentation`).",
         "",
         "- Trước: tính từ kho star bằng [sql/bigquery/br2_vle_weekly.sql](../sql/bigquery/br2_vle_weekly.sql)",
-        "  (ghép `fact_vle_daily`, `fact_enrollment`, `dim_vle_site`, lịch tuần) rồi lọc đợt.",
+        "  (ghép `fact_vle_daily`, `fact_enrollment`, `dim_vle_site`, lịch tuần) rồi lọc đợt; bảng click là bản sao",
+        "  bảng thường, để chỉ đo tác dụng của mart.",
         "- Sau: đọc [sql/bigquery/br2_dashboard.sql](../sql/bigquery/br2_dashboard.sql) từ bảng `tv3_br2_weekly_mart`",
-        "  đã tính sẵn một lần bằng `python scripts/build_tv3_marts.py --apply` (mart do TV3 thiết kế, xem",
+        "  đã tính sẵn một lần bằng `make marts` (mart do TV3 thiết kế, xem",
         "  [docs/tv3_marts.md](tv3_marts.md)).",
         "",
         f"Mart có {r3['mart_rows']:,} dòng, {mb(r3['mart_bytes'])}.",
@@ -401,8 +417,9 @@ def write_doc(r1, r2, r3, r4, runs):
         "ghép lại 8,5 triệu dòng click với bảng đăng ký và lịch tuần. Chi phí tính được trả một lần lúc dựng mart.",
         "Mart chưa gom cụm theo module, kỳ nên vẫn đọc cả mart; ở cỡ này không đáng làm thêm.",
         "",
-        "**Đánh đổi:** mart phải dựng lại sau mỗi lần nạp kho, nếu quên thì app hiện số cũ; mart chỉ trả lời đúng",
-        "các câu hỏi đã thiết kế trước (grain đợt × tuần × loại hoạt động).",
+        "**Đánh đổi:** mart phải dựng lại sau mỗi lần nạp kho; DAG Airflow làm việc này ngay sau bước nạp BigQuery,",
+        "còn khi nạp tay thì phải chạy `make marts`. Mart chỉ trả lời đúng các câu hỏi đã thiết kế trước (grain đợt ×",
+        "tuần × loại hoạt động).",
         "",
         "## 4. Chỉ mục PostgreSQL trên `fact_vle_daily`",
         "",
@@ -434,8 +451,9 @@ def write_doc(r1, r2, r3, r4, runs):
         "`Buffers`). Có chỉ mục thì PostgreSQL nhảy thẳng tới đoạn của BBB 2014J, đọc ít trang hơn hẳn và không mở bảng",
         "(`Index Only Scan`).",
         "",
-        "**Đánh đổi:** tốn thêm dung lượng và làm chậm lúc nạp dữ liệu. `make load-pg` tạo lại bảng nên chỉ mục mất,",
-        "chạy lại `make optimize` để có lại. Khi so benchmark star / 3NF / bảng rộng cần ghi rõ có chỉ mục này hay không.",
+        "**Đánh đổi:** tốn thêm dung lượng và làm chậm lúc nạp dữ liệu. `make load-pg` tạo chỉ mục này ngay khi nạp.",
+        "Bộ chạy benchmark star / 3NF / bảng rộng chỉ nhận schema có khóa chính, nên trước `make bench` chạy",
+        "`make load-plain` (bỏ chỉ mục, bỏ phân vùng / gom cụm), đo xong chạy `make tune` để bật lại.",
         "",
         "## Kế hoạch truy vấn PostgreSQL đầy đủ",
         "",
@@ -453,9 +471,19 @@ def main():
     args = parser.parse_args()
 
     bq = BigQuery(args.runs)
-    r1 = example_partition(bq)
-    r2 = example_cluster(bq)
-    r3 = example_mart(bq)
+    bq.check_tuned()
+    for table in OLD_TABLES:
+        bq.drop(table)  # Sandbox chỉ có 10 GB: bỏ bản sao tối ưu cũ
+    try:
+        print("== Tạo bản sao bảng thường làm mốc trước")
+        bq.plain_copy(PLAIN_WEEK, "fact_student_week")
+        bq.plain_copy(PLAIN_VLE, "fact_vle_daily")
+        r1 = example_partition(bq)
+        r2 = example_cluster(bq)
+        r3 = example_mart(bq)
+    finally:
+        for table in (PLAIN_WEEK, PLAIN_VLE):
+            bq.drop(table)
     r4 = example_pg_index(args.runs)
     write_doc(r1, r2, r3, r4, args.runs)
     if not all(r["same"] for r in (r1, r2, r3, r4)):

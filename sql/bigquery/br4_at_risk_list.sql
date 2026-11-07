@@ -16,6 +16,9 @@ WITH cohort AS (
      AND p.code_module = w.code_module
      AND p.code_presentation = w.code_presentation
      AND p.week_no = w.week_no - 1
+     -- Lọc tuần trước bằng tham số để BigQuery chỉ đọc 1 phân vùng của fact_student_week (79,2 MB -> 4,7 MB);
+     -- điều kiện nối phía trên không đủ để bỏ phân vùng. Không đổi kết quả.
+     AND p.week_no = @week_no - 1
     WHERE w.week_no = @week_no
       AND w.is_enrolled
       AND w.code_module = @code_module

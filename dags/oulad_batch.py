@@ -1,11 +1,13 @@
 """DAG dựng lại kho OULAD từ 7 file CSV.
 
-    chờ đủ CSV -> staging -> dims -> facts -> student_week -> quality_gate -> (load_bq || load_pg) -> test_all
-                                                                                          -> give_back_files
+    chờ đủ CSV -> staging -> dims -> facts -> student_week -> quality_gate -> (load_bq -> marts || load_pg)
+                                                                              -> test_all -> give_back_files
 
 Mỗi task gọi đúng một mục Makefile, giống make all, nên logic ETL không đổi. Airflow lo phần điều phối:
 lập lịch, thứ tự, chạy song song bước không phụ thuộc nhau, chạy lại khi lỗi, log và thời gian từng bước.
 Mọi bước đều ghi đè, chạy lại không nhân đôi dữ liệu, nên bật retries là an toàn.
+
+marts dựng lại 2 data mart của app ngay sau khi nạp BigQuery, để app không hiện số cũ.
 
 Khác make all ở ba chỗ:
 - quality_gate kiểm kho trên Parquet TRƯỚC khi nạp, lỗi thì dừng, không đẩy dữ liệu sai lên BigQuery;
@@ -72,6 +74,7 @@ with DAG(
     )
     load_bq = bash("load_bq", "make -s load-bq")
     load_pg = bash("load_pg", "make -s load-pg")
+    marts = bash("marts", "make -s marts")
     test_all = bash("test_all", "make -s test")
     # Container chạy bằng root: trả quyền file trong data/ cho chủ repo, kể cả khi bước trước lỗi.
     give_back_files = bash(
@@ -82,5 +85,7 @@ with DAG(
         trigger_rule=TriggerRule.ALL_DONE,
     )
 
-    wait_raw >> staging >> dims >> facts >> student_week >> quality_gate >> [load_bq, load_pg] >> test_all
+    wait_raw >> staging >> dims >> facts >> student_week >> quality_gate >> [load_bq, load_pg]
+    load_bq >> marts
+    [marts, load_pg] >> test_all
     test_all >> give_back_files

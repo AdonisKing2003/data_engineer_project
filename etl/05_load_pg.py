@@ -4,7 +4,10 @@
 - Kiểu: int -> BIGINT, double -> DOUBLE PRECISION, string -> TEXT, bool -> BOOLEAN.
 - Mỗi bảng một transaction: DROP, CREATE, COPY, thêm khóa chính, rồi mới COMMIT.
   Lỗi giữa chừng thì bảng cũ giữ nguyên; chạy lại không bị nhân đôi.
-- Chỉ có khóa chính, chưa có chỉ mục nào khác: chỉ mục là việc của 1.11 (đo trước/sau).
+- Khóa chính cho mọi bảng. Kho 1× (schema public) có thêm chỉ mục cho trang Học phần (việc 1.11, số đo ở
+  docs/optimization.md): ix_fact_vle_daily_offering trên fact_vle_daily (module, kỳ, tuần) kèm id_site, sum_click,
+  rồi VACUUM để PostgreSQL đọc thẳng từ chỉ mục. --no-tuning bỏ chỉ mục này: bộ chạy benchmark
+  (make bench) chỉ nhận schema có khóa chính, để star / 3NF / bảng rộng so cùng điều kiện.
 - So số dòng với Parquet, và với BigQuery nếu đã chạy 04_load_bq.py.
 - --scale N (việc 1.12): nạp kho nhân bản data/warehouse_<N>x vào schema x<N> (vd x5), cùng tên bảng.
   Chạy cùng một câu SQL trên hai kho chỉ cần đổi search_path: SET search_path TO x5;
@@ -13,6 +16,7 @@ Chạy trong container (không cần Spark):
     cd etl && python 05_load_pg.py              # nạp mọi bảng
     cd etl && python 05_load_pg.py dim_week     # chỉ nạp một vài bảng
     cd etl && python 05_load_pg.py --scale 5    # kho 5× vào schema x5
+    cd etl && python 05_load_pg.py --no-tuning  # chỉ khóa chính, không chỉ mục phụ (trước make bench)
 """
 import argparse
 import io
@@ -39,6 +43,14 @@ PRIMARY_KEYS = {
     "fact_submission": ["id_student", "id_assessment"],
     "fact_student_week": ["id_student", "code_module", "code_presentation", "week_no"],
 }
+# Chỉ mục phụ của kho 1× (việc 1.11). Khóa chính bắt đầu bằng id_student nên không giúp lọc theo đợt;
+# chỉ mục này bắt đầu bằng module, kỳ và kèm hai cột truy vấn cần, để quét chỉ trên chỉ mục.
+INDEXES = {
+    "fact_vle_daily": [
+        "CREATE INDEX ix_fact_vle_daily_offering ON {table}\n"
+        "    (code_module, code_presentation, week_no) INCLUDE (id_site, sum_click)",
+    ],
+}
 
 
 def pg_type(t: pa.DataType) -> str:
@@ -63,7 +75,7 @@ def bigquery_counts(src):
     return {k: v["rows"] for k, v in json.loads(p.read_text()).items()} if p.exists() else {}
 
 
-def load_table(conn, name, bq_rows, src=WAREHOUSE_DIR, schema="public"):
+def load_table(conn, name, bq_rows, src=WAREHOUSE_DIR, schema="public", tuned=False):
     t0 = time.time()
     # Đọc theo từng khối thay vì cả bảng, để bản 5× (42 triệu dòng click) không chiếm nhiều RAM.
     # Mặc định pyarrow bỏ qua file bắt đầu bằng "_" hoặc "." (_SUCCESS, .crc).
@@ -85,21 +97,32 @@ def load_table(conn, name, bq_rows, src=WAREHOUSE_DIR, schema="public"):
         if name in PRIMARY_KEYS:
             key = ", ".join(f'"{c}"' for c in PRIMARY_KEYS[name])
             cur.execute(f"ALTER TABLE {table} ADD PRIMARY KEY ({key})")
-        cur.execute(f"ANALYZE {table}")
+        indexes = INDEXES.get(name, []) if tuned else []
+        for ddl in indexes:
+            cur.execute(ddl.format(table=table))
+        if not indexes:
+            cur.execute(f"ANALYZE {table}")
         n_pg = cur.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+    if indexes:
+        # VACUUM không chạy trong transaction. Nó cập nhật visibility map để quét được chỉ trên chỉ mục,
+        # và ANALYZE luôn. PARALLEL 0 vì /dev/shm của container chỉ có 64 MB.
+        conn.execute(f"VACUUM (ANALYZE, PARALLEL 0) {table}")
     ok = n_pg == n_parquet and bq_rows.get(name, n_pg) == n_pg
     seconds = round(time.time() - t0, 1)
     bq = f", BigQuery {bq_rows[name]:,}" if name in bq_rows else ""
+    extra = f"  [+{len(indexes)} chỉ mục]" if indexes else ""
     print(f"{'OK ' if ok else 'SAI'} {name:22s} {n_pg:>12,} dòng trên PostgreSQL "
-          f"(Parquet {n_parquet:,}{bq})  {seconds}s")
+          f"(Parquet {n_parquet:,}{bq})  {seconds}s{extra}")
     return {"rows": n_pg, "expected": n_parquet, "bigquery": bq_rows.get(name),
-            "ok": ok, "seconds": seconds}
+            "ok": ok, "seconds": seconds, "indexes": len(indexes)}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("tables", nargs="*", help="chỉ nạp các bảng này (mặc định: mọi bảng)")
     ap.add_argument("--scale", type=int, default=1, help="nạp kho nhân bản N× vào schema xN (việc 1.12)")
+    ap.add_argument("--no-tuning", action="store_true",
+                    help="chỉ khóa chính, không chỉ mục phụ (kho 5× luôn chỉ có khóa chính)")
     args = ap.parse_args()
     src = scaled_dir(args.scale)
     schema = "public" if args.scale == 1 else f"x{args.scale}"
@@ -115,7 +138,8 @@ def main():
                 f"dbname={os.getenv('POSTGRES_DB', 'oulad')}")
     bq_rows = bigquery_counts(src)
     with psycopg.connect(conninfo, autocommit=True) as conn:
-        report = {name: load_table(conn, name, bq_rows, src, schema) for name in names}
+        tuned = args.scale == 1 and not args.no_tuning
+        report = {name: load_table(conn, name, bq_rows, src, schema, tuned) for name in names}
     ok = save_report(report, "05_load_pg", src)
     give_back_to_owner(src)
     if not ok:

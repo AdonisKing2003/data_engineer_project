@@ -17,7 +17,7 @@ với yêu cầu của môn học và nêu các hạn chế.
 
 Bộ kiểm thử gồm 289 bài, viết bằng pytest. Kết quả lần chạy gần nhất: 288 bài đạt và 1 bài được
 bỏ qua. Bài bị bỏ qua là bộ kiểm thử DAG, vì cần môi trường Airflow nên được chạy riêng trong
-container Airflow, với 10 bài đều đạt. Các bài kiểm thử được chia theo nhóm như
+container Airflow, với 11 bài đều đạt. Các bài kiểm thử được chia theo nhóm như
 Bảng~\ref{tab:nhom-kiem-thu}; số đúng của mỗi bài được chốt trước trong hợp đồng dữ liệu và
 trong đặc tả yêu cầu nghiệp vụ, không lấy từ chính kết quả của pipeline.
 
@@ -43,7 +43,7 @@ Câu hỏi mẫu (SQL) & 20 đáp án và bài đảo nhãn của câu 14 & 21 \
 Câu hỏi mẫu (dashboard) & Tìm được đáp án của 20 câu trên giao diện dashboard & 20 \\ \hline
 Dashboard & Các trang khởi động và hiển thị không lỗi & 4 \\ \hline
 Truy vấn, data mart, benchmark & SQL nghiệp vụ, hai data mart, các trang và bộ chạy benchmark & 56 \\ \hline
-DAG Airflow & Đủ task, đúng thứ tự, cổng chất lượng đứng trước hai bước nạp & 1 (chạy riêng: 10) \\ \hline
+DAG Airflow & Đủ task, đúng thứ tự, cổng chất lượng đứng trước hai bước nạp, data mart dựng lại ngay sau khi nạp BigQuery & 1 (chạy riêng: 11) \\ \hline
 \textbf{Tổng} & & \textbf{289} \\ \hline
 \end{tabularx}
 \caption{Phân nhóm bộ kiểm thử}
@@ -135,8 +135,9 @@ hệ, không cho phép kết luận rằng hoạt động nhiều hơn dẫn đ�
 \subsection{Tối ưu truy vấn}
 \label{sec:toi-uu}
 
-Bốn kỹ thuật tối ưu được thử nghiệm trên các truy vấn thực tế của dashboard
-(Bảng~\ref{tab:toi-uu}). Mỗi truy vấn chạy 5 lần, lấy trung vị; bộ nhớ đệm kết quả của
+Bốn kỹ thuật tối ưu được áp dụng cho kho chính và đo trên các truy vấn thực tế của dashboard
+(Bảng~\ref{tab:toi-uu}). Mốc ``trước'' là bản sao bảng thường của cùng bảng, tạo tạm khi đo;
+với PostgreSQL, chỉ mục được xóa để đo rồi tạo lại. Mỗi truy vấn chạy 5 lần, lấy trung vị; bộ nhớ đệm kết quả của
 BigQuery được tắt. Với mỗi kỹ thuật, kết quả trước và sau tối ưu được so sánh và phải giống
 hệt nhau. Trên BigQuery, chỉ số chính là lượng dữ liệu quét, vì chi phí và hạn mức được tính
 theo chỉ số này; ở quy mô dưới 1 GB, thời gian chạy chủ yếu là chi phí khởi động job nên
@@ -149,9 +150,9 @@ chênh lệch không đáng kể.
 \hline
 \textbf{Kỹ thuật} & \textbf{Truy vấn} & \textbf{Chỉ số} & \textbf{Trước} & \textbf{Sau} & \textbf{Giảm} \\ \hline
 Phân vùng bảng tiến độ theo tuần (BigQuery) & Danh sách cảnh báo BR4 tuần 4 & dữ liệu quét & 79,2 MB & 4,7 MB & 16,8$\times$ \\ \hline
-Gom cụm bảng click theo đợt (BigQuery) & Click theo tuần và loại học liệu của một đợt & dữ liệu quét & 304,6 MB & 12,0 MB & 25,5$\times$ \\ \hline
+Gom cụm bảng click theo đợt (BigQuery) & Click theo tuần và loại học liệu của một đợt & dữ liệu quét & 304,6 MB & 19,2 MB & 15,9$\times$ \\ \hline
 Bảng tổng hợp sẵn BR2 (BigQuery) & Biểu đồ BR2 của một đợt & dữ liệu quét & 381,6 MB & 1,2 MB & 330$\times$ \\ \hline
-Chỉ mục B-tree (PostgreSQL) & Như kỹ thuật gom cụm & thời gian & 400,1 ms & 73,6 ms & 5,4$\times$ \\ \hline
+Chỉ mục B-tree (PostgreSQL) & Như kỹ thuật gom cụm & thời gian & 200,5 ms & 37,6 ms & 5,3$\times$ \\ \hline
 \end{tabularx}
 \caption{Kết quả các kỹ thuật tối ưu truy vấn}
 \label{tab:toi-uu}
@@ -161,8 +162,9 @@ Các phép đo cho thấy mỗi kỹ thuật chỉ có tác dụng trong điều
 giảm dữ liệu quét khi truy vấn lọc cột phân vùng bằng một hằng số: truy vấn BR4 nối bảng với
 chính nó qua điều kiện tuần trước bằng tuần hiện tại trừ một, và BigQuery không dùng được
 điều kiện này để bỏ qua phân vùng; chỉ khi thêm điều kiện hằng số tương đương thì dữ liệu quét
-mới giảm từ 79,2 MB xuống 4,7 MB. Gom cụm phù hợp với các cột chuỗi hay được lọc như mã môn
-và mã kỳ, khi đó truy vấn một đợt chỉ đọc khoảng 1/22 bảng. Bảng tổng hợp sẵn đổi chi phí của
+mới giảm từ 79,2 MB xuống 4,7 MB. Truy vấn của trang Cảnh báo trên BigQuery vì vậy được thêm
+điều kiện này dưới dạng tham số tuần, nên mỗi lần mở trang chỉ quét 4,7 MB. Gom cụm phù hợp với các cột chuỗi hay được lọc như mã môn
+và mã kỳ, khi đó truy vấn một đợt chỉ đọc khoảng 1/16 bảng. Bảng tổng hợp sẵn đổi chi phí của
 mỗi lần mở trang lấy chi phí dựng bảng một lần, nhưng phải được dựng lại sau mỗi lần nạp kho.
 Chỉ mục trên PostgreSQL phải bắt đầu bằng cột được lọc: khóa chính có sẵn bắt đầu bằng mã
 sinh viên nên không giúp được truy vấn theo đợt; chỉ mục mới kèm các cột cần đọc cho phép
@@ -241,7 +243,7 @@ Bảng~\ref{tab:tu-danh-gia} tóm tắt nội dung của project ứng với t�
 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn & 4 tầng dữ liệu, 3 hệ lưu trữ, điều phối bằng Airflow; nhánh stream song song với batch & Dựng lại toàn bộ kho trong 303 giây; stream khớp batch trên 1.342.949 dòng & \ref{sec:kien-truc}, \ref{sec:hien-thuc} \\ \hline
 2.2 Thiết kế kho dữ liệu & Lược đồ constellation, bảng ảnh chụp theo tuần, so sánh 3 cách tổ chức & 1.342.949 dòng ảnh chụp; 44 tổ hợp đo hiệu năng & \ref{sec:luan-ly}, \ref{sec:benchmark} \\ \hline
 3.1 Quản lý dữ liệu phức tạp & Gộp dòng trùng, cờ chất lượng, chống rò rỉ nhãn, đối soát ba hệ & 3.810.465 dòng trùng được gộp; 289 bài kiểm thử & \ref{sec:etl}, \ref{sec:kiem-thu} \\ \hline
-3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại & Xử lý phân tán (Spark), kho đám mây (BigQuery), điều phối (Airflow), xử lý stream từ Kafka có watermark, tối ưu có số đo & Giảm 5,4$\times$ đến 330$\times$; watermark giảm bộ nhớ stream khoảng 10$\times$ & \ref{sec:hien-thuc}, \ref{sec:stream}, \ref{sec:toi-uu} \\ \hline
+3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại & Xử lý phân tán (Spark), kho đám mây (BigQuery), điều phối (Airflow), xử lý stream từ Kafka có watermark, tối ưu có số đo & Giảm 5,3$\times$ đến 330$\times$; watermark giảm bộ nhớ stream khoảng 10$\times$ & \ref{sec:hien-thuc}, \ref{sec:stream}, \ref{sec:toi-uu} \\ \hline
 \end{tabularx}
 \caption{Nội dung project ứng với chuẩn đầu ra của môn học}
 \label{tab:tu-danh-gia}
@@ -261,8 +263,9 @@ dữ liệu, nên kho được nạp lại toàn bộ mỗi lần thay vì nạp
 bắt thay đổi dữ liệu (CDC). Cũng vì giới hạn dung lượng 10 GB, wide table ở quy mô 5$\times$
 không dựng được trên BigQuery.
 
-Về hiện thực, các kỹ thuật phân vùng, gom cụm và chỉ mục mới được thử nghiệm trên bản sao của
-bảng, chưa được đưa vào luồng nạp chính. Hai data mart được làm mới thủ công, nằm ngoài DAG, nên
-có thể hiển thị số cũ nếu kho được nạp lại mà quên làm mới. Cuối cùng, kết quả so sánh star với
+Về hiện thực, phân vùng và gom cụm làm phép so sánh các cách tổ chức dữ liệu không còn cùng
+điều kiện, nên trước mỗi lần đo benchmark phải nạp lại kho chính ở dạng bảng thường rồi bật lại
+tối ưu sau đó; quên bước này thì bộ chạy benchmark từ chối chạy trên PostgreSQL, nhưng trên
+BigQuery thì không tự phát hiện được. Cuối cùng, kết quả so sánh star với
 3NF trên BigQuery ở quy mô 5$\times$ còn một điểm chưa giải thích được bằng thực nghiệm
 (mục~\ref{sec:benchmark}).
