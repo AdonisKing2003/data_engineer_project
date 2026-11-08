@@ -621,9 +621,12 @@ def render_faculty_page() -> None:
 
 
 def render_student_page() -> None:
-    st.title("Hoạt động diễn đàn của nhóm đạt")
+    st.title("So với nhóm đạt")
+    render_br8_student_comparison()
+
+    st.subheader("Ví dụ: diễn đàn của nhóm đạt, BBB 2013J tuần 5")
     st.caption(
-        "BBB 2013J, tuần 5, loại hoạt động forumng; sinh viên không có click được tính là 0 (BR8)."
+        "Câu hỏi mẫu 20: loại hoạt động forumng; sinh viên không có click được tính là 0 (BR8)."
     )
     try:
         result = load_query("br8_forum_week5")
@@ -672,6 +675,134 @@ def render_student_page() -> None:
         margin={"l": 20, "r": 20, "t": 60, "b": 20},
     )
     st.plotly_chart(chart, use_container_width=True, key="br8_quantiles")
+
+
+BR8_MIN_GROUP = 30
+
+
+def render_br8_student_comparison() -> None:
+    st.subheader("Bạn so với nhóm đạt")
+    st.caption(
+        "Click của bạn trong tuần đã chọn, theo từng loại học liệu, đặt trên dải 25%–75% click của "
+        "các bạn cùng đợt đã đạt môn (BR8). Trên OULAD mọi đợt đã kết thúc nên nhóm đạt lấy cùng đợt; "
+        "khi dùng thật thì lấy đợt trước của cùng môn."
+    )
+    try:
+        offerings = load_query("br2_offerings")
+    except Exception as error:
+        show_query_error("danh sách đợt học", error)
+        return
+    labels = sorted(
+        {offering_label(row.code_module, row.code_presentation) for row in offerings.itertuples()}
+    )
+    if not labels:
+        st.warning("Chưa có đợt học nào để hiển thị.")
+        return
+    offering_column, week_column = st.columns([2, 1])
+    choice = select_offering(
+        labels, key="br8_offering", default="BBB 2013J", container=offering_column
+    )
+    code_module, code_presentation = split_offering(choice)
+    week_no = week_column.selectbox(
+        "Tuần", list(range(0, 39)), index=5, format_func=lambda week: f"Tuần {week}", key="br8_week"
+    )
+    try:
+        students = load_query(
+            "br8_students_in_week",
+            {
+                "code_module": code_module,
+                "code_presentation": code_presentation,
+                "week_no": int(week_no),
+            },
+        )
+    except Exception as error:
+        show_query_error("danh sách sinh viên", error)
+        return
+    if students.empty:
+        st.info(f"{choice} không có sinh viên còn học ở tuần {week_no}.")
+        return
+    student_ids = [int(value) for value in students["id_student"]]
+    id_student = st.selectbox("Mã sinh viên", student_ids, key="br8_student")
+    try:
+        result = load_query(
+            "br8_student_vs_pass",
+            {
+                "code_module": code_module,
+                "code_presentation": code_presentation,
+                "week_no": int(week_no),
+                "id_student": int(id_student),
+            },
+        )
+    except Exception as error:
+        show_query_error("so sánh với nhóm đạt", error)
+        return
+    if result.empty:
+        st.info("Đợt này chưa có dữ liệu học liệu để so sánh.")
+        return
+    n_pass = int(result["n_pass_students"].iloc[0])
+    if n_pass < BR8_MIN_GROUP:
+        st.warning(
+            f"Nhóm đạt của {choice} có dưới {BR8_MIN_GROUP} sinh viên nên không hiển thị dải, "
+            "để tránh đoán ra số của từng người."
+        )
+        return
+
+    result = result.iloc[::-1].reset_index(drop=True)  # most-used type at the top of the chart
+    below = result["student_clicks"] < result["q25_clicks"]
+    above = result["student_clicks"] > result["q75_clicks"]
+    own_metric, below_metric, above_metric = st.columns(3)
+    own_metric.metric("Click của bạn trong tuần", f"{int(result['student_clicks'].sum()):,}")
+    below_metric.metric("Loại học liệu dưới dải nhóm đạt", f"{int(below.sum())}")
+    above_metric.metric("Loại học liệu trên dải nhóm đạt", f"{int(above.sum())}")
+
+    colors = ["#dc2626" if is_below else "#16a34a" if is_above else "#111827"
+              for is_below, is_above in zip(below, above)]
+    chart = go.Figure()
+    chart.add_trace(
+        go.Bar(
+            y=result["activity_type"],
+            x=result["q75_clicks"] - result["q25_clicks"],
+            base=result["q25_clicks"],
+            orientation="h",
+            marker={"color": "#bfdbfe"},
+            name=f"Nhóm đạt: 25%–75% ({n_pass:,} sinh viên)",
+            customdata=result[["q25_clicks", "q75_clicks"]].to_numpy(),
+            hovertemplate="%{y}<br>Nhóm đạt: %{customdata[0]:g}–%{customdata[1]:g} click<extra></extra>",
+        )
+    )
+    chart.add_trace(
+        go.Scatter(
+            y=result["activity_type"],
+            x=result["median_clicks"],
+            mode="markers",
+            marker={"color": "#1d4ed8", "size": 14, "symbol": "line-ns-open"},
+            name="Nhóm đạt: trung vị",
+            hovertemplate="%{y}<br>Trung vị nhóm đạt: %{x:g} click<extra></extra>",
+        )
+    )
+    chart.add_trace(
+        go.Scatter(
+            y=result["activity_type"],
+            x=result["student_clicks"],
+            mode="markers",
+            marker={"color": colors, "size": 12, "symbol": "diamond"},
+            name=f"Sinh viên {id_student}",
+            hovertemplate="%{y}<br>Bạn: %{x:g} click<extra></extra>",
+        )
+    )
+    chart.update_layout(
+        title=f"{choice}, tuần {week_no}: click theo loại học liệu",
+        xaxis={"title": "Click trong tuần", "rangemode": "tozero"},
+        yaxis={"title": ""},
+        height=max(320, 32 * len(result) + 120),
+        margin={"l": 20, "r": 20, "t": 60, "b": 20},
+        legend={"orientation": "h", "y": -0.15},
+    )
+    st.plotly_chart(chart, use_container_width=True, key="br8_student_compare")
+    st.caption(
+        "Đỏ: thấp hơn 25% nhóm đạt; xanh lá: cao hơn 75% nhóm đạt; đen: nằm trong dải. "
+        "Đây là so sánh mô tả, không có nghĩa click nhiều hơn sẽ làm kết quả tốt hơn."
+    )
 
 
 def render_quality_page() -> None:
@@ -1198,7 +1329,7 @@ PAGES = {
     "warning": st.Page("pages/2_Canh_bao.py", title="Cảnh báo sớm & rút lui", icon="⚠️"),
     "faculty": st.Page(render_faculty_page, title="Khoảng cách IMD", icon="🏫"),
     "progress": st.Page("pages/4_Sinh_vien.py", title="Tiến độ so với lớp", icon="🎓"),
-    "forum": st.Page(render_student_page, title="Diễn đàn tuần 5", icon="💬"),
+    "forum": st.Page(render_student_page, title="So với nhóm đạt", icon="💬"),
     "quality": st.Page(render_quality_page, title="Chất lượng & benchmark", icon="📈"),
     "stream": st.Page(render_stream_page, title="Click thời gian thực", icon="⏱️"),
 }

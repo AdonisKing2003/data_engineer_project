@@ -355,3 +355,40 @@ def test_br8_bigquery_app_demo_shows_zero_inclusive_forum_quantiles(
     assert list(quantiles.data[1].x) == [5]
     assert list(quantiles.data[0].y) == ["Pass/Distinction", "Pass/Distinction"]
     assert quantiles.layout.xaxis.rangemode == "tozero"
+
+
+def test_br8_student_comparison_places_one_student_on_the_pass_band(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    _configure_backend(
+        monkeypatch,
+        ("fact_enrollment", "fact_vle_daily", "dim_vle_site", "fact_student_week", "dim_presentation"),
+    )
+    offering = {"code_module": "BBB", "code_presentation": "2013J", "week_no": 5}
+    students = app_data.run_query("br8_students_in_week", offering)
+    assert len(students) > 0
+    id_student = int(students["id_student"].iloc[0])
+    result = app_data.run_query("br8_student_vs_pass", {**offering, "id_student": id_student})
+
+    # The forum row must agree with sample question 20 (same pass group, zeros included).
+    forum = result.set_index("activity_type").loc["forumng"]
+    assert int(forum["n_pass_students"]) == 1072
+    assert (
+        int(forum["q25_clicks"]),
+        int(forum["median_clicks"]),
+        int(forum["q75_clicks"]),
+    ) == (0, 5, 22)
+    assert (result["n_pass_students"] == 1072).all()
+
+    # The page opens on BBB 2013J, week 5 and the first enrolled student.
+    app_test = _open_page(_run_home(), "render_student_page")
+    metrics = _metrics(app_test)
+    assert metrics["Click của bạn trong tuần"] == f"{int(result['student_clicks'].sum()):,}"
+    figure = _figure(app_test, "br8_student_compare")
+    band, median, student = figure.data
+    assert student.name == f"Sinh viên {id_student}"
+    shown = dict(zip(student.y, np.asarray(student.x, dtype=float)))
+    expected = dict(zip(result["activity_type"], result["student_clicks"].astype(float)))
+    assert shown == expected
+    assert dict(zip(band.y, np.asarray(band.base, dtype=float)))["forumng"] == 0
+    assert dict(zip(median.y, np.asarray(median.x, dtype=float)))["forumng"] == 5

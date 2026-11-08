@@ -15,7 +15,7 @@ với yêu cầu của môn học và nêu các hạn chế.
 \subsection{Kiểm thử}
 \label{sec:kiem-thu}
 
-Bộ kiểm thử gồm 289 bài, viết bằng pytest. Kết quả lần chạy gần nhất: 288 bài đạt và 1 bài được
+Bộ kiểm thử gồm 290 bài, viết bằng pytest. Kết quả lần chạy gần nhất: 289 bài đạt và 1 bài được
 bỏ qua. Bài bị bỏ qua là bộ kiểm thử DAG, vì cần môi trường Airflow nên được chạy riêng trong
 container Airflow, với 11 bài đều đạt. Các bài kiểm thử được chia theo nhóm như
 Bảng~\ref{tab:nhom-kiem-thu}; số đúng của mỗi bài được chốt trước trong hợp đồng dữ liệu và
@@ -42,9 +42,9 @@ Báo lỗi Airflow & Ghi log, gửi webhook đúng định dạng; webhook lỗi
 Câu hỏi mẫu (SQL) & 20 đáp án và bài đảo nhãn của câu 14 & 21 \\ \hline
 Câu hỏi mẫu (dashboard) & Tìm được đáp án của 20 câu trên giao diện dashboard & 20 \\ \hline
 Dashboard & Các trang khởi động và hiển thị không lỗi & 4 \\ \hline
-Truy vấn, data mart, benchmark & SQL nghiệp vụ, hai data mart, các trang và bộ chạy benchmark & 56 \\ \hline
+Truy vấn, data mart, benchmark & SQL nghiệp vụ, hai data mart, các trang và bộ chạy benchmark & 57 \\ \hline
 DAG Airflow & Đủ task, đúng thứ tự, cổng chất lượng đứng trước hai bước nạp, data mart dựng lại ngay sau khi nạp BigQuery & 1 (chạy riêng: 11) \\ \hline
-\textbf{Tổng} & & \textbf{289} \\ \hline
+\textbf{Tổng} & & \textbf{290} \\ \hline
 \end{tabularx}
 \caption{Phân nhóm bộ kiểm thử}
 \label{tab:nhom-kiem-thu}
@@ -413,7 +413,7 @@ Bảng~\ref{tab:tu-danh-gia} tóm tắt nội dung của project ứng với t�
 1.2 Mô hình hóa từ quan hệ đến phi quan hệ & 6 mô hình dữ liệu, có số đo so sánh & Dạng lồng quét ít hơn 33\%; JSONB nhỏ hơn 7,4$\times$ & \ref{sec:phi-quan-he} \\ \hline
 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn & 4 tầng dữ liệu, 3 hệ lưu trữ, điều phối bằng Airflow; nhánh stream song song với batch & Dựng lại toàn bộ kho trong 303 giây; stream khớp batch trên 1.342.949 dòng & \ref{sec:kien-truc}, \ref{sec:hien-thuc} \\ \hline
 2.2 Thiết kế kho dữ liệu & Lược đồ constellation, bảng ảnh chụp theo tuần, so sánh 3 cách tổ chức & 1.342.949 dòng ảnh chụp; 44 tổ hợp đo hiệu năng & \ref{sec:luan-ly}, \ref{sec:benchmark} \\ \hline
-3.1 Quản lý dữ liệu phức tạp & Gộp dòng trùng, cờ chất lượng, chống rò rỉ nhãn, đối soát ba hệ & 3.810.465 dòng trùng được gộp; 289 bài kiểm thử & \ref{sec:etl}, \ref{sec:kiem-thu} \\ \hline
+3.1 Quản lý dữ liệu phức tạp & Gộp dòng trùng, cờ chất lượng, chống rò rỉ nhãn, đối soát ba hệ & 3.810.465 dòng trùng được gộp; 290 bài kiểm thử & \ref{sec:etl}, \ref{sec:kiem-thu} \\ \hline
 3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại & Xử lý phân tán (Spark), kho đám mây (BigQuery), điều phối (Airflow), xử lý stream từ Kafka có watermark, tối ưu có số đo & Giảm 5,3$\times$ đến 330$\times$; watermark giảm bộ nhớ stream khoảng 10$\times$ & \ref{sec:hien-thuc}, \ref{sec:stream}, \ref{sec:toi-uu}, \ref{sec:chi-muc} \\ \hline
 \end{tabularx}
 \caption{Nội dung project ứng với chuẩn đầu ra của môn học}

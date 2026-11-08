@@ -214,7 +214,8 @@ nên không cắt BR nào.
 
 **Slide 20. Sinh viên: BR7, BR8**
 - Ảnh `report/Images/dashboard_sinh_vien.png`. AAA 2014J tuần 10: trung vị tổng click 593 trên 336 sinh viên.
-  BBB 2013J tuần 5: nhóm đạt (1.072 sinh viên) có trung vị 5 click diễn đàn, khoảng 25–75% là 0–22.
+  Thêm ảnh trang **So với nhóm đạt** (cần chụp, đặt cạnh ảnh BR7): BBB 2013J tuần 5, sinh viên 23798 có 10 click diễn
+  đàn, nằm trong dải 0–22 của 1.072 bạn đã đạt (trung vị 5); mỗi loại học liệu một dòng.
 
 **Slide 21. Click thời gian thực** (TV1)
 - Ảnh trang Click thời gian thực khi đường stream đã trùng đường batch (cần chụp).
@@ -225,7 +226,7 @@ nên không cắt BR nào.
 **Slide 22. Độ đúng dữ liệu** (TV2)
 - Đáp án chuẩn của 20 câu hỏi mẫu tính thẳng từ 7 file CSV, không qua kho; SQL chạy trên BigQuery, PostgreSQL, DuckDB
   đều trùng đáp án. Số dòng 9 bảng khớp trên cả 3 nơi lưu.
-- 289 bài kiểm thử, nhóm theo Bảng "Phân nhóm bộ kiểm thử".
+- 290 bài kiểm thử, nhóm theo Bảng "Phân nhóm bộ kiểm thử".
 - Ví dụ thảo luận: đối chiếu hai hệ phát hiện BigQuery dùng phân vị xấp xỉ làm danh sách cảnh báo ra 3.953 thay vì
   3.958; đổi sang phân vị chính xác thì khớp.
 
@@ -256,8 +257,7 @@ nên không cắt BR nào.
 ## 4. Việc cần chuẩn bị trước khi làm slide
 
 - [ ] Chụp Airflow tab Graph và Gantt (slide 13).
-- [ ] Chụp trang Tổng quan (slide 16) và trang Click thời gian thực khi stream chạy xong (slide 21).
-- [ ] Hỏi lại mã nhóm để ghi lên bìa và đặt tên file nộp.
-- [ ] Trang **Diễn đàn tuần 5** (BR8) hiện chỉ cố định BBB 2013J, tuần 5, diễn đàn, và chỉ hiện dải của nhóm đạt, chưa
-      đặt số của một sinh viên lên dải đó như đặc tả BR8. Khi demo nên nói rõ trang đang trả lời câu hỏi mẫu của BR8;
-      nếu TV3 kịp thì thêm chọn sinh viên để BR8 được tính là demo trọn vẹn.
+- [ ] Chụp trang Tổng quan (slide 16), trang So với nhóm đạt ở BBB 2013J tuần 5 (slide 20) và trang Click thời gian
+      thực khi stream chạy xong (slide 21).
+- [ ] Xác nhận mã nhóm để ghi lên bìa và đặt tên file nộp. Project GCP tên `dataengineergroup32`, nên nhiều khả năng là
+      nhóm 32.

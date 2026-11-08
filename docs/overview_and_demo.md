@@ -53,7 +53,7 @@ Airflow: lập lịch và điều phối toàn bộ nhánh batch, có cổng ch�
 | Đúng trên nhiều nơi lưu | 20 câu hỏi mẫu ra cùng đáp án trên BigQuery, PostgreSQL, DuckDB |
 | Stream | Kafka → Spark có watermark, lệch 0 dòng so với batch trên 1.342.949 dòng; trạng thái lớn nhất nhỏ hơn ~10 lần so với không có watermark |
 | Tối ưu (đã áp dụng cho kho chính) | Giảm 5,3× (chỉ mục PostgreSQL) tới 330× (bảng tổng hợp sẵn trên BigQuery) |
-| Kiểm thử | 289 test: 288 qua, 1 bỏ qua (test DAG, chạy riêng trong container airflow: 11 qua) |
+| Kiểm thử | 290 test: 289 qua, 1 bỏ qua (test DAG, chạy riêng trong container airflow: 11 qua) |
 | Dashboard | 9 trang, chia theo 6 nhóm: Chung, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên, Hệ thống |
 
 **Phân công.** TV1: môi trường, ETL, kho, stream, Airflow, kiểm thử, tối ưu. TV2: BR1, BR4, BR5, BR7 và các trang tương
@@ -76,7 +76,7 @@ Airflow: lập lịch và điều phối toàn bộ nhánh batch, có cổng ch�
 | DuckDB | 1.5.6 | Chạy SQL thẳng trên Parquet tại máy, dùng khi phát triển và trong test |
 | Streamlit, Plotly | 1.65.0, 6.9 | Dashboard theo vai trò người dùng |
 | Apache Airflow | 2.10.5 | Điều phối pipeline batch: lập lịch, sensor, cổng chất lượng, chạy song song, retries, báo lỗi |
-| pytest | 9.2 | 289 test: kho, phụ thuộc hàm, đáp án nghiệp vụ, stream, app, benchmark, DAG |
+| pytest | 9.2 | 290 test: kho, phụ thuộc hàm, đáp án nghiệp vụ, stream, app, benchmark, DAG |
 | Make | | Mỗi bước pipeline là một lệnh `make`, dùng chung cho người chạy tay và cho Airflow |
 
 ---
@@ -155,7 +155,7 @@ docker compose exec app make check             # phải ra 5 dòng [OK ]: Spark,
 
 ```bash
 docker compose exec app make all               # khoảng 5 phút, mọi dòng tóm tắt phải là OK
-docker compose exec app make test              # mong đợi: 288 passed, 1 skipped
+docker compose exec app make test              # mong đợi: 289 passed, 1 skipped
 ```
 
 Bảng trên BigQuery Sandbox tự xóa sau 60 ngày kể từ lần nạp. `make all` nạp lại nên luôn an toàn.
@@ -238,7 +238,7 @@ docker compose exec app pytest -v tests/test_questions.py -k label_flip
 Câu để nói: "Đảo toàn bộ kết quả cuối kỳ (Đạt ↔ Rút, Giỏi ↔ Trượt) rồi chạy lại câu 14: danh sách cảnh báo vẫn đúng
 3.958 sinh viên, chỉ độ chính xác thay đổi. Vậy danh sách không dùng thông tin tương lai."
 
-Nhắc thêm: 10,6 triệu dòng click gộp còn 8,46 triệu mà tổng click giữ nguyên; 289 test.
+Nhắc thêm: 10,6 triệu dòng click gộp còn 8,46 triệu mà tổng click giữ nguyên; 290 test.
 
 **Demo 4. Chuẩn 3.2: stream trực tiếp** (khoảng 4 phút, cảnh mạnh nhất)
 

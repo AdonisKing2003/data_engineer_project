@@ -233,11 +233,16 @@ BR nào.
 > 50% ở giữa của lớp, đường đứt nét là trung vị. Ở tuần 10, trung vị của 336 bạn còn học là 593 click. Trang đưa ra một câu
 > nhận xét ngắn về vị trí của mình, không hiện số của bất kỳ bạn nào khác.
 
-**Demo BR8** (45 giây) — TV3
-- Thao tác: trang **Diễn đàn tuần 5**.
-> Câu hỏi: tuần này mình dùng diễn đàn nhiều hay ít so với các bạn đã đạt môn. Với BBB 2013J ở tuần 5, nhóm đạt có 1.072
-> sinh viên, trung vị 5 click diễn đàn, 50% ở giữa nằm trong khoảng 0 đến 22. Sinh viên đặt số của mình lên dải này. Khi
-> dùng thật thì nhóm đạt lấy từ đợt trước của cùng môn, vì đợt đang học chưa có kết quả.
+**Demo BR8** (1 phút) — TV3
+- Thao tác: trang **So với nhóm đạt**. Trang mở sẵn ở **BBB 2013J**, **tuần 5** và sinh viên đầu danh sách (23798).
+  Chỉ dòng `forumng`, rồi đổi sang một mã sinh viên khác để thấy chấm chuyển đỏ hoặc xanh. Cuộn xuống phần **Ví dụ**.
+> Câu hỏi của sinh viên: tuần này mình dùng từng loại học liệu nhiều hay ít so với các bạn đã đạt môn. Mỗi dòng là một
+> loại học liệu: dải xanh nhạt là 50% ở giữa của nhóm đạt, vạch xanh đậm là trung vị, hình thoi là số của mình. Thoi đỏ là
+> thấp hơn 25% nhóm đạt, xanh lá là cao hơn 75%.
+> Ví dụ bạn 23798 ở BBB 2013J tuần 5 có 10 click diễn đàn, nằm trong dải 0 đến 22 của 1.072 bạn đã đạt, trung vị là 5.
+> Dải này cũng chính là đáp án câu hỏi mẫu 20 ở phần ví dụ bên dưới. Danh sách chỉ gồm sinh viên còn học ở tuần đó, và
+> nhóm đạt dưới 30 người thì không hiện dải. Khi dùng thật thì nhóm đạt lấy từ đợt trước của cùng môn, vì đợt đang học
+> chưa có kết quả.
 > Vương demo trang thời gian thực.
 
 **Slide 21 → demo stream** (1 phút) — TV1
@@ -254,7 +259,7 @@ BR nào.
 **Slide 22. Độ đúng dữ liệu** (1 phút) — TV2
 > Nhóm đánh giá theo ba tiêu chí của đề. Thứ nhất là độ đúng. Đáp án chuẩn của 20 câu hỏi mẫu được tính thẳng từ 7 file
 > CSV, không đi qua kho. SQL của 20 câu chạy trên cả ba hệ đều trùng đáp án. Số dòng 9 bảng khớp trên cả ba nơi lưu. Toàn
-> bộ có 289 bài kiểm thử.
+> bộ có 290 bài kiểm thử.
 > Việc đối chiếu nhiều hệ đã bắt được một lỗi thật: bản BigQuery của vài truy vấn dùng hàm phân vị xấp xỉ, làm danh sách
 > cảnh báo ra 3.953 thay vì 3.958 sinh viên. Đổi sang phân vị chính xác thì khớp.
 

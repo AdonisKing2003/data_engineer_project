@@ -87,7 +87,7 @@ Chạy riêng từng bước bằng `docker compose exec app make <lệnh>`. Th�
 
 ## Kiểm thử
 
-`make test` chạy toàn bộ bộ kiểm thử (289 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
+`make test` chạy toàn bộ bộ kiểm thử (290 test, gồm đáp án 20 câu hỏi mẫu trên SQL và trên dashboard, test app và test benchmark). Bảng nào chưa dựng thì test của bảng đó tự bỏ qua.
 
 | File | Kiểm gì |
 |---|---|

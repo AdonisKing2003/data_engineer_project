@@ -330,8 +330,9 @@ không tự tính lại từ dữ liệu thô. Trang Hoạt động học tập 
 \texttt{fact\_submission} cùng \texttt{dim\_assessment}. Trang Cảnh báo sớm và trang Tiến độ so
 với lớp đọc bảng tiến độ theo tuần \texttt{fact\_student\_week}, còn phần đường cong rút lui
 đọc \texttt{fact\_enrollment} theo \texttt{dim\_week}. Trang Khoảng cách IMD ghép
-\texttt{fact\_enrollment} với \texttt{dim\_student}, và trang Diễn đàn tuần 5 đọc
-\texttt{fact\_vle\_daily} lọc theo \texttt{dim\_vle\_site}. Riêng trang Click thời gian thực
+\texttt{fact\_enrollment} với \texttt{dim\_student}, và trang So với nhóm đạt đọc
+\texttt{fact\_vle\_daily} theo loại học liệu trong \texttt{dim\_vle\_site}, lấy nhóm đạt từ
+\texttt{fact\_enrollment} và danh sách sinh viên còn học từ \texttt{fact\_student\_week}. Riêng trang Click thời gian thực
 đọc thêm bảng do luồng stream ghi (mục~\ref{sec:stream}), và trang Chất lượng và benchmark đọc
 kết quả của các lần kiểm tra và đo hiệu năng.
 
@@ -357,7 +358,7 @@ Chung & Tổng quan & \\ \hline
 Giảng viên & Hoạt động học tập; Nộp bài và điểm & BR1, BR2, BR3 \\ \hline
 Cố vấn học tập & Cảnh báo sớm và rút lui & BR4, BR5 \\ \hline
 Lãnh đạo khoa & Khoảng cách IMD & BR6 \\ \hline
-Sinh viên & Tiến độ so với lớp; Diễn đàn tuần 5 & BR7, BR8 \\ \hline
+Sinh viên & Tiến độ so với lớp; So với nhóm đạt & BR7, BR8 \\ \hline
 Hệ thống & Chất lượng và benchmark; Click thời gian thực & \\ \hline
 \end{tabularx}
 \caption{Các trang của dashboard theo nhóm người dùng}

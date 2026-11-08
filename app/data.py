@@ -62,6 +62,14 @@ QUERY_FILES = {
         "duckdb": PROJECT_ROOT / "sql" / "br8_forum_week5.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br8_forum_week5.sql",
     },
+    "br8_students_in_week": {
+        "duckdb": PROJECT_ROOT / "sql" / "br8_students_in_week.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br8_students_in_week.sql",
+    },
+    "br8_student_vs_pass": {
+        "duckdb": PROJECT_ROOT / "sql" / "br8_student_vs_pass.sql",
+        "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "br8_student_vs_pass.sql",
+    },
     "presentations": {
         "duckdb": PROJECT_ROOT / "sql" / "presentations.sql",
         "bigquery": PROJECT_ROOT / "sql" / "bigquery" / "presentations.sql",
@@ -142,6 +150,8 @@ QUERY_PARAMETER_ORDER = {
     "br3_spearman": (),
     "br6_imd_gap": (),
     "br8_forum_week5": (),
+    "br8_students_in_week": ("code_module", "code_presentation", "week_no"),
+    "br8_student_vs_pass": ("code_module", "code_presentation", "week_no", "id_student"),
     "presentations": (),
     "overall_stats": (),
     "br1_school_summary": (),

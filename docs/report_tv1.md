@@ -361,7 +361,7 @@ nhất có đúng 627.031 dòng và 39.605.099 click. Số này được `stream
 
 ## 5. Kiểm thử
 
-`make test` chạy 289 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 51 test mart, trang và benchmark của TV3). Kết quả: 288 qua, 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 11 test qua).
+`make test` chạy 290 test (188 test của TV1: 182 test kho, gồm 11 test phụ thuộc hàm, cộng 6 test điều phối Airflow; 21 test câu hỏi mẫu, gồm 20 đáp án và test đảo nhãn câu 14; 4 test khói cho dashboard; 20 test chấm câu hỏi mẫu qua dashboard; 5 test SQL của TV2; 52 test mart, trang và benchmark của TV3). Kết quả: 289 qua, 1 bỏ qua là `tests/test_dag.py`, vì test này cần Airflow nên chạy riêng trong container airflow (`make test-dag`, 11 test qua).
 Bảng nào chưa dựng thì test của bảng đó tự bỏ qua. pytest chỉ tìm test trong `tests/` (`testpaths` trong `pytest.ini`): trước đó pytest lấy nhầm cả `scripts/bq_smoke_test.py` vì tên khớp mẫu `*_test.py`, nên mỗi lần `make test` lại chạy code nạp thử bảng `courses` lên BigQuery của file này.
 Bảng dưới liệt kê 182 test kho và 6 test điều phối.
 
@@ -451,7 +451,7 @@ hỏi hay gặp nhất khi so với production.
 | Kiểm chất lượng trước khi công bố | Trong DAG, test kho trên Parquet chạy trước khi nạp; lỗi thì dừng, BigQuery giữ bản cũ |
 | Chạy lại an toàn | Mọi bước ghi đè; load job BigQuery `WRITE_TRUNCATE` thay cả bảng trong một lần, lỗi thì bảng cũ giữ nguyên |
 | Stream không trùng, không mất | Producer idempotent, checkpoint của Spark, đích ghi theo `batch_id` và view lấy bản mới nhất (mục 4.2, 4.3) |
-| Kiểm thử | 289 test; số đúng chốt trong hợp đồng dữ liệu và trong đặc tả 8 yêu cầu nghiệp vụ |
+| Kiểm thử | 290 test; số đúng chốt trong hợp đồng dữ liệu và trong đặc tả 8 yêu cầu nghiệp vụ |
 | Môi trường giống nhau | Docker Compose; Kafka và Airflow tách thành profile, chỉ bật khi cần |
 | Phiên bản thư viện khóa chặt | `requirements.lock` ghi đủ 70 gói kể cả gói phụ thuộc; Dockerfile cài với ràng buộc của file này; `make lock` cập nhật sau khi test xanh. Có từ sau sự cố ngày 31/10 (mục 7) |
 | Báo lỗi | Task của DAG lỗi hẳn thì ghi `data/airflow_alerts.jsonl` và gửi webhook Discord/Slack nếu có. Đã thử với một task cố ý lỗi trong Airflow thật |
@@ -506,6 +506,6 @@ Cách này hợp với OULAD vì dữ liệu tự chia theo đợt học, nhưng
 | Spark | Chạy trên cụm (Dataproc, Databricks, Kubernetes) | 1 máy, chế độ `local[*]` |
 | BigQuery | Bật billing: DML, Storage Write API cho stream độ trễ dưới 1 giây, bảng không tự hết hạn | Sandbox: chỉ load job, bảng tự xóa sau 60 ngày |
 | Airflow | Bản đang được hỗ trợ (3.x), executor chạy trên nhiều máy, cảnh báo khi DAG chạy quá lâu (SLA) | 2.10.5, `LocalExecutor`; đã báo lỗi khi task lỗi, chưa có cảnh báo chạy quá lâu |
-| Tự động kiểm thử khi đẩy code (CI/CD) | Mỗi lần push chạy test, build image, triển khai | Chưa có, chạy tay `make test`. Nếu làm thì máy CI chỉ chạy được khoảng 90/289 test không cần dữ liệu cùng test DAG; test số liệu kho và đáp án nghiệp vụ vẫn phải chạy trên máy có kho, nên nhóm chưa làm |
+| Tự động kiểm thử khi đẩy code (CI/CD) | Mỗi lần push chạy test, build image, triển khai | Chưa có, chạy tay `make test`. Nếu làm thì máy CI chỉ chạy được khoảng 90/290 test không cần dữ liệu cùng test DAG; test số liệu kho và đáp án nghiệp vụ vẫn phải chạy trên máy có kho, nên nhóm chưa làm |
 | Theo dõi | Cảnh báo khi dữ liệu cũ quá hạn, khi số dòng lệch, truy được nguồn gốc dữ liệu | File `_report_*.json`, log và báo lỗi của Airflow; số dòng lệch thì cổng chất lượng chặn lại nhưng chưa có cảnh báo dữ liệu cũ quá hạn |
 | Bảo mật | Quản lý khóa bí mật, phân quyền theo vai trò, che dữ liệu cá nhân của sinh viên | Khóa ở file `secrets/gcp-key.json`, mọi người cùng một quyền |
