@@ -45,7 +45,8 @@ PRUNE_LINE = "      AND p.week_no = 3\n"  # dòng lọc hằng số trong sql/op
 # Cách lưu của kho chính, viết dạng DDL để đọc; etl/04_load_bq.py đặt đúng các thông số này trong load job.
 PART_SPEC = (
     "CREATE TABLE fact_student_week (...)\n"
-    "PARTITION BY RANGE_BUCKET(week_no, GENERATE_ARRAY(-4, 39, 1))"
+    "PARTITION BY RANGE_BUCKET(week_no, GENERATE_ARRAY(-4, 39, 1))\n"
+    "CLUSTER BY code_module, code_presentation, id_student  -- đo riêng ở docs/indexing.md"
 )
 CLUST_SPEC = (
     "CREATE TABLE fact_vle_daily (...)\n"

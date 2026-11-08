@@ -6,7 +6,8 @@
 - Nạp file (load job) không tốn phí; số dòng đọc từ metadata của bảng nên cũng không tốn phí truy vấn.
 - --scale N (việc 1.12): nạp kho nhân bản data/warehouse_<N>x vào dataset <BQ_DATASET>_<N>x.
 - Kho 1× được nạp thẳng vào bảng đã tối ưu (việc 1.11, số đo ở docs/optimization.md):
-  fact_student_week phân vùng theo week_no, fact_vle_daily gom cụm theo code_module, code_presentation.
+  fact_student_week phân vùng theo week_no và gom cụm theo code_module, code_presentation, id_student;
+  fact_vle_daily gom cụm theo code_module, code_presentation.
   Kho 5× và --no-tuning nạp bảng thường, để benchmark star / 3NF / bảng rộng so cùng điều kiện.
   Load job WRITE_TRUNCATE không đổi được cách phân vùng của bảng đã có, nên khi cách phân vùng hoặc
   gom cụm khác bảng cũ, bảng cũ bị xóa trước khi nạp (chỉ lúc đổi qua lại, không phải mỗi lần nạp).
@@ -33,7 +34,11 @@ from common import give_back_to_owner, save_report, scaled_dir
 # Cách lưu vật lý của kho 1× trên BigQuery (việc 1.11). Bảng không có trong đây nạp như bảng thường.
 TUNING = {
     # Trang Cảnh báo luôn hỏi một tuần: mỗi tuần một phân vùng, tuần -4 đến 38 (đầu mút 39 không tính).
-    "fact_student_week": {"range": ("week_no", -4, 39, 1)},
+    # Trong mỗi tuần, gom cụm theo các cột BR4/BR7 hay lọc, xếp theo số truy vấn lọc giảm dần:
+    # đợt (trang Cảnh báo khi chọn đợt, trang Sinh viên), rồi sinh viên (tiến trình một sinh viên).
+    # Số đo: docs/indexing.md.
+    "fact_student_week": {"range": ("week_no", -4, 39, 1),
+                          "cluster": ["code_module", "code_presentation", "id_student"]},
     # Trang Học phần lọc theo một đợt: các khối của cùng một đợt nằm cạnh nhau.
     "fact_vle_daily": {"cluster": ["code_module", "code_presentation"]},
 }

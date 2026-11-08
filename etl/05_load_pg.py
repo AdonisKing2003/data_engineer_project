@@ -6,7 +6,9 @@
   Lỗi giữa chừng thì bảng cũ giữ nguyên; chạy lại không bị nhân đôi.
 - Khóa chính cho mọi bảng. Kho 1× (schema public) có thêm chỉ mục cho trang Học phần (việc 1.11, số đo ở
   docs/optimization.md): ix_fact_vle_daily_offering trên fact_vle_daily (module, kỳ, tuần) kèm id_site, sum_click,
-  rồi VACUUM để PostgreSQL đọc thẳng từ chỉ mục. --no-tuning bỏ chỉ mục này: bộ chạy benchmark
+  rồi VACUUM để PostgreSQL đọc thẳng từ chỉ mục; và cho trang Cảnh báo: ix_fact_student_week_week trên
+  fact_student_week (tuần, module, kỳ), rồi CLUSTER bảng theo chỉ mục đó (docs/indexing.md).
+  --no-tuning bỏ các chỉ mục này: bộ chạy benchmark
   (make bench) chỉ nhận schema có khóa chính, để star / 3NF / bảng rộng so cùng điều kiện.
 - So số dòng với Parquet, và với BigQuery nếu đã chạy 04_load_bq.py.
 - --scale N (việc 1.12): nạp kho nhân bản data/warehouse_<N>x vào schema x<N> (vd x5), cùng tên bảng.
@@ -49,6 +51,14 @@ INDEXES = {
     "fact_vle_daily": [
         "CREATE INDEX ix_fact_vle_daily_offering ON {table}\n"
         "    (code_module, code_presentation, week_no) INCLUDE (id_site, sum_click)",
+    ],
+    # Trang Cảnh báo (BR4) lọc theo một tuần, có khi kèm một đợt. Khóa chính bắt đầu bằng id_student nên
+    # không dùng được; chỉ mục này bắt đầu bằng week_no. Dòng của một tuần nằm rải khắp bảng, nên chỉ có
+    # chỉ mục thì vẫn phải đọc gần hết các trang (còn chậm hơn quét tuần tự); CLUSTER xếp lại bảng theo
+    # chỉ mục để dòng cùng tuần nằm liền nhau. Số đo: docs/indexing.md.
+    "fact_student_week": [
+        "CREATE INDEX ix_fact_student_week_week ON {table} (week_no, code_module, code_presentation)",
+        "CLUSTER {table} USING ix_fact_student_week_week",
     ],
 }
 

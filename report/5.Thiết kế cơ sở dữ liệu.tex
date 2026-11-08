@@ -330,8 +330,8 @@ và một chỉ mục được bổ sung trong quá trình tối ưu.
 & \textbf{Parquet} & \textbf{BigQuery} & \textbf{PostgreSQL} \\ \hline
 Khóa chính & Không hỗ trợ; kiểm tra bằng bộ kiểm thử & Không ép buộc; kiểm tra bằng bộ kiểm thử & Ràng buộc \texttt{PRIMARY KEY} trên cả 9 bảng \\ \hline
 Khóa ngoại & Kiểm tra bằng bộ kiểm thử & Không hỗ trợ & Không khai báo, để các bảng nạp lại độc lập; kiểm tra bằng bộ kiểm thử \\ \hline
-Tăng tốc truy vấn & Đọc theo cột; bỏ qua nhóm dòng dựa trên thống kê min/max & Bảng tổng hợp sẵn; phân vùng bảng tiến độ theo tuần; gom cụm bảng click theo đợt & Chỉ mục B-tree trên (đợt, tuần) của bảng click \\ \hline
-Cách nạp & Ghi đè toàn bộ & Load job thay thế toàn bộ bảng, đặt sẵn phân vùng và gom cụm & \texttt{COPY} trong một giao dịch, tạo khóa chính và chỉ mục, sau đó cập nhật thống kê (\texttt{VACUUM ANALYZE}) \\ \hline
+Tăng tốc truy vấn & Đọc theo cột; bỏ qua nhóm dòng dựa trên thống kê min/max & Bảng tổng hợp sẵn; phân vùng bảng tiến độ theo tuần, gom cụm theo đợt và sinh viên; gom cụm bảng click theo đợt & Chỉ mục B-tree trên (đợt, tuần) của bảng click; chỉ mục B-tree trên (tuần, đợt) của bảng tiến độ, bảng được xếp lại theo chỉ mục này (\texttt{CLUSTER}) \\ \hline
+Cách nạp & Ghi đè toàn bộ & Load job thay thế toàn bộ bảng, đặt sẵn phân vùng và gom cụm & \texttt{COPY} trong một giao dịch, tạo khóa chính và chỉ mục, xếp lại bảng tiến độ theo chỉ mục (\texttt{CLUSTER}), sau đó cập nhật thống kê (\texttt{VACUUM ANALYZE}) \\ \hline
 \end{tabularx}
 \caption{Ràng buộc, cơ chế tăng tốc và cách nạp trên ba hệ lưu trữ}
 \label{tab:vat-ly}
@@ -339,7 +339,7 @@ Cách nạp & Ghi đè toàn bộ & Load job thay thế toàn bộ bảng, đặ
 
 Phân vùng, gom cụm và chỉ mục trong Bảng~\ref{tab:vat-ly} được đặt ngay khi nạp kho chính,
 nên mỗi lần nạp lại không cần bước tạo lại riêng; hiệu quả đo được trình bày ở
-mục~\ref{sec:toi-uu}. Bảng~\ref{tab:truy-vet} tổng kết sự truy vết của từng thực thể qua ba
+mục~\ref{sec:toi-uu} và mục~\ref{sec:chi-muc}. Bảng~\ref{tab:truy-vet} tổng kết sự truy vết của từng thực thể qua ba
 mức thiết kế.
 
 \begin{table}[htbp]
@@ -356,7 +356,7 @@ Học liệu & \texttt{dim\_vle\_site} & Khóa chính \texttt{id\_site} \\ \hlin
 Đăng ký & \texttt{fact\_enrollment} & Khóa chính gồm 3 cột \\ \hline
 Lần nộp & \texttt{fact\_submission} & Khóa chính (\texttt{id\_student}, \texttt{id\_assessment}) \\ \hline
 Lượt truy cập & \texttt{fact\_vle\_daily} (gộp theo ngày) & Khóa chính gồm 5 cột; gom cụm theo đợt (BigQuery); chỉ mục (đợt, tuần) (PostgreSQL) \\ \hline
-(sinh ra cho phân tích) & \texttt{fact\_student\_week} & Khóa chính gồm 4 cột; phân vùng theo tuần (BigQuery) \\ \hline
+(sinh ra cho phân tích) & \texttt{fact\_student\_week} & Khóa chính gồm 4 cột; phân vùng theo tuần, gom cụm theo đợt và sinh viên (BigQuery); chỉ mục (tuần, đợt) và \texttt{CLUSTER} theo chỉ mục đó (PostgreSQL) \\ \hline
 \end{tabularx}
 \caption{Truy vết thực thể qua ba mức thiết kế}
 \label{tab:truy-vet}

@@ -119,12 +119,13 @@ danh sách không thay đổi.
 Trên BigQuery, mỗi bảng được nạp bằng một load job ở chế độ thay thế toàn bộ bảng
 (\texttt{WRITE\_TRUNCATE}). Load job thành công thì bảng mới thay bảng cũ trong một lần; thất
 bại thì bảng cũ được giữ nguyên, nên không bao giờ có trạng thái nạp dở dang. Load job của
-bảng tiến độ theo tuần đặt sẵn phân vùng theo tuần, của bảng click đặt sẵn gom cụm theo đợt
-(mục~\ref{sec:toi-uu}). Sau khi nạp, số dòng và cách phân vùng, gom cụm của bảng trên BigQuery
+bảng tiến độ theo tuần đặt sẵn phân vùng theo tuần và gom cụm theo đợt, sinh viên; của bảng click
+đặt sẵn gom cụm theo đợt (mục~\ref{sec:toi-uu}, \ref{sec:chi-muc}). Sau khi nạp, số dòng và cách phân vùng, gom cụm của bảng trên BigQuery
 được kiểm tra lại.
 
 Trên PostgreSQL, mỗi bảng được nạp trong một giao dịch: xóa bảng cũ, tạo bảng, nạp dữ liệu
-bằng lệnh \texttt{COPY}, thêm khóa chính và chỉ mục, rồi mới xác nhận giao dịch; sau đó chạy
+bằng lệnh \texttt{COPY}, thêm khóa chính và chỉ mục (bảng tiến độ theo tuần còn được xếp lại
+theo chỉ mục bằng \texttt{CLUSTER}), rồi mới xác nhận giao dịch; sau đó chạy
 \texttt{VACUUM ANALYZE} để cập nhật thống kê cho bộ tối ưu truy vấn và cho phép đọc thẳng từ chỉ
 mục. Số dòng của cả 9 bảng trên PostgreSQL được so với Parquet và BigQuery.
 

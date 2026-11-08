@@ -171,6 +171,157 @@ sinh viên nên không giúp được truy vấn theo đợt; chỉ mục mới 
 truy vấn chỉ đọc chỉ mục mà không mở bảng, đổi lại chỉ mục chiếm 499 MB và làm chậm việc nạp.
 
 % ------------------------------------------------------------
+\subsection{Chỉ mục và hiệu năng truy vấn}
+\label{sec:chi-muc}
+
+Mục này bám theo bài ``Indexing and Query Performance'' của môn học: tìm truy vấn phải quét
+toàn bộ một bảng lớn, thêm cấu trúc truy cập trên các cột hay được lọc, đo trước và sau, rồi
+cân nhắc chi phí khi ghi. Đối tượng là bảng tiến độ theo tuần \texttt{fact\_student\_week}
+(1.342.949 dòng, mỗi dòng là một sinh viên trong một đợt tại một tuần), nguồn dữ liệu của
+trang Cảnh báo (BR4) và trang Sinh viên (BR7). Kho chính trên BigQuery và kho đối chứng trên
+PostgreSQL dùng chung bảng này; app đọc từ BigQuery. Số đo chi tiết và kế hoạch truy vấn đầy
+đủ nằm trong \texttt{docs/indexing.md}.
+
+\paragraph{Các truy vấn cần phục vụ.} Bảng~\ref{tab:truy-van-fsw} liệt kê các truy vấn của hai
+trang trên \texttt{fact\_student\_week}. Cột \texttt{week\_no} được lọc trong mọi truy vấn của
+trang Cảnh báo; cặp mã môn, mã kỳ được lọc trong bốn trên năm truy vấn; mã sinh viên được lọc
+trong một truy vấn và là khóa của phép nối với tuần trước.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{3.4cm}|p{2.4cm}|X|X|}
+\hline
+\textbf{Truy vấn} & \textbf{Trang} & \textbf{Điều kiện lọc} & \textbf{Phép nối} \\ \hline
+\texttt{br4\_at\_risk\_all} & Cảnh báo, toàn trường & \texttt{week\_no}, \texttt{is\_enrolled} & Nối với chính bảng ở tuần trước theo (sinh viên, môn, kỳ); nối \texttt{fact\_enrollment} \\ \hline
+\texttt{br4\_at\_risk\_list} & Cảnh báo, một đợt & \texttt{week\_no}, \texttt{code\_module}, \texttt{code\_presentation}, \texttt{is\_enrolled} & Như trên \\ \hline
+\texttt{br7\_cohort\_benchmark} & Sinh viên & \texttt{code\_module}, \texttt{code\_presentation}, \texttt{is\_enrolled} & Không \\ \hline
+\texttt{br7\_student\_progress} & Sinh viên & \texttt{id\_student}, \texttt{code\_module}, \texttt{code\_presentation} & \texttt{fact\_enrollment} \\ \hline
+Thứ hạng phân vị (trong trang) & Sinh viên & \texttt{week\_no}, \texttt{code\_module}, \texttt{code\_presentation}, \texttt{is\_enrolled} & Không \\ \hline
+\end{tabularx}
+\caption{Các truy vấn của trang Cảnh báo và trang Sinh viên trên bảng tiến độ theo tuần}
+\label{tab:truy-van-fsw}
+\end{table}
+
+\paragraph{Vấn đề.} Nếu chỉ lưu bảng ở dạng thường, mọi truy vấn trên đều quét toàn bảng. Câu
+hỏi đại diện ``tuần 4 có những sinh viên nào nguy cơ'' (\texttt{br4\_at\_risk\_all}) chỉ cần
+dữ liệu của tuần 4 và tuần 3, tức 2 trong 43 tuần, nhưng trên BigQuery vẫn quét 79,2 MB. Trên
+PostgreSQL, khóa chính bắt đầu bằng mã sinh viên nên không dùng được cho điều kiện theo tuần;
+bộ tối ưu chọn quét tuần tự (\texttt{Seq Scan}) cả 22.016 trang của bảng, một lần cho tuần 4 và
+một lần cho tuần 3.
+
+\paragraph{Giải pháp trên từng hệ.} Bảng~\ref{tab:giai-phap-chi-muc} đặt các khái niệm của bài
+giảng cạnh cách hiện thực trên hai hệ. BigQuery không có chỉ mục B+-tree: dữ liệu được lưu theo
+cột trong các khối có kèm thống kê giá trị nhỏ nhất, lớn nhất, và truy vấn tăng tốc bằng cách
+bỏ qua các khối không thể chứa dòng cần tìm. Phân vùng và gom cụm là hai cách tổ chức các khối
+đó, nên đóng vai trò của chỉ mục. Gom cụm sắp các dòng trong mỗi phân vùng theo cột gom cụm,
+để các dòng cùng một đợt nằm trong các khối liền nhau; đây chính là ý tưởng clustering index
+(slide 35): bản ghi cùng giá trị được gom vào cụm khối riêng, truy vấn chỉ đọc đúng cụm cần.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|X|}
+\hline
+\textbf{Khái niệm (bài giảng)} & \textbf{BigQuery} & \textbf{PostgreSQL} \\ \hline
+Phân vùng ngang trong hệ tập trung (slide 100) & \texttt{PARTITION BY RANGE\_BUCKET(week\_no, GENERATE\_ARRAY(-4, 39, 1))}: 43 phân vùng, mỗi tuần một phân vùng & Không dùng \\ \hline
+Chỉ mục trên cột hay lọc, loại B+-tree (slide 101) & Không có & \texttt{CREATE INDEX ix\_fact\_student\_week\_week ON fact\_student\_week (week\_no, code\_module, code\_presentation)} \\ \hline
+Clustering index (slide 35) & \texttt{CLUSTER BY code\_module, code\_presentation, id\_student} trong mỗi phân vùng & \texttt{CLUSTER fact\_student\_week USING ix\_fact\_student\_week\_week}: xếp lại bảng theo chỉ mục \\ \hline
+\end{tabularx}
+\caption{Phân vùng, chỉ mục và gom cụm cho bảng tiến độ theo tuần}
+\label{tab:giai-phap-chi-muc}
+\end{table}
+
+Thứ tự cột được chọn theo Bảng~\ref{tab:truy-van-fsw}. Trên BigQuery, \texttt{week\_no} đã là
+cột phân vùng, nên gom cụm dùng các cột hay lọc kèm theo: mã môn và mã kỳ (bốn truy vấn), rồi mã
+sinh viên (một truy vấn và khóa nối); tối đa bốn cột nhưng chỉ cần ba. Cột \texttt{is\_enrolled}
+được lọc nhiều nhất nhưng không được chọn: 77,7\% số dòng có giá trị đúng, nên lọc theo cột này
+bỏ được nhiều nhất 22\% dữ liệu, và nếu đặt lên đầu thì dòng của mỗi đợt bị tách làm hai đoạn.
+Trên PostgreSQL, chỉ mục B+-tree chỉ dùng được theo tiền tố, nên \texttt{week\_no} được đặt đầu
+vì câu hỏi đại diện chỉ lọc theo tuần; hai cột sau phục vụ truy vấn một đợt và thứ hạng phân
+vị. Truy vấn một sinh viên đã dùng được khóa chính (bắt đầu bằng mã sinh viên). Truy vấn phân
+vị theo đợt không có chỉ mục riêng, để tránh thêm chỉ mục và chi phí ghi cho một truy vấn ít
+dùng. Cả hai cách lưu được đặt sẵn trong luồng nạp (\texttt{etl/04\_load\_bq.py},
+\texttt{etl/05\_load\_pg.py}) giống các kỹ thuật ở mục~\ref{sec:toi-uu}.
+
+\paragraph{Bằng chứng.} Các mức được đo trên bảng thử chép từ kho thật, tạo lúc đo rồi xóa. Truy
+vấn BigQuery là đúng các file SQL app đang dùng, chỉ đổi tên bảng, với tuần 4, đợt BBB 2014J;
+truy vấn PostgreSQL là bản chuyển cú pháp của \texttt{br4\_at\_risk\_all} cho tuần 4. Mỗi truy
+vấn chạy 5 lần, lấy trung vị, bộ nhớ đệm kết quả của BigQuery được tắt; ở mọi truy vấn, kết
+quả của các mức giống hệt nhau.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|X|r|r|r|}
+\hline
+\textbf{Truy vấn (BigQuery, 1$\times$)} & \textbf{Bảng thường} & \textbf{Phân vùng} & \textbf{Phân vùng + gom cụm} \\ \hline
+BR4 tuần 4, toàn trường (câu hỏi đại diện) & 79,2 MB & 4,7 MB & 4,7 MB \\ \hline
+\quad bytes tính tiền & 79,7 MB & 21,0 MB & 21,0 MB \\ \hline
+\quad slot time & 1.168 ms & 598 ms & 342 ms \\ \hline
+BR4 tuần 4, một đợt & 79,2 MB & 4,7 MB & 4,7 MB \\ \hline
+BR7 phân vị theo tuần, một đợt & 46,0 MB & 46,0 MB & 46,0 MB \\ \hline
+BR7 tiến trình một sinh viên & 79,2 MB & 79,2 MB & 77,1 MB \\ \hline
+\end{tabularx}
+\caption{Dữ liệu quét trên BigQuery ở ba mức lưu trữ của bảng tiến độ theo tuần}
+\label{tab:chi-muc-bq}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|X|r|r|r|r|}
+\hline
+\textbf{Mức (PostgreSQL)} & \multicolumn{2}{c|}{\textbf{1$\times$ (1,34 triệu dòng)}} & \multicolumn{2}{c|}{\textbf{5$\times$ (6,71 triệu dòng)}} \\ \cline{2-5}
+& \textbf{Thời gian} & \textbf{Trang đọc} & \textbf{Thời gian} & \textbf{Trang đọc} \\ \hline
+Chỉ khóa chính: \texttt{Parallel Seq Scan} & 125,2 ms & 22.016 & 558,0 ms & 110.080 \\ \hline
++ chỉ mục: \texttt{Bitmap Index Scan} rồi \texttt{Bitmap Heap Scan} & 172,3 ms & 22.047 & 386,8 ms & 34.868 \\ \hline
++ \texttt{CLUSTER} theo chỉ mục: như trên & 73,9 ms & 567 & 274,5 ms & 2.817 \\ \hline
+\end{tabularx}
+\caption{Câu hỏi đại diện trên PostgreSQL ở ba mức; thời gian là \texttt{Execution Time} của
+\texttt{EXPLAIN ANALYZE}, trang đọc là số trang của bước quét bảng phía tuần 4}
+\label{tab:chi-muc-pg}
+\end{table}
+
+\paragraph{Đọc kết quả.} Trên BigQuery (Bảng~\ref{tab:chi-muc-bq}), phân vùng giảm dữ liệu quét của
+trang Cảnh báo 16,8 lần, vì truy vấn chỉ đọc phân vùng tuần 4 và tuần 3. Phân vùng không giúp
+hai truy vấn BR7 vì chúng không lọc theo tuần. Gom cụm gần như không giảm thêm: mỗi phân vùng
+tuần chỉ khoảng 3 MB, nhỏ hơn đơn vị khối mà BigQuery dùng để bỏ qua dữ liệu, nên mỗi phân vùng
+chỉ có một vài khối và gần như không có khối nào bị bỏ; chỉ truy vấn một sinh viên giảm được
+2,7\%. Đối chiếu với bảng click 304,6 MB ở mục~\ref{sec:toi-uu}, cùng cách gom cụm theo đợt
+giảm được 15,9 lần, nên lợi ích của gom cụm phụ thuộc vào kích thước dữ liệu trong mỗi phân
+vùng. Slot time chỉ để tham khảo vì dao động giữa các lần chạy.
+
+Trên PostgreSQL (Bảng~\ref{tab:chi-muc-pg}), chỉ thêm chỉ mục B+-tree thì truy vấn ở quy mô 1$\times$
+còn chậm hơn quét tuần tự. Kế hoạch truy vấn đã chuyển từ \texttt{Seq Scan} sang tra chỉ mục,
+nhưng các dòng của tuần 4 nằm rải khắp bảng (hệ số tương quan giữa \texttt{week\_no} và vị trí
+dòng trên đĩa là 0,02), nên các dòng cần đọc rơi vào gần như mọi trang: vẫn đọc 22.047 trang,
+thêm chi phí tra chỉ mục. Đây là khác biệt giữa chỉ mục thường và clustering index ở slide 35.
+Sau khi xếp lại bảng theo chỉ mục bằng \texttt{CLUSTER}, hệ số tương quan thành 1, các dòng cùng
+tuần nằm liền nhau, nên mỗi phía chỉ đọc 567 trang (2,6\% bảng) và truy vấn nhanh hơn quét tuần
+tự 1,7 lần ở 1$\times$, 2,0 lần ở 5$\times$. Số trang giảm 39 lần nhưng thời gian giảm ít hơn,
+vì phần còn lại của truy vấn (tính phân vị, nối với bảng đăng ký, trả 27.250 dòng) không đổi.
+
+\paragraph{Chi phí khi ghi (slide 101).} Mỗi chỉ mục phải được cập nhật khi ghi. Chèn toàn bộ
+1,34 triệu dòng vào bảng rỗng mất 2,36 s khi chỉ có khóa chính và 4,52 s khi có thêm chỉ mục
+(chậm hơn 91\%); chỉ mục chiếm thêm 9,9 MB ở 1$\times$ và 48,2 MB ở 5$\times$. PostgreSQL không
+giữ thứ tự của \texttt{CLUSTER} cho dòng ghi sau đó, nên phải chạy lại sau mỗi lần nạp; vì kho
+được nạp lại toàn bộ mỗi lần, luồng nạp chạy \texttt{CLUSTER} ngay sau khi tạo chỉ mục, mất
+khoảng 4 s ở 1$\times$ và 13 s ở 5$\times$. Trên BigQuery, gom cụm được thực hiện khi load job
+ghi bảng nên không có bước riêng.
+
+\paragraph{Lưu ý.} Bảng hiện chỉ có 1,34 triệu dòng, và BigQuery tính tiền tối thiểu 10 MB cho
+mỗi bảng trong một truy vấn, nên bytes tính tiền của câu hỏi đại diện chỉ giảm từ 79,7 MB xuống
+21,0 MB, dù dữ liệu quét giảm từ 79,2 MB xuống 4,7 MB; mức tiết kiệm hiện tại vì vậy nhỏ. Lợi ích
+rõ hơn khi dữ liệu tăng qua nhiều đợt: với bảng thường, dữ liệu quét tăng theo cả bảng, còn với
+bảng phân vùng chỉ tăng theo dữ liệu của một tuần, và mỗi phân vùng lớn lên thì gom cụm mới bắt
+đầu bỏ qua được khối. Mức 5$\times$ chưa đo được trên BigQuery vì các bản sao thử vượt hạn mức
+lưu trữ 10 GB của gói Sandbox. Cuối cùng, phân vùng chỉ có tác dụng khi truy vấn lọc trực tiếp
+cột \texttt{week\_no} bằng hằng số hoặc tham số: điều kiện qua phép nối
+(\texttt{p.week\_no = w.week\_no - 1}) không giúp BigQuery bỏ phân vùng, nên truy vấn của trang
+Cảnh báo có thêm điều kiện \texttt{p.week\_no = @week\_no - 1} (mục~\ref{sec:toi-uu}).
+
+% ------------------------------------------------------------
 \subsection{So sánh các cách tổ chức dữ liệu}
 \label{sec:benchmark}
 
@@ -243,7 +394,7 @@ Bảng~\ref{tab:tu-danh-gia} tóm tắt nội dung của project ứng với t�
 2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn & 4 tầng dữ liệu, 3 hệ lưu trữ, điều phối bằng Airflow; nhánh stream song song với batch & Dựng lại toàn bộ kho trong 303 giây; stream khớp batch trên 1.342.949 dòng & \ref{sec:kien-truc}, \ref{sec:hien-thuc} \\ \hline
 2.2 Thiết kế kho dữ liệu & Lược đồ constellation, bảng ảnh chụp theo tuần, so sánh 3 cách tổ chức & 1.342.949 dòng ảnh chụp; 44 tổ hợp đo hiệu năng & \ref{sec:luan-ly}, \ref{sec:benchmark} \\ \hline
 3.1 Quản lý dữ liệu phức tạp & Gộp dòng trùng, cờ chất lượng, chống rò rỉ nhãn, đối soát ba hệ & 3.810.465 dòng trùng được gộp; 289 bài kiểm thử & \ref{sec:etl}, \ref{sec:kiem-thu} \\ \hline
-3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại & Xử lý phân tán (Spark), kho đám mây (BigQuery), điều phối (Airflow), xử lý stream từ Kafka có watermark, tối ưu có số đo & Giảm 5,3$\times$ đến 330$\times$; watermark giảm bộ nhớ stream khoảng 10$\times$ & \ref{sec:hien-thuc}, \ref{sec:stream}, \ref{sec:toi-uu} \\ \hline
+3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại & Xử lý phân tán (Spark), kho đám mây (BigQuery), điều phối (Airflow), xử lý stream từ Kafka có watermark, tối ưu có số đo & Giảm 5,3$\times$ đến 330$\times$; watermark giảm bộ nhớ stream khoảng 10$\times$ & \ref{sec:hien-thuc}, \ref{sec:stream}, \ref{sec:toi-uu}, \ref{sec:chi-muc} \\ \hline
 \end{tabularx}
 \caption{Nội dung project ứng với chuẩn đầu ra của môn học}
 \label{tab:tu-danh-gia}
