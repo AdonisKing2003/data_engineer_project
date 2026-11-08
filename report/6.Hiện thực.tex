@@ -341,34 +341,36 @@ Hệ thống & Chất lượng và benchmark; Click thời gian thực & \\ \hli
 \label{tab:trang}
 \end{table}
 
-% TODO (trước khi nộp): chụp 4 trang dưới đây, lưu vào report/Images/ đúng tên file, rồi bỏ dấu %
-%   ở đầu mỗi khối figure. App: docker compose up -d app, mở http://localhost:8501 (đọc BigQuery).
-%   Chưa có ảnh thì cứ để nguyên comment: báo cáo vẫn biên dịch được, chỉ thiếu hình.
-%
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{Images/dashboard_hoc_phan.png}
-% \caption{Trang Hoạt động học tập (giảng viên): click theo tuần và loại học liệu của một đợt (BR2)}
-% \label{fig:dashboard-hoc-phan}
-% \end{figure}
-%
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{Images/dashboard_canh_bao.png}
-% \caption{Trang Cảnh báo sớm (cố vấn học tập): danh sách sinh viên có nguy cơ tại tuần 4 (BR4)}
-% \label{fig:dashboard-canh-bao}
-% \end{figure}
-%
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{Images/dashboard_imd.png}
-% \caption{Trang Khoảng cách IMD (lãnh đạo khoa): tỷ lệ hoàn thành theo nhóm IMD (BR6)}
-% \label{fig:dashboard-imd}
-% \end{figure}
-%
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{Images/dashboard_sinh_vien.png}
-% \caption{Trang Tiến độ so với lớp (sinh viên): click và điểm của một sinh viên so với phân vị của lớp (BR7)}
-% \label{fig:dashboard-sinh-vien}
-% \end{figure}
+Hình~\ref{fig:dashboard-hoc-phan} đến Hình~\ref{fig:dashboard-sinh-vien} là bốn trang tiêu biểu,
+mỗi trang phục vụ một nhóm người dùng.
+
+% Ảnh chụp từ app đọc BigQuery: docker compose up -d app, rồi
+%   docker compose exec -d app bash -c "cd /work && make app"   và mở http://localhost:8501
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{Images/dashboard_hoc_phan.png}
+\caption{Trang Hoạt động học tập (giảng viên): click theo tuần và loại học liệu của đợt BBB 2014J (BR2)}
+\label{fig:dashboard-hoc-phan}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{Images/dashboard_canh_bao.png}
+\caption{Trang Cảnh báo sớm (cố vấn học tập): danh sách sinh viên có nguy cơ của đợt BBB 2014J tại tuần 4 (BR4)}
+\label{fig:dashboard-canh-bao}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{Images/dashboard_imd.png}
+\caption{Trang Khoảng cách IMD (lãnh đạo khoa): tỷ lệ hoàn thành theo nhóm IMD (BR6)}
+\label{fig:dashboard-imd}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{Images/dashboard_sinh_vien.png}
+\caption{Trang Tiến độ so với lớp (sinh viên): click và điểm của một sinh viên so với phân vị của lớp (BR7)}
+\label{fig:dashboard-sinh-vien}
+\end{figure}
