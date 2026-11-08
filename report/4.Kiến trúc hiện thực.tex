@@ -117,15 +117,12 @@ thực ở mục~\ref{sec:airflow}.
 
 Người dùng làm việc với hệ thống qua một dashboard viết bằng Streamlit, gồm 9 trang chia
 theo nhóm người dùng: Chung, Giảng viên, Cố vấn học tập, Lãnh đạo khoa, Sinh viên và Hệ thống
-(trang chất lượng dữ liệu, kết quả đo hiệu năng). Các trang đọc dữ liệu qua một lớp truy
+(trang chất lượng dữ liệu, kết quả đo hiệu năng). Cả 9 trang đọc dữ liệu qua một lớp truy
 vấn chung, không gọi thẳng vào nơi lưu. Lớp này chọn đọc từ BigQuery hay từ Parquet (qua
 DuckDB) theo một biến cấu hình, nên cùng một dashboard chạy được trên đám mây lẫn trên máy
-không có kết nối BigQuery. Kết quả truy vấn BigQuery được lưu tạm 6 giờ, vì kho chỉ đổi khi
-nạp lại và mỗi lần truy vấn đều tính tiền theo lượng dữ liệu quét.
-
-Ba trang Nộp bài và điểm (BR1), Cảnh báo sớm và rút lui (BR4, BR5) và Tiến độ so với lớp
-(BR7) hiện vẫn đọc thẳng Parquet qua DuckDB, chưa đi qua lớp truy vấn chung.
-Đây là một hạn chế được nêu lại ở chương~\ref{sec:danh-gia}.
+không có kết nối BigQuery. Kết quả truy vấn BigQuery được lưu tạm từ 1 đến 6 giờ tùy trang,
+vì kho chỉ đổi khi nạp lại và mỗi lần truy vấn đều tính tiền theo lượng dữ liệu quét.
+Mục~\ref{sec:dashboard} nêu cụ thể mỗi trang đọc những bảng nào của kho.
 
 % ------------------------------------------------------------
 \subsection{ETL và ELT}

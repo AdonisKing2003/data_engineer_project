@@ -98,6 +98,7 @@ Ngày ghi của CMA không phải hạn nộp thật & Cờ \texttt{is\_late} ch
 \end{table}
 
 \subsubsection{Bảng tiến độ theo tuần và chống rò rỉ nhãn}
+\label{sec:tien-do-tuan}
 
 Bảng \texttt{fact\_student\_week} là ảnh chụp tiến độ của mỗi lượt đăng ký theo tuần, phục
 vụ cảnh báo sớm (BR4) và theo dõi tiến độ (BR7). Mỗi lượt đăng ký có đủ các tuần từ tuần $-4$
@@ -320,6 +321,28 @@ lệnh \texttt{make marts}.
 \subsection{Dashboard}
 \label{sec:dashboard}
 
+Dashboard là điểm cuối của luồng dữ liệu đã trình bày ở các mục trên. Spark làm sạch 7 file
+nguồn và dựng mô hình sao, Airflow nạp mô hình đó lên BigQuery và làm mới hai data mart, còn
+dashboard chỉ đọc kết quả. Mỗi biểu đồ là kết quả của một file SQL trong thư mục
+\texttt{sql/} (mục~\ref{sec:truy-van}) chạy trên các bảng fact và dimension của kho; dashboard
+không tự tính lại từ dữ liệu thô. Trang Hoạt động học tập đọc hai data mart
+\texttt{tv3\_br2\_weekly\_mart} và \texttt{tv3\_br3\_student\_mart}. Trang Nộp bài và điểm đọc
+\texttt{fact\_submission} cùng \texttt{dim\_assessment}. Trang Cảnh báo sớm và trang Tiến độ so
+với lớp đọc bảng tiến độ theo tuần \texttt{fact\_student\_week}, còn phần đường cong rút lui
+đọc \texttt{fact\_enrollment} theo \texttt{dim\_week}. Trang Khoảng cách IMD ghép
+\texttt{fact\_enrollment} với \texttt{dim\_student}, và trang Diễn đàn tuần 5 đọc
+\texttt{fact\_vle\_daily} lọc theo \texttt{dim\_vle\_site}. Riêng trang Click thời gian thực
+đọc thêm bảng do luồng stream ghi (mục~\ref{sec:stream}), và trang Chất lượng và benchmark đọc
+kết quả của các lần kiểm tra và đo hiệu năng.
+
+Ví dụ, danh sách cảnh báo ở Hình~\ref{fig:dashboard-canh-bao} được tính như sau: truy vấn lấy
+các dòng của \texttt{fact\_student\_week} thuộc đợt BBB 2014J tại tuần 4, gắn cho mỗi sinh viên
+bốn dấu hiệu (click tích lũy dưới phân vị 25 của lớp, hai tuần liền không click, đã bỏ bài TMA,
+điểm trung bình dưới 40) và giữ lại những sinh viên có từ hai dấu hiệu trở lên. Vì mỗi dòng của
+bảng tiến độ chỉ chứa dữ liệu phát sinh đến hết tuần đó (mục~\ref{sec:tien-do-tuan}), danh sách
+không dùng thông tin của các tuần sau. Kết quả cuối kỳ chỉ được ghép vào để đo độ chính xác của
+cảnh báo, không tham gia vào việc chọn sinh viên.
+
 Dashboard được xây dựng bằng Streamlit, gồm 9 trang chia theo nhóm người dùng
 (Bảng~\ref{tab:trang}). Mỗi nhóm chỉ thấy các trang phục vụ nhu cầu của mình, và một số trang
 dùng chung lựa chọn đợt học để người dùng không phải chọn lại khi chuyển trang.
@@ -350,6 +373,7 @@ mỗi trang phục vụ một nhóm người dùng.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{Images/dashboard_hoc_phan.png}
+\vspace{0.5 cm}
 \caption{Trang Hoạt động học tập (giảng viên): click theo tuần và loại học liệu của đợt BBB 2014J (BR2)}
 \label{fig:dashboard-hoc-phan}
 \end{figure}
@@ -357,6 +381,7 @@ mỗi trang phục vụ một nhóm người dùng.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{Images/dashboard_canh_bao.png}
+\vspace{0.5 cm}
 \caption{Trang Cảnh báo sớm (cố vấn học tập): danh sách sinh viên có nguy cơ của đợt BBB 2014J tại tuần 4 (BR4)}
 \label{fig:dashboard-canh-bao}
 \end{figure}
@@ -364,6 +389,7 @@ mỗi trang phục vụ một nhóm người dùng.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{Images/dashboard_imd.png}
+\vspace{0.5 cm}
 \caption{Trang Khoảng cách IMD (lãnh đạo khoa): tỷ lệ hoàn thành theo nhóm IMD (BR6)}
 \label{fig:dashboard-imd}
 \end{figure}
@@ -371,6 +397,7 @@ mỗi trang phục vụ một nhóm người dùng.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{Images/dashboard_sinh_vien.png}
+\vspace{0.5 cm}
 \caption{Trang Tiến độ so với lớp (sinh viên): click và điểm của một sinh viên so với phân vị của lớp (BR7)}
 \label{fig:dashboard-sinh-vien}
 \end{figure}
