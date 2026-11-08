@@ -130,9 +130,10 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | 3.1 | Bảng vấn đề dữ liệu → cách xử lý; test chống rò rỉ nhãn | Đảo nhãn, danh sách cảnh báo vẫn 3.958 SV | Cảnh báo sớm & rút lui |
 | 3.2 | Batch và stream (thư mục, Kafka có watermark); 4 ví dụ tối ưu | Stream lệch 0 dòng so với batch; watermark giữ trạng thái nhỏ hơn ~10×; mart giảm 330× | Click thời gian thực (mở trước, rồi chạy `make stream-kafka STREAM_ARGS="--produce --to-bq --delay 1"`: đường stream dâng lên khớp batch); Spark UI tab Structured Streaming; Hoạt động học tập (đọc mart BR2) |
 
-Dashboard không phải chuẩn đầu ra riêng: giao diện chỉ là bằng chứng cho phần phục vụ người dùng của 2.1. Không cần
-làm đẹp thêm. Thời gian nên dồn vào các phần được chấm: thiết kế 3 mức, so sánh star / 3NF / bảng rộng, phân vùng và
-chỉ mục, stream khớp batch.
+Dashboard không phải chuẩn đầu ra riêng, nhưng **phần Project chấm nó nặng**: theo file yêu cầu môn, slide và video
+Project có tiêu chí Hiện thực ứng dụng 8/10 (mỗi BR demo thành công được 4/n/10, n = 3) và Thiết kế giao diện 2/10. Vì
+vậy video phải demo đủ 8 BR trên dashboard. Slide và kịch bản theo các tiêu chí này nằm ở
+[slides_outline.md](slides_outline.md) và [presentation_script.md](presentation_script.md).
 
 ### Chuẩn bị trước buổi demo
 
