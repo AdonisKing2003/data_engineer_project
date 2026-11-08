@@ -257,7 +257,7 @@ và `fact_submission_n` không còn mã đợt và `week_no`, mọi thứ khác 
 2. `week_no` lưu sẵn ở mọi fact, để gom theo tuần và phân vùng `fact_student_week` theo tuần (giảm 16,8×, ví dụ 1).
 3. Cột tổng hợp sẵn: `total_clicks`, `active_days`, `n_submissions` ở `fact_enrollment`, và cả bảng `fact_student_week`.
 
-Cái giá là dữ liệu dư thừa: bảng click của star lớn hơn bản 3NF 24% ([benchmark.md](benchmark.md)). Dư thừa thường
+Cái giá là dữ liệu dư thừa: bảng click của star trên PostgreSQL 816 MB, lớn hơn bản 3NF (618 MB) 32%, tức bản 3NF nhỏ hơn 24% ([benchmark.md](benchmark.md)). Dư thừa thường
 gây lệch khi sửa (update anomaly), nhưng ở đây an toàn vì kho chỉ đọc và mỗi lần nạp là ghi đè toàn bộ từ nguồn.
 `tests/test_warehouse.py` còn kiểm các cột dư khớp với nguồn (tổng click, khóa ngoại không mồ côi). Đổi lại, trên
 PostgreSQL star nhanh hơn 3NF 8–16% ở BR1, BR2, vì view 3NF phải nối lại dimension để có mã đợt. Trên BigQuery

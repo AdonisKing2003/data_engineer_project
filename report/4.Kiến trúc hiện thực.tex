@@ -107,7 +107,7 @@ Bảng~\ref{tab:noi-luu} tóm tắt dữ liệu lưu trữ và thành phần s�
 \begin{tabularx}{\textwidth}{|p{2.6cm}|p{2.9cm}|X|p{3.1cm}|}
 \hline
 \textbf{Hệ lưu trữ} & \textbf{Vai trò} & \textbf{Dữ liệu lưu trữ} & \textbf{Thành phần sử dụng} \\ \hline
-Apache Parquet (truy vấn qua DuckDB) & Kho trung gian & Staging Area (7 bảng); Data Warehouse (5 dimension, 4 fact); bản mở rộng quy mô 5$\times$ & Pipeline ETL; phát triển và kiểm thử truy vấn; chế độ local của dashboard \\ \hline
+Apache Parquet (truy vấn qua DuckDB) & Kho trung gian & 7 bảng staging (bản Parquet của 7 file CSV, chưa làm sạch); 9 bảng của Data Warehouse (5 dimension, 4 fact); bản mở rộng quy mô 5$\times$ & Pipeline ETL; phát triển và kiểm thử truy vấn; chế độ local của dashboard \\ \hline
 Google BigQuery & Kho chính (Cloud Data Warehouse) & 9 bảng của Data Warehouse; 2 Data Marts; bản mở rộng quy mô 5$\times$; các mô hình dữ liệu thay thế phục vụ so sánh (3NF, wide table, nested) & BI Dashboard \\ \hline
 PostgreSQL 16 & Kho đối chứng (Reference Warehouse) & 9 bảng của Data Warehouse; bản mở rộng quy mô 5$\times$; các mô hình dữ liệu thay thế phục vụ so sánh (3NF, wide table, JSONB) & Đối soát kết quả; đánh giá hiệu năng (benchmark) \\ \hline
 \end{tabularx}
@@ -130,7 +130,7 @@ Luồng batch dựng lại toàn bộ kho từ 7 file CSV qua các bước theo 
   \item \textbf{Staging}: đọc 7 file CSV, ghi 7 bảng Parquet.
   \item \textbf{Dimension}: làm sạch, dựng 5 bảng dimension và bảng fact đăng ký.
   \item \textbf{Fact}: dựng bảng fact click theo ngày và bảng fact nộp bài.
-  \item \textbf{Bảng tiến độ theo tuần}: dựng ảnh chụp tiến độ của mỗi sinh viên theo tuần.
+  \item \textbf{Bảng tiến độ theo tuần}: với mỗi lượt đăng ký, tính một dòng cho mỗi tuần ghi lại tiến độ tính đến cuối tuần đó (số click, số bài đã nộp, điểm trung bình).
   \item \textbf{Nạp}: chép 9 bảng của kho lên BigQuery và PostgreSQL.
   \item \textbf{Kiểm thử}: chạy bộ kiểm thử trên kho vừa dựng.
 \end{enumerate}
@@ -143,14 +143,17 @@ bước lỗi đầu tiên. Nội dung và thời gian của từng bước đư
 \subsection{Luồng stream}
 \label{sec:kien-truc-stream}
 
-OULAD là dữ liệu lịch sử, không có luồng sự kiện thật, nên nhánh stream phát lại click theo
-từng ngày để mô phỏng dữ liệu đến dần. Nhánh này chạy song song với luồng batch và chỉ tính một
-phần của kho: tổng click theo sinh viên, đợt học và tuần, tức các cột \texttt{clicks\_week},
-\texttt{clicks\_cum} của bảng tiến độ theo tuần. Click của mỗi ngày được gửi vào Kafka, Spark
-Structured Streaming đọc Kafka và cộng dồn theo tuần, rồi ghi kết quả ra Parquet và nạp lên
-BigQuery sau mỗi lô nhỏ (micro-batch); trang dashboard đọc kết quả đó. Bản batch vẫn là nguồn
-chuẩn: kết quả stream được đối chiếu với bảng tiến độ theo tuần của batch để chứng minh hai nhánh
-cho cùng số liệu (mục~\ref{sec:stream}).
+OULAD là dữ liệu lịch sử, không có luồng sự kiện thật. Để mô phỏng dữ liệu đến dần theo thời
+gian, nhánh stream phát lại các click theo từng ngày và chạy song song với luồng batch. Nhánh
+này không dựng lại toàn bộ kho mà chỉ tính tổng click của mỗi sinh viên trong mỗi đợt học theo
+từng tuần, tương ứng với hai cột \texttt{clicks\_week} và \texttt{clicks\_cum} của bảng tiến độ
+theo tuần.
+
+Trong nhánh stream, click của mỗi ngày được gửi vào Kafka. Spark Structured Streaming đọc dữ
+liệu từ Kafka và cộng dồn click theo tuần; sau mỗi lô nhỏ (micro-batch), kết quả được ghi ra
+Parquet và nạp lên BigQuery, nơi trang Click thời gian thực của dashboard đọc. Luồng batch vẫn
+là nguồn chuẩn: kết quả của nhánh stream được đối chiếu với bảng tiến độ theo tuần do luồng
+batch tạo ra, để kiểm tra hai nhánh cho cùng số liệu (mục~\ref{sec:stream}).
 
 % ------------------------------------------------------------
 \subsection{Điều phối}

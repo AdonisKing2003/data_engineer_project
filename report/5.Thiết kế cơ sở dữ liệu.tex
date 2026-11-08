@@ -22,13 +22,10 @@ Bảng~\ref{tab:thuc-the}). Năm thực thể đầu là các đối tượng ng
 quan hệ nhiều-nhiều giữa chúng, mỗi quan hệ mang thuộc tính riêng nên được mô hình hóa thành
 thực thể kết hợp.
 
-Sơ đồ dùng ký hiệu Chen. Thực thể yếu, tức thực thể không có khóa riêng mà được xác định qua
-thực thể chủ, được vẽ bằng hình chữ nhật viền đôi; quan hệ xác định nối nó với thực thể chủ
-là hình thoi viền đôi. Đường đôi biểu thị tham gia toàn phần, và khóa riêng phần được gạch
-chân nét đứt. Đợt học là thực thể yếu của Học phần với khóa riêng phần là mã kỳ, vì cùng một
-mã kỳ như 2013J được dùng cho nhiều học phần. Ba thực thể kết hợp cũng là thực thể yếu; riêng
-Lượt truy cập có khóa riêng phần là ngày, vì một sinh viên mở cùng một học liệu vào nhiều
-ngày khác nhau.
+Sơ đồ có bốn thực thể yếu. Đợt học là thực thể yếu của Học phần, khóa riêng phần là mã kỳ
+(kỳ 2013J có nhiều học phần cùng mở). Đăng ký và Lần nộp được xác định bằng khóa của hai thực
+thể chủ; Lượt truy cập có thêm khóa riêng phần là ngày, vì một sinh viên mở cùng một học liệu
+vào nhiều ngày.
 
 \begin{figure}[htbp]
 \centering
@@ -56,33 +53,34 @@ Lượt truy cập & Quan hệ Sinh viên -- Học liệu theo ngày & Ngày, s�
 \label{tab:thuc-the}
 \end{table}
 
-Từ mức này rút ra các quy tắc nghiệp vụ ràng buộc thiết kế ở các mức sau. Một sinh viên có
-thể đăng ký nhiều đợt, kể cả học lại cùng một học phần. Một lượt đăng ký có thể bị rút giữa
-chừng, kể cả trước ngày khai giảng. Mỗi bài kiểm tra và mỗi học liệu thuộc về đúng một đợt;
-mã học liệu không được dùng lại giữa các đợt. Mỗi sinh viên nộp mỗi bài tối đa một lần, và
-điểm của bài có thể được chuyển từ đợt học trước.
+Sơ đồ thể hiện các quy tắc nghiệp vụ sau, và mức luận lý, mức vật lý phải giữ đúng các quy tắc này:
+\begin{itemize}
+  \item Một sinh viên có thể đăng ký nhiều đợt, kể cả học lại cùng một học phần.
+  \item Một lượt đăng ký có thể bị rút, kể cả trước ngày khai giảng.
+  \item Mỗi bài kiểm tra và mỗi học liệu thuộc đúng một đợt; mã học liệu không dùng lại giữa
+        các đợt.
+  \item Mỗi sinh viên nộp mỗi bài nhiều nhất một lần; điểm có thể được chuyển từ đợt trước.
+\end{itemize}
 
-Quyết định quan trọng nhất ở mức ý niệm là xác định mỗi thuộc tính thuộc về thực thể nào.
-File \texttt{studentInfo} gộp thuộc tính của Sinh viên và của Đăng ký trên cùng một dòng
-(mục~\ref{sec:van-de-du-lieu}). Kiểm tra trên dữ liệu cho thấy giới tính, vùng, trình độ,
-nhóm IMD và tình trạng khuyết tật không thay đổi giữa các đợt của cùng một sinh viên, nên
-thuộc về Sinh viên. Ngược lại, nhóm tuổi thay đổi giữa các lần đăng ký ở 72 sinh viên, nên
-thuộc về Đăng ký dù về mặt ngữ nghĩa trông giống một đặc điểm cá nhân. Nếu gán nhóm tuổi cho
-Sinh viên, 72 sinh viên này sẽ bị ghi nhận sai nhóm tuổi ở một số đợt.
+Quyết định quan trọng nhất ở mức này là đặt mỗi thuộc tính vào đúng thực thể. File
+\texttt{studentInfo} gộp thuộc tính của Sinh viên và của Đăng ký trên cùng một dòng
+(mục~\ref{sec:van-de-du-lieu}). Kiểm tra trên dữ liệu cho thấy giới tính, vùng, trình độ, nhóm
+IMD và tình trạng khuyết tật không đổi giữa các đợt của cùng một sinh viên, nên thuộc về Sinh
+viên. Nhóm tuổi thì khác: nó thay đổi giữa các lần đăng ký ở 72 sinh viên, nên thuộc về Đăng
+ký. Nếu gán nhóm tuổi cho Sinh viên, 72 sinh viên này sẽ bị ghi sai nhóm tuổi ở một số đợt.
 
 % ------------------------------------------------------------
 \subsection{Chuẩn hóa dữ liệu nguồn}
 \label{sec:chuan-hoa}
 
-Trong hệ thống, thuật ngữ chuẩn hóa được dùng theo hai nghĩa. Chuẩn hóa giá trị là việc làm
-sạch dữ liệu: đổi ký hiệu thiếu thành \texttt{NULL}, thống nhất cách ghi, đặt kiểu dữ liệu;
-nội dung này thuộc về quá trình ETL (mục~\ref{sec:etl}). Chuẩn hóa lược đồ là việc tách bảng
-theo phụ thuộc hàm để mỗi dữ kiện chỉ được lưu ở một nơi, và là nội dung của mục này.
+Mục này trình bày chuẩn hóa lược đồ: tách bảng theo phụ thuộc hàm để mỗi dữ kiện chỉ được
+lưu ở một nơi. Đây là nghĩa khác với chuẩn hóa giá trị (đổi ký hiệu thiếu thành \texttt{NULL},
+thống nhất cách ghi, đặt kiểu dữ liệu), vốn là một bước làm sạch trong ETL (mục~\ref{sec:etl}).
 
-Các phụ thuộc hàm trong Bảng~\ref{tab:phu-thuoc-ham} không chỉ được suy ra từ tên cột mà
-được kiểm chứng trên dữ liệu thật ở tầng staging. Mỗi phụ thuộc hàm có một bài kiểm thử
-tương ứng, nên nếu dữ liệu nguồn thay đổi và phụ thuộc hàm không còn đúng, bộ kiểm thử sẽ
-báo lỗi.
+Bảng~\ref{tab:phu-thuoc-ham} liệt kê các phụ thuộc hàm của dữ liệu nguồn và dạng chuẩn bị vi
+phạm. Các phụ thuộc hàm này được kiểm chứng trên dữ liệu staging chứ không chỉ suy ra từ tên
+cột; mỗi phụ thuộc hàm có một bài kiểm thử, nên nếu dữ liệu nguồn thay đổi làm một phụ thuộc
+hàm không còn đúng, bộ kiểm thử sẽ báo lỗi.
 
 \begin{table}[htbp]
 \centering
@@ -111,34 +109,31 @@ Thứ nhất, mã đợt được giữ trong bảng click và bảng nộp bài
 phép nối và để gom cụm bảng click theo đợt. Thứ hai, số tuần được lưu sẵn trong mọi bảng
 fact, để tổng hợp theo tuần và phân vùng bảng tiến độ theo tuần. Thứ ba, một số cột tổng hợp
 được tính sẵn, như tổng click và số bài đã nộp của mỗi lượt đăng ký, cùng toàn bộ bảng tiến
-độ theo tuần. Cái giá của các lựa chọn này là dữ liệu dư thừa: bảng click của kho lớn hơn
-bản 3NF khoảng 24\%. Dư thừa thường dẫn đến bất thường khi cập nhật (update anomaly), nhưng
-rủi ro này không xảy ra ở đây vì kho chỉ được đọc và mỗi lần nạp đều ghi đè toàn bộ từ dữ
-liệu nguồn; bộ kiểm thử còn kiểm tra các cột dư thừa khớp với nguồn.
+độ theo tuần. Cái giá của các lựa chọn này là dữ liệu dư thừa: trên PostgreSQL, bảng click của kho chiếm
+816 MB, lớn hơn bản 3NF (618 MB) khoảng 32\%. Dư thừa thường dẫn đến bất thường khi cập nhật
+(update anomaly), nhưng vấn đề này không phát sinh ở đây: kho không bị sửa từng dòng mà được
+dựng lại toàn bộ từ dữ liệu nguồn ở mỗi lần nạp, nên các cột dư thừa luôn được tính lại cùng
+lúc. Để phát hiện trường hợp chính pipeline tính sai các cột này, bộ kiểm thử của nhóm còn
+kiểm tra số tuần và các cột tổng hợp khớp với dữ liệu nguồn sau mỗi lần dựng kho.
 
 % ------------------------------------------------------------
 \subsection{Mức luận lý}
 \label{sec:luan-ly}
 
-Kho được thiết kế theo dimensional model của Kimball~\cite{kimball2013}, gồm hai loại bảng.
-Bảng fact ghi lại các sự kiện và số đo của chúng, ví dụ một lần nộp bài cùng điểm số. Bảng
-dimension mô tả ngữ cảnh của sự kiện: sinh viên nào, ở đợt học nào, với bài kiểm tra hay học
-liệu nào, vào tuần nào. Một câu hỏi phân tích thường có dạng ``tính số đo theo các chiều'',
-ví dụ tỷ lệ nộp trễ theo loại bài và theo đợt học.
+Từ mô hình ý niệm, nhóm dựng kho theo dimensional model~\cite{kimball2013}:
+\begin{enumerate}
+  \item Lấy ba quan hệ nhiều-nhiều Đăng ký, Lần nộp, Lượt truy cập làm ba bảng fact, và thêm
+        bảng tiến độ theo tuần cho cảnh báo sớm (BR4) và theo dõi tiến độ (BR7).
+  \item Chốt grain của từng bảng fact trước khi chọn cột (Bảng~\ref{tab:grain}): bảng click gộp
+        về mức sinh viên $\times$ học liệu $\times$ ngày, bảng tiến độ là lượt đăng ký $\times$ tuần.
+  \item Lấy Đợt học, Sinh viên, Bài kiểm tra, Học liệu làm dimension; gộp Học phần vào dimension
+        đợt học vì chỉ có mã; thêm dimension tuần vì mọi yêu cầu nghiệp vụ đều phân tích theo tuần.
+  \item Chọn số đo cho từng bảng fact (Bảng~\ref{tab:so-do-fact}).
+\end{enumerate}
 
-Việc chuyển từ mức ý niệm sang dimensional model theo bốn bước. Các thực thể đóng vai trò
-danh từ (Đợt học, Sinh viên, Bài kiểm tra, Học liệu) trở thành dimension; Học phần được gộp
-vào dimension đợt học vì không có thuộc tính riêng ngoài mã. Một dimension tuần được thêm vào
-vì mọi yêu cầu nghiệp vụ đều phân tích theo tuần học. Các quan hệ nhiều-nhiều có số đo (Đăng
-ký, Lần nộp, Lượt truy cập) trở thành fact. Grain của từng fact được xác định trước khi chọn
-cột. Cuối cùng, một fact không tương ứng với thực thể nào được bổ sung theo nhu cầu nghiệp
-vụ: bảng ảnh chụp tiến độ của từng sinh viên theo tuần, phục vụ cảnh báo sớm (BR4) và theo
-dõi tiến độ (BR7).
-
-Kết quả là một lược đồ dạng constellation (fact constellation), trong đó bốn bảng fact dùng
-chung năm bảng dimension (Hình~\ref{fig:star}, Bảng~\ref{tab:grain}). Việc dùng chung
-dimension (conformed dimension) bảo đảm các phân tích khác nhau hiểu về sinh viên, đợt học
-và thời gian theo cùng một cách, nên số liệu giữa các yêu cầu nghiệp vụ luôn khớp nhau.
+Kết quả là một fact constellation, tức nhiều star schema dùng chung dimension: bốn bảng fact
+dùng chung năm conformed dimension (Hình~\ref{fig:star}, Bảng~\ref{tab:grain}), nên số liệu giữa
+các yêu cầu nghiệp vụ khớp nhau. Các phần sau gọi tắt lược đồ này là star.
 
 \begin{figure}[htbp]
 \centering
@@ -146,6 +141,10 @@ và thời gian theo cùng một cách, nên số liệu giữa các yêu cầu 
 \caption{Lược đồ kho dữ liệu: bốn bảng fact dùng chung năm bảng dimension}
 \label{fig:star}
 \end{figure}
+
+Chi tiết của lược đồ được tóm tắt trong ba bảng: grain và số dòng của chín bảng
+(Bảng~\ref{tab:grain}), thuộc tính chính của các dimension (Bảng~\ref{tab:thuoc-tinh-dim}), và
+khóa dimension cùng số đo của các fact (Bảng~\ref{tab:so-do-fact}).
 
 \begin{table}[htbp]
 \centering
@@ -167,14 +166,9 @@ và thời gian theo cùng một cách, nên số liệu giữa các yêu cầu 
 \label{tab:grain}
 \end{table}
 
-Bốn bảng fact thuộc ba loại theo cách ghi dữ liệu. Bảng nộp bài và bảng click là
-transaction fact: mỗi dòng ghi một sự kiện đã xảy ra; riêng bảng click được gộp ở mức ngày.
-Bảng đăng ký là accumulating snapshot: mỗi lượt đăng ký có đúng một dòng, tích lũy thông tin
-qua cả vòng đời của lượt đó, từ ngày đăng ký, ngày rút đến kết quả cuối kỳ. Bảng tiến độ theo
-tuần là periodic snapshot: mỗi lượt đăng ký có một dòng cho mỗi tuần, kể cả những tuần sinh
-viên không có hoạt động nào. Phân biệt các loại này là cần thiết vì phép đếm trên chúng mang
-ý nghĩa khác nhau: đếm dòng của bảng nộp bài cho ra số lần nộp, còn đếm dòng của bảng tiến độ
-cho ra số tuần được theo dõi.
+Bảng click (\texttt{fact\_vle\_daily}) là transaction fact nhưng được gộp ở mức ngày. Bảng tiến
+độ theo tuần (\texttt{fact\_student\_week}) là periodic snapshot có đủ mọi tuần của lượt đăng ký, kể cả tuần không có hoạt động, để các dấu hiệu như
+``không click trong 2 tuần gần nhất'' tính được trực tiếp.
 
 \begin{table}[htbp]
 \centering
@@ -216,7 +210,7 @@ Các quyết định chính ở mức luận lý được tóm tắt trong Bản
 \hline
 \textbf{Quyết định} & \textbf{Lý do} \\ \hline
 Giữ khóa gốc của OULAD, không sinh khóa thay thế (surrogate key) & Dữ liệu tĩnh, không có thay đổi theo thời gian cần lưu lịch sử; SQL nghiệp vụ và đáp án mẫu dùng chung một bộ khóa với dữ liệu nguồn \\ \hline
-Biểu diễn vấn đề chất lượng bằng cột cờ kiểu \texttt{BOOL}, không xóa dòng & Người phân tích tự quyết định lọc hay giữ; số dòng của kho luôn đối soát được với nguồn \\ \hline
+Biểu diễn vấn đề chất lượng bằng cột cờ kiểu \texttt{BOOL}, không xóa dòng & Truy vấn của từng yêu cầu nghiệp vụ tự quyết định lọc hay giữ, ví dụ BR1 vẫn đếm bài nộp thiếu điểm (\texttt{score\_missing}) vào số bài đã nộp nhưng bỏ ra khi tính điểm; số dòng của kho luôn đối soát được với nguồn \\ \hline
 Bảng tiến độ theo tuần không chứa kết quả cuối kỳ & Chống rò rỉ nhãn: dữ liệu dùng để cảnh báo ở tuần $w$ không được biết trước kết quả cuối kỳ \\ \hline
 Các dấu hiệu nguy cơ của BR4 được tính khi truy vấn, không lưu vào bảng & Các ngưỡng (nhóm 25\% thấp nhất, điểm dưới 40) có thể thay đổi; nếu lưu sẵn thì mỗi lần đổi ngưỡng phải nạp lại kho \\ \hline
 \end{tabularx}
@@ -225,9 +219,8 @@ Các dấu hiệu nguy cơ của BR4 được tính khi truy vấn, không lưu 
 \end{table}
 
 Bảng tiến độ theo tuần tuân theo quy tắc as-of: mọi cột của tuần $w$ chỉ được tính từ dữ
-liệu có ngày không vượt quá ngày cuối của tuần đó ($7w + 6$). Quy tắc này bảo đảm danh sách
-cảnh báo ở một tuần bất kỳ được lập đúng như khi đang ở thời điểm đó, không dùng thông tin
-của tương lai.
+liệu có ngày không vượt quá ngày cuối của tuần đó ($7w + 6$), nên danh sách cảnh báo tuần $w$
+trùng với danh sách lập được vào đúng cuối tuần đó.
 
 Kho có tổng cộng 25 cột cờ kiểu \texttt{BOOL}. Mỗi cờ có định nghĩa chính xác trong hợp
 đồng dữ liệu của nhóm, và số dòng mang giá trị \texttt{TRUE} của các cờ được ghi lại và kiểm
@@ -259,9 +252,8 @@ Bảng~\ref{tab:co} liệt kê các cờ tiêu biểu.
 \subsection{Mức vật lý}
 \label{sec:vat-ly}
 
-Cùng một lược đồ luận lý được hiện thực trên ba hệ lưu trữ (mục~\ref{sec:noi-luu}). Ở mức
-vật lý, mỗi hệ có cách biểu diễn kiểu dữ liệu, cách lưu trên đĩa và cơ chế tăng tốc truy vấn
-riêng.
+Nhóm hiện thực cùng một lược đồ luận lý trên ba hệ lưu trữ (mục~\ref{sec:noi-luu}). Mục này
+trình bày kiểu dữ liệu, kích thước, ràng buộc và cách tăng tốc truy vấn trên từng hệ.
 
 \begin{table}[htbp]
 \centering
@@ -296,14 +288,11 @@ OULAD không cung cấp ngày lịch thật.
 \label{tab:kich-thuoc}
 \end{table}
 
-Bảng~\ref{tab:kich-thuoc} cho thấy cùng một bảng có kích thước chênh nhau gần 20 lần giữa
-các hệ lưu trữ, do cách tổ chức dữ liệu khác nhau. Parquet lưu theo cột và nén; các cột có ít
-giá trị khác nhau như mã môn (7 giá trị) được mã hóa từ điển nên gần như không tốn dung lượng.
-BigQuery cũng lưu theo cột, nhưng dung lượng hiển thị và tính phí là kích thước logic trước
-khi nén; truy vấn chỉ đọc và chỉ tính phí trên các cột được sử dụng. PostgreSQL lưu theo dòng
-và không nén: mỗi dòng mang đủ mọi cột kèm phần đầu dòng. Đổi lại, PostgreSQL có chỉ mục
-B-tree để truy xuất nhanh một số ít dòng. Dung lượng chỉ mục của bảng click và bảng tiến độ theo tuần bao
-gồm khóa chính và một chỉ mục được bổ sung trong quá trình tối ưu.
+Cùng một bảng chênh nhau gần 20 lần giữa các hệ (Bảng~\ref{tab:kich-thuoc}). Parquet nhỏ nhất
+vì nén theo cột, các cột lặp nhiều như mã môn gần như không tốn chỗ. Con số của BigQuery là
+kích thước logic trước nén, cũng là con số dùng để tính phí. PostgreSQL lưu theo dòng, không
+nén, nên lớn nhất. Dung lượng chỉ mục của bảng click và bảng tiến độ theo tuần gồm khóa chính
+và một chỉ mục nhóm bổ sung khi tối ưu.
 
 \begin{table}[htbp]
 \centering
@@ -311,8 +300,8 @@ gồm khóa chính và một chỉ mục được bổ sung trong quá trình t�
 \begin{tabularx}{\textwidth}{|p{2.6cm}|X|X|X|}
 \hline
 & \textbf{Parquet} & \textbf{BigQuery} & \textbf{PostgreSQL} \\ \hline
-Khóa chính & Không hỗ trợ; kiểm tra bằng bộ kiểm thử & Không ép buộc; kiểm tra bằng bộ kiểm thử & Ràng buộc \texttt{PRIMARY KEY} trên cả 9 bảng \\ \hline
-Khóa ngoại & Kiểm tra bằng bộ kiểm thử & Không hỗ trợ & Không khai báo, để các bảng nạp lại độc lập; kiểm tra bằng bộ kiểm thử \\ \hline
+Khóa chính & Không hỗ trợ; kiểm tra bằng bộ kiểm thử & Không khai báo (BigQuery không ép buộc ràng buộc); kiểm tra bằng bộ kiểm thử & Ràng buộc \texttt{PRIMARY KEY} trên cả 9 bảng \\ \hline
+Khóa ngoại & Kiểm tra bằng bộ kiểm thử & Không khai báo; kiểm tra bằng bộ kiểm thử & Không khai báo, để các bảng nạp lại độc lập; kiểm tra bằng bộ kiểm thử \\ \hline
 Tăng tốc truy vấn & Đọc theo cột; bỏ qua nhóm dòng dựa trên thống kê min/max & Bảng tổng hợp sẵn; phân vùng bảng tiến độ theo tuần, gom cụm theo đợt và sinh viên; gom cụm bảng click theo đợt & Chỉ mục B-tree trên (đợt, tuần) của bảng click; chỉ mục B-tree trên (tuần, đợt) của bảng tiến độ, bảng được xếp lại theo chỉ mục này (\texttt{CLUSTER}) \\ \hline
 Cách nạp & Ghi đè toàn bộ & Load job thay thế toàn bộ bảng, đặt sẵn phân vùng và gom cụm & \texttt{COPY} trong một giao dịch, tạo khóa chính và chỉ mục, xếp lại bảng tiến độ theo chỉ mục (\texttt{CLUSTER}), sau đó cập nhật thống kê (\texttt{VACUUM ANALYZE}) \\ \hline
 \end{tabularx}
@@ -330,7 +319,7 @@ mức thiết kế.
 \small
 \begin{tabularx}{\textwidth}{|l|l|X|}
 \hline
-\textbf{Mức ý niệm} & \textbf{Mức luận lý} & \textbf{Mức vật lý (BigQuery / PostgreSQL)} \\ \hline
+\textbf{Mức ý niệm} & \textbf{Mức luận lý} & \textbf{Mức vật lý (khóa chính trên PostgreSQL)} \\ \hline
 Học phần, Đợt học & \texttt{dim\_presentation} & Khóa chính (mã môn, mã kỳ) \\ \hline
 Sinh viên & \texttt{dim\_student} & Khóa chính \texttt{id\_student} \\ \hline
 Bài kiểm tra & \texttt{dim\_assessment} & Khóa chính \texttt{id\_assessment} \\ \hline
@@ -349,30 +338,29 @@ Lượt truy cập & \texttt{fact\_vle\_daily} (gộp theo ngày) & Khóa chính
 \subsection{Mô hình hóa từ quan hệ đến phi quan hệ}
 \label{sec:phi-quan-he}
 
-Ngoài dimensional model của kho chính, cùng dữ liệu OULAD được tổ chức theo nhiều mô hình
-khác, mỗi mô hình phù hợp với một kiểu truy cập (Bảng~\ref{tab:mo-hinh}). Mục tiêu là đánh
-giá bằng số đo cụ thể khi nào một mô hình phi quan hệ có lợi hơn mô hình quan hệ.
+Ngoài dimensional model của kho chính, nhóm tổ chức cùng dữ liệu OULAD theo năm mô hình khác
+để so sánh bằng số đo (Bảng~\ref{tab:mo-hinh}): hai mô hình quan hệ cho benchmark, hai mô hình
+phi quan hệ dựng từ bảng tiến độ theo tuần, và mô hình khóa-giá trị trong nhánh stream.
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.0cm}|p{3.6cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.0cm}|X|p{4.2cm}|}
 \hline
-\textbf{Mô hình} & \textbf{Hiện thực} & \textbf{Phù hợp với} & \textbf{Không phù hợp với} \\ \hline
-Quan hệ chuẩn hóa (3NF) & PostgreSQL, BigQuery & Hệ thống ghi nhiều: mỗi dữ kiện lưu một nơi, cập nhật không gây lệch & Phân tích: cần nhiều phép nối \\ \hline
-Dimensional model (star) & Kho chính trên BigQuery, PostgreSQL & Phân tích đa chiều, ít phép nối & Ghi và sửa từng dòng \\ \hline
-Bảng phi chuẩn hóa toàn phần (wide table) & PostgreSQL, BigQuery & Truy vấn không cần phép nối & Tốn dung lượng; sửa một thuộc tính phải ghi lại nhiều dòng \\ \hline
-Lưu trữ theo cột & Parquet, BigQuery & Quét nhiều dòng trên ít cột; nén tốt & Đọc trọn một dòng; ghi từng dòng \\ \hline
-Dạng lồng (nested, repeated) & BigQuery, kiểu \texttt{ARRAY<STRUCT>} & Dữ liệu cha -- con luôn được đọc cùng nhau & Truy vấn cắt ngang phần tử con của mọi dòng \\ \hline
-Tài liệu (document) & PostgreSQL, kiểu \texttt{JSONB} & Đọc trọn hồ sơ của một đối tượng; cấu trúc linh hoạt & Tổng hợp trên nhiều tài liệu \\ \hline
-Khóa-giá trị (key-value) & State store của Spark Structured Streaming, khóa là sinh viên $\times$ đợt $\times$ tuần & Cập nhật và tra cứu liên tục theo khóa & Truy vấn không đi theo khóa \\ \hline
+\textbf{Mô hình} & \textbf{Nhóm đã dựng} & \textbf{Dùng để} \\ \hline
+Dimensional model (star) & Kho chính trên BigQuery và PostgreSQL & Phục vụ dashboard và 20 câu hỏi mẫu \\ \hline
+Quan hệ chuẩn hóa (3NF) & Bảng click và bảng nộp bài bỏ mã đợt, số tuần; trên PostgreSQL và BigQuery & So sánh hiệu năng với star (mục~\ref{sec:benchmark}) \\ \hline
+Bảng rộng (wide table) & Fact nối sẵn với các dimension; trên PostgreSQL và BigQuery & So sánh hiệu năng với star (mục~\ref{sec:benchmark}) \\ \hline
+Dạng lồng (nested) & Bảng tiến độ trên BigQuery: mỗi lượt đăng ký một dòng, các tuần trong cột \texttt{ARRAY<STRUCT>} & So với bảng phẳng trên truy vấn cảnh báo tuần 4 \\ \hline
+Tài liệu (document) & Bảng tiến độ trên PostgreSQL: mỗi lượt đăng ký một tài liệu \texttt{JSONB} & So với bảng phẳng trên truy vấn một sinh viên và truy vấn tuần 4 \\ \hline
+Khóa-giá trị (key-value) & State store của Spark Structured Streaming, khóa sinh viên $\times$ đợt $\times$ tuần & Cộng dồn click trong nhánh stream \\ \hline
 \end{tabularx}
-\caption{Các mô hình dữ liệu được hiện thực trên bộ dữ liệu OULAD}
+\caption{Các mô hình dữ liệu nhóm đã hiện thực trên bộ dữ liệu OULAD}
 \label{tab:mo-hinh}
 \end{table}
 
-Hai mô hình phi quan hệ được dựng từ cùng bảng tiến độ theo tuần và so sánh trực tiếp với
-bảng phẳng tương ứng. Trong mô hình dạng lồng trên BigQuery, mỗi lượt đăng ký là một dòng và
+Kết quả so sánh star, 3NF và bảng rộng được trình bày ở mục~\ref{sec:benchmark}. Hai mô hình
+phi quan hệ được so trực tiếp với bảng phẳng tương ứng. Trong mô hình dạng lồng trên BigQuery, mỗi lượt đăng ký là một dòng và
 toàn bộ các tuần nằm trong một cột kiểu mảng. Bảng lồng nhỏ hơn bảng phẳng (97,7 MB so với
 123,9 MB) vì các cột khóa không còn lặp lại ở mỗi tuần. Với truy vấn danh sách cảnh báo tuần
 4 của BR4, bản lồng không cần phép nối bảng với chính nó để đặt tuần 3 cạnh tuần 4, và lượng
@@ -381,18 +369,16 @@ lần và thời gian chạy tăng từ 0,26 giây lên 0,83 giây, vì BigQuery
 dòng. Chi phí không mất đi mà chuyển từ phép nối sang xử lý mảng.
 
 Trong mô hình tài liệu trên PostgreSQL, mỗi lượt đăng ký là một tài liệu \texttt{JSONB} chứa
-toàn bộ các tuần, tương tự cách một cơ sở dữ liệu tài liệu như MongoDB lưu hồ sơ học tập. Bảng
-tài liệu nhỏ hơn bảng phẳng 7,4 lần (33,3 MB so với 247,3 MB), nhờ PostgreSQL nén các tài
+toàn bộ các tuần. Bảng tài liệu nhỏ hơn bảng phẳng 7,4 lần (33,3 MB so với 247,3 MB), nhờ PostgreSQL nén các tài
 liệu lớn và số mục của khóa chính giảm từ 1,3 triệu xuống 32.593. Truy vấn hồ sơ của một sinh
 viên có thời gian tương đương ở cả hai mô hình (dưới 1 ms). Ngược lại, truy vấn cắt ngang
 tuần 4 của mọi sinh viên chậm hơn 2,9 lần trên bản tài liệu, vì phải mở và tách toàn bộ tài
 liệu chỉ để giữ lại một tuần.
 
-Kết quả trên dẫn đến nguyên tắc chọn mô hình theo kiểu truy cập. Các câu hỏi tổng hợp cắt
-ngang nhiều sinh viên, chiếm 6 trên 8 yêu cầu nghiệp vụ, phù hợp nhất với dimensional model
-lưu theo cột; đây là lý do kho chính giữ mô hình này. Hồ sơ trọn vẹn của một sinh viên phù
-hợp với mô hình tài liệu hoặc dạng lồng. Việc cập nhật liên tục theo khóa phù hợp với mô hình
-khóa-giá trị: trong nhánh stream (mục~\ref{sec:stream}), Spark giữ tổng click của mỗi khóa sinh
-viên $\times$ đợt $\times$ tuần trong state store và cộng dồn mỗi micro-batch; không có watermark,
-state store giữ 627.031 khóa tới cuối lần chạy, có watermark thì lúc lớn nhất chỉ còn 65.274 khóa. Mô hình đồ thị không được sử dụng vì không yêu cầu nào cần duyệt quan hệ qua
-nhiều bước; quan hệ giữa sinh viên và học liệu chỉ có một bước, phép nối bảng là đủ.
+Từ các số đo trên, nhóm giữ dimensional model lưu theo cột cho kho chính, vì 6 trên 8 yêu cầu
+nghiệp vụ là truy vấn tổng hợp cắt ngang nhiều sinh viên. Mô hình tài liệu hoặc dạng lồng chỉ
+có lợi khi đọc trọn hồ sơ của một sinh viên. Mô hình khóa-giá trị được dùng trong nhánh stream
+(mục~\ref{sec:stream}): Spark cộng dồn click theo khóa sinh viên $\times$ đợt $\times$ tuần
+trong state store sau mỗi micro-batch; nhờ watermark, state store lúc lớn nhất chỉ giữ 65.274
+khóa thay vì 627.031. Nhóm không dùng mô hình đồ thị vì không yêu cầu nào cần duyệt quan hệ
+qua nhiều bước.
