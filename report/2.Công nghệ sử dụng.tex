@@ -20,8 +20,8 @@ máy nào cũng ra cùng một môi trường.
 Docker, Docker Compose & Compose v2 & Môi trường & Cả nhóm chạy cùng một môi trường trên Linux và Windows, không phải cài tay Java, Spark hay thư viện \\ \hline
 Python & 3.11 & Ngôn ngữ chung & Spark, Airflow, Streamlit và thư viện BigQuery đều dùng được từ Python, nên cả nhóm chỉ cần một ngôn ngữ \\ \hline
 Apache Spark (PySpark) & 3.5.3 & ETL batch & Xử lý phân tán; cùng một đoạn code chạy được trên một máy lẫn trên cụm \\ \hline
-% Apache Kafka & 3.8.1 & Hàng đợi sự kiện & (bổ sung sau) \\ \hline
-% Spark Structured Streaming & 3.5.3 & Xử lý stream & (bổ sung sau) \\ \hline
+Apache Kafka & 3.8.1 & Hàng đợi sự kiện & Tách bên gửi click khỏi bên xử lý; Spark đọc theo offset và lưu offset vào checkpoint, nên dừng rồi chạy lại vẫn đọc tiếp đúng chỗ \\ \hline
+Spark Structured Streaming & 3.5.3 & Xử lý stream & Cùng engine và cách viết với ETL batch; hỗ trợ cửa sổ theo thời gian sự kiện và watermark để giới hạn bộ nhớ \\ \hline
 Apache Parquet & & Kho trung gian & Lưu theo cột, giữ kiểu dữ liệu, mọi engine phía sau đều đọc được \\ \hline
 Google BigQuery & Sandbox & Kho chính & Kho dữ liệu đám mây không cần quản trị máy chủ, tính tiền theo lượng dữ liệu quét \\ \hline
 PostgreSQL & 16 & Kho đối chứng & Đối soát kết quả với BigQuery; làm nền so sánh các cách tổ chức bảng \\ \hline

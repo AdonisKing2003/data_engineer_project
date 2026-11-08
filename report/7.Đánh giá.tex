@@ -158,11 +158,31 @@ Chỉ mục B-tree (PostgreSQL) & Như kỹ thuật gom cụm & thời gian & 20
 \label{tab:toi-uu}
 \end{table}
 
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|l|X|r|r|}
+\hline
+\textbf{Bảng} & \textbf{Điều kiện lọc tuần trước (phía \texttt{p})} & \textbf{Dữ liệu quét} & \textbf{Dòng đọc từ bảng} \\ \hline
+Bảng thường & qua phép nối: \texttt{p.week\_no = w.week\_no - 1} & 79,2 MB & 2.718.491 \\ \hline
+Bảng thường & thêm hằng số: \texttt{p.week\_no = 3} & 79,2 MB & 2.718.491 \\ \hline
+Phân vùng & qua phép nối: \texttt{p.week\_no = w.week\_no - 1} & 79,2 MB & 1.408.135 \\ \hline
+Phân vùng & thêm hằng số: \texttt{p.week\_no = 3} & 4,7 MB & 97.779 \\ \hline
+\end{tabularx}
+\caption{Danh sách cảnh báo BR4 tuần 4 trên BigQuery: phân vùng chỉ có tác dụng khi truy vấn
+lọc cột phân vùng bằng hằng số; kết quả của cả bốn trường hợp giống hệt nhau}
+\label{tab:dieu-kien-hang-so}
+\end{table}
+
 Các phép đo cho thấy mỗi kỹ thuật chỉ có tác dụng trong điều kiện nhất định. Phân vùng chỉ
-giảm dữ liệu quét khi truy vấn lọc cột phân vùng bằng một hằng số: truy vấn BR4 nối bảng với
+giảm dữ liệu quét khi truy vấn lọc cột phân vùng bằng một hằng số
+(Bảng~\ref{tab:dieu-kien-hang-so}): truy vấn BR4 nối bảng với
 chính nó qua điều kiện tuần trước bằng tuần hiện tại trừ một, và BigQuery không dùng được
-điều kiện này để bỏ qua phân vùng; chỉ khi thêm điều kiện hằng số tương đương thì dữ liệu quét
-mới giảm từ 79,2 MB xuống 4,7 MB. Truy vấn của trang Cảnh báo trên BigQuery vì vậy được thêm
+điều kiện này để bỏ qua phân vùng. Trên bảng phân vùng, phía tuần hiện tại đã chỉ đọc tuần 4
+nên số dòng đọc giảm gần một nửa, nhưng phía tuần trước vẫn đọc cả bảng nên dữ liệu quét không
+đổi; chỉ khi thêm điều kiện hằng số tương đương thì dữ liệu quét
+mới giảm từ 79,2 MB xuống 4,7 MB. Trên bảng thường, thêm điều kiện đó không giảm được gì vì
+BigQuery vẫn phải đọc cả cột. Truy vấn của trang Cảnh báo trên BigQuery vì vậy được thêm
 điều kiện này dưới dạng tham số tuần, nên mỗi lần mở trang chỉ quét 4,7 MB. Gom cụm phù hợp với các cột chuỗi hay được lọc như mã môn
 và mã kỳ, khi đó truy vấn một đợt chỉ đọc khoảng 1/16 bảng. Bảng tổng hợp sẵn đổi chi phí của
 mỗi lần mở trang lấy chi phí dựng bảng một lần, nhưng phải được dựng lại sau mỗi lần nạp kho.
