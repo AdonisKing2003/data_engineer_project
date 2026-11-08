@@ -160,6 +160,18 @@ docker compose exec app make test              # mong đợi: 289 passed, 1 skip
 
 Bảng trên BigQuery Sandbox tự xóa sau 60 ngày kể từ lần nạp. `make all` nạp lại nên luôn an toàn.
 
+Xem số dòng trong phần tóm tắt của `make all`: `fact_student_week` phải là **1.342.949**, `fact_vle_daily` phải là
+**8.459.320**. Nếu ra gấp đôi, hoặc PostgreSQL báo `UniqueViolation` khi thêm khóa chính, thì thư mục kho đang lẫn file
+Parquet của hai lần chạy (thường do chép thư mục `data/` từ máy khác đè lên). Xóa kho rồi dựng lại:
+
+```bash
+docker compose exec app rm -rf data/warehouse data/warehouse_5x
+docker compose exec app make all
+docker compose exec app make scale             # chỉ cần nếu sẽ chạy benchmark 5×
+```
+
+Không chép thư mục `data/` giữa các máy; mỗi người tự chạy `make all` từ 7 file CSV.
+
 **Bước 3. Chạy stream một lần.** Bước này kiểm tra Kafka và BigQuery, đồng thời tải sẵn gói Kafka connector cho Spark
 để hôm demo không phải tải lại.
 

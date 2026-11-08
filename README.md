@@ -267,6 +267,12 @@ Viết SQL benchmark **không ghi tên dataset/schema trước tên bảng**, r�
 - **Cổng 5432 đã bị dùng** (máy đã cài sẵn PostgreSQL): đổi dòng `"5432:5432"` thành `"5433:5432"` trong `docker-compose.yml`.
 - **Windows báo lỗi xuống dòng trong script** (`\r`): `git config --global core.autocrlf input` rồi clone lại.
 - **Máy Linux không xóa được file trong `data/`** (file do container tạo thuộc root): chạy `make all` một lần, cuối lệnh này trả quyền file về cho bạn. Hoặc `sudo rm -rf data/staging data/warehouse data/stream`.
+- **PostgreSQL báo `UniqueViolation: could not create unique index ..._pkey`, hoặc số dòng ra gấp đôi**
+  (vd `fact_student_week` 2.685.898 thay vì 1.342.949): thư mục `data/warehouse/<bảng>/` lẫn file Parquet của hai
+  lần chạy, thường do chép thư mục `data/` từ máy khác đè lên. BigQuery không kiểm khóa nên có thể đã nhận bản gấp
+  đôi. Dựng lại sạch: `docker compose exec app rm -rf data/warehouse data/warehouse_5x`, rồi `make all`
+  (và `make scale` nếu cần kho 5×). `make all` nạp lại đúng lên cả BigQuery lẫn PostgreSQL.
+  Đừng chép `data/` giữa các máy.
 - **`make stream-kafka` báo không kết nối được `kafka:9092`**: chưa bật Kafka. Chạy `docker compose --profile stream up -d`.
   Dòng `Coordinator load in progress: retrying` lúc mới chạy chỉ là Kafka chưa khởi động xong, producer tự thử lại.
 - **Build treo lâu ở `apt-get update` rồi báo `Temporary failure resolving 'deb.debian.org'`**: container không phân giải

@@ -61,10 +61,16 @@ Hoặc trong container:
 Kho chính 1× có phân vùng, gom cụm (BigQuery) và chỉ mục phụ (PostgreSQL); các bố trí 3NF / bảng rộng thì không. Để so cùng điều kiện, nạp lại kho chính ở dạng bảng thường trước khi đo và bật lại tối ưu sau đó:
 
 ```powershell
+docker compose exec -T app pytest -q tests/test_warehouse.py tests/test_student_week.py
 docker compose exec -T app make load-plain
 docker compose exec -e CONFIRM_M3=1 -T app make bench
 docker compose exec -T app make tune
 ```
+
+Lệnh đầu là cổng chất lượng của Airflow: kiểm kho Parquet (khóa chính không trùng, khóa ngoại đủ) **trước** khi nạp.
+`make load-plain` ghi thẳng lên BigQuery dùng chung mà không kiểm trùng khóa, nên nếu kho Parquet hỏng thì BigQuery nhận
+dữ liệu sai trước, rồi PostgreSQL mới báo `UniqueViolation`. Cổng chất lượng không qua thì dừng lại, dựng lại kho
+theo mục Lỗi hay gặp trong [../README.md](../README.md) rồi mới đo.
 
 Quên `make load-plain` thì preflight PostgreSQL từ chối chạy (còn chỉ mục phụ); phía BigQuery runner không tự kiểm phân vùng / gom cụm. Run ngày 07/11/2026 được đo khi kho chính còn là bảng thường, trước khi tối ưu được đưa vào luồng nạp.
 
