@@ -32,16 +32,7 @@ ngày khác nhau.
 
 \begin{figure}[htbp]
 \centering
-% TODO: vẽ sơ đồ ERD mức ý niệm và lưu thành Images/erd_y_niem.png.
-%   Thực thể và quan hệ (lấy từ docs/design_levels.md mục 1.1):
-%     HỌC PHẦN (1) ---- được mở thành ---- (n) ĐỢT HỌC
-%     ĐỢT HỌC  (1) ---- có ---- (n) BÀI KIỂM TRA
-%     ĐỢT HỌC  (1) ---- có ---- (n) HỌC LIỆU
-%     SINH VIÊN (1) -- (n) ĐĂNG KÝ (n) -- (1) ĐỢT HỌC
-%     SINH VIÊN (1) -- (n) LẦN NỘP (n) -- (1) BÀI KIỂM TRA
-%     SINH VIÊN (1) -- (n) LƯỢT TRUY CẬP (n) -- (1) HỌC LIỆU
-%   Thuộc tính chính: xem Bảng tab:thuc-the.
-% \includegraphics[width=0.9\textwidth]{Images/erd_y_niem.png}
+\includegraphics[width=0.9\textwidth]{Images/erd_y_niem.png}
 \caption{Sơ đồ thực thể -- mối quan hệ ở mức ý niệm}
 \label{fig:erd}
 \end{figure}
@@ -151,15 +142,7 @@ và thời gian theo cùng một cách, nên số liệu giữa các yêu cầu 
 
 \begin{figure}[htbp]
 \centering
-% TODO: vẽ sơ đồ star schema và lưu thành Images/star_schema.png.
-%   Đặt 4 fact ở giữa, 5 dimension xung quanh. Đường nối (dimension -> fact):
-%     dim_presentation -> cả 4 fact; dim_presentation -> dim_assessment, dim_vle_site
-%     dim_student      -> cả 4 fact
-%     dim_assessment   -> fact_submission
-%     dim_vle_site     -> fact_vle_daily
-%     dim_week         -> fact_vle_daily, fact_submission, fact_student_week
-%   Mỗi bảng ghi khóa chính và vài cột tiêu biểu (xem Bảng tab:thuoc-tinh-dim, tab:so-do-fact).
-% \includegraphics[width=\textwidth]{Images/star_schema.png}
+\includegraphics[width=\textwidth]{Images/star_schema.png}
 \caption{Lược đồ kho dữ liệu: bốn bảng fact dùng chung năm bảng dimension}
 \label{fig:star}
 \end{figure}
@@ -305,7 +288,7 @@ OULAD không cung cấp ngày lịch thật.
 \hline
 \textbf{Bảng} & \textbf{Parquet} & \textbf{BigQuery} & \textbf{PostgreSQL (bảng)} & \textbf{PostgreSQL (chỉ mục)} \\ \hline
 \texttt{fact\_vle\_daily} & 42 MB & 516 MB & 816 MB & 952 MB \\ \hline
-\texttt{fact\_student\_week} & 6,1 MB & 124 MB & 172 MB & 64 MB \\ \hline
+\texttt{fact\_student\_week} & 6,1 MB & 124 MB & 172 MB & 73 MB \\ \hline
 \texttt{fact\_submission} & 1,0 MB & 11 MB & 17 MB & 5,4 MB \\ \hline
 \texttt{fact\_enrollment} & 0,5 MB & 3,0 MB & 4,4 MB & 1,3 MB \\ \hline
 \end{tabular}
@@ -319,8 +302,8 @@ giá trị khác nhau như mã môn (7 giá trị) được mã hóa từ điể
 BigQuery cũng lưu theo cột, nhưng dung lượng hiển thị và tính phí là kích thước logic trước
 khi nén; truy vấn chỉ đọc và chỉ tính phí trên các cột được sử dụng. PostgreSQL lưu theo dòng
 và không nén: mỗi dòng mang đủ mọi cột kèm phần đầu dòng. Đổi lại, PostgreSQL có chỉ mục
-B-tree để truy xuất nhanh một số ít dòng. Dung lượng chỉ mục của bảng click bao gồm khóa chính
-và một chỉ mục được bổ sung trong quá trình tối ưu.
+B-tree để truy xuất nhanh một số ít dòng. Dung lượng chỉ mục của bảng click và bảng tiến độ theo tuần bao
+gồm khóa chính và một chỉ mục được bổ sung trong quá trình tối ưu.
 
 \begin{table}[htbp]
 \centering

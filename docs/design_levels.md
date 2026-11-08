@@ -287,11 +287,12 @@ Cùng một mô hình luận lý được hiện thực trên 3 nơi lưu trữ,
 | Bảng | Parquet (nén snappy) | BigQuery | PostgreSQL: bảng | PostgreSQL: chỉ mục |
 |---|---:|---:|---:|---:|
 | `fact_vle_daily` | 42 MB | 516 MB | 816 MB | 952 MB* |
-| `fact_student_week` | 6,1 MB | 124 MB | 172 MB | 64 MB |
+| `fact_student_week` | 6,1 MB | 124 MB | 172 MB | 73 MB† |
 | `fact_submission` | 1,0 MB | 11 MB | 17 MB | 5,4 MB |
 | `fact_enrollment` | 0,5 MB | 3,0 MB | 4,4 MB | 1,3 MB |
 
 \* gồm khóa chính và chỉ mục tối ưu `ix_fact_vle_daily_offering` (499 MB) của [optimization.md](optimization.md).
+† gồm khóa chính và chỉ mục `ix_fact_student_week_week` (9,9 MB) của [indexing.md](indexing.md).
 
 Cùng một bảng nhưng kích thước chênh 20 lần, vì cách lưu khác nhau:
 
@@ -309,7 +310,7 @@ Cùng một bảng nhưng kích thước chênh 20 lần, vì cách lưu khác n
 | Khóa chính | Không có; kiểm bằng pytest (`test_primary_key_unique`) | Không ép buộc; kiểm bằng pytest trên Parquet | `PRIMARY KEY` thật cho 9 bảng |
 | Khóa ngoại | Kiểm bằng pytest (`test_no_orphan_keys`) | Không có | Không khai báo (nạp lại từng bảng độc lập); kiểm bằng pytest |
 | Tổ chức file / bảng | Một thư mục mỗi bảng, nhiều file `part-*.snappy.parquet` | Một bảng mỗi đối tượng trong dataset `oulad` | Một bảng mỗi đối tượng trong schema `public` |
-| Tăng tốc truy vấn | Đọc theo cột, bỏ qua row group theo thống kê min/max | Phân vùng `RANGE_BUCKET(week_no)`, gom cụm theo module/kỳ, bảng tổng hợp sẵn | Chỉ mục B-tree, chỉ mục có `INCLUDE` để quét chỉ trên chỉ mục |
+| Tăng tốc truy vấn | Đọc theo cột, bỏ qua row group theo thống kê min/max | Phân vùng `RANGE_BUCKET(week_no)`, gom cụm theo module/kỳ (và sinh viên ở `fact_student_week`), bảng tổng hợp sẵn | Chỉ mục B-tree, chỉ mục có `INCLUDE` để quét chỉ trên chỉ mục, `CLUSTER` để xếp bảng theo chỉ mục |
 | Nạp | Spark ghi overwrite | Load job `WRITE_TRUNCATE` | `COPY` trong một transaction, rồi `ANALYZE` |
 
 Số đo của các lựa chọn tăng tốc ở dòng 4 nằm ở [optimization.md](optimization.md).
@@ -328,4 +329,4 @@ Số đo của các lựa chọn tăng tốc ở dòng 4 nằm ở [optimization
 | Đăng ký | `fact_enrollment` | Khóa chính 3 cột |
 | Lần nộp | `fact_submission` | Khóa chính (`id_student`, `id_assessment`) |
 | Lượt truy cập | `fact_vle_daily`, gộp các lượt trùng trong ngày | Gom cụm theo module/kỳ (BigQuery); chỉ mục `(code_module, code_presentation, week_no)` (PostgreSQL) |
-| (không có: sinh ra cho phân tích) | `fact_student_week` | Phân vùng theo `week_no` (BigQuery) |
+| (không có: sinh ra cho phân tích) | `fact_student_week` | Phân vùng theo `week_no`, gom cụm theo module/kỳ/sinh viên (BigQuery); chỉ mục `(week_no, code_module, code_presentation)` và `CLUSTER` theo chỉ mục đó (PostgreSQL) |

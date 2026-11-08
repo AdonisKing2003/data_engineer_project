@@ -120,11 +120,13 @@ def load_table(conn, name, bq_rows, src=WAREHOUSE_DIR, schema="public", tuned=Fa
     ok = n_pg == n_parquet and bq_rows.get(name, n_pg) == n_pg
     seconds = round(time.time() - t0, 1)
     bq = f", BigQuery {bq_rows[name]:,}" if name in bq_rows else ""
-    extra = f"  [+{len(indexes)} chỉ mục]" if indexes else ""
+    n_index = sum(ddl.startswith("CREATE INDEX") for ddl in indexes)
+    clustered = any(ddl.startswith("CLUSTER") for ddl in indexes)
+    extra = f"  [+{n_index} chỉ mục{', CLUSTER' if clustered else ''}]" if indexes else ""
     print(f"{'OK ' if ok else 'SAI'} {name:22s} {n_pg:>12,} dòng trên PostgreSQL "
           f"(Parquet {n_parquet:,}{bq})  {seconds}s{extra}")
     return {"rows": n_pg, "expected": n_parquet, "bigquery": bq_rows.get(name),
-            "ok": ok, "seconds": seconds, "indexes": len(indexes)}
+            "ok": ok, "seconds": seconds, "indexes": n_index, "clustered": clustered}
 
 
 def main():

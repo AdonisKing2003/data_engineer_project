@@ -417,6 +417,10 @@ yếu là chi phí khởi động job nên chênh lệch nhỏ. Ở ví dụ 4, 
 - **Chỉ mục PostgreSQL** phải bắt đầu bằng cột được lọc. Khóa chính có sẵn bắt đầu bằng `id_student` nên không giúp
   được truy vấn theo đợt. Kèm cột cần đọc (`INCLUDE`) cho phép quét chỉ trên chỉ mục, không mở bảng. Đổi lại, chỉ mục
   chiếm 499 MB (bảng 856 MB) và làm chậm lúc nạp.
+- **Chỉ mục cho `fact_student_week`** (trang Cảnh báo, trang Sinh viên) đo riêng ở [indexing.md](indexing.md)
+  (`make indexing`): trên PostgreSQL, chỉ mục `(week_no, code_module, code_presentation)` một mình còn chậm hơn quét
+  tuần tự (125 → 172 ms) vì dòng của một tuần nằm rải khắp bảng; sau `CLUSTER` theo chỉ mục còn 74 ms, chỉ đọc 567
+  trên 22.016 trang. Trên BigQuery, gom cụm thêm trong mỗi phân vùng tuần (~3 MB) gần như không giảm bytes quét.
 
 ## 7. Hạn chế
 

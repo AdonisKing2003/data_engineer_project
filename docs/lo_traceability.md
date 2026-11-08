@@ -26,7 +26,7 @@ mục cuối gợi ý slide và trang demo cho từng chuẩn.
 | Ý niệm | Sơ đồ thực thể nghiệp vụ: Học phần, Đợt học, Sinh viên, Bài kiểm tra, Học liệu, Đăng ký, Lần nộp, Lượt truy cập. Quy tắc nghiệp vụ rút ra ở mức này, như "nhóm tuổi thuộc về lượt đăng ký, không thuộc về sinh viên" (72 SV đổi nhóm tuổi) | [design_levels.md](design_levels.md) mục 1 |
 | Luận lý | Star schema dạng constellation: 5 dimension, 4 fact, grain và khóa từng bảng; các quyết định (giữ khóa gốc, cờ thay vì xóa dòng, bảng SV-tuần không chứa nhãn) | [design_levels.md](design_levels.md) mục 2, [contract.md](contract.md) |
 | Chuẩn hóa | Phụ thuộc hàm kiểm trên dữ liệu thật: `studentVle` chưa đạt 1NF (dòng trùng khóa), `studentInfo` vi phạm 2NF (`id_student` → thuộc tính SV). Tách theo phụ thuộc hàm ra bố trí 3NF, rồi phi chuẩn hóa có chủ đích ra star | [design_levels.md](design_levels.md) mục 2.4, `tests/test_staging.py` (11 test) |
-| Vật lý | Ánh xạ kiểu dữ liệu trên 3 engine; kích thước từng bảng; khóa chính, phân vùng, gom cụm, chỉ mục | [design_levels.md](design_levels.md) mục 3, [optimization.md](optimization.md) |
+| Vật lý | Ánh xạ kiểu dữ liệu trên 3 engine; kích thước từng bảng; khóa chính, phân vùng, gom cụm, chỉ mục B+-tree, `CLUSTER` theo chỉ mục | [design_levels.md](design_levels.md) mục 3, [optimization.md](optimization.md), [indexing.md](indexing.md) |
 | Truy vết 3 mức | Một bảng nối thực thể ý niệm → bảng luận lý → cách lưu vật lý | [design_levels.md](design_levels.md) mục 4 |
 
 Code: `etl/02_clean_dims.py`, `etl/03_facts.py` (mức luận lý thành bảng), `etl/04_load_bq.py`, `etl/05_load_pg.py`
@@ -100,6 +100,7 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Kho dữ liệu đám mây không máy chủ | BigQuery, tính tiền theo bytes quét |
 | Lưu trữ theo cột | Parquet, BigQuery; DuckDB chạy SQL thẳng trên Parquet |
 | Tối ưu có số đo, áp dụng cho kho chính | Phân vùng 16,8×, gom cụm 15,9×, bảng tổng hợp sẵn 330× (bytes quét BigQuery); chỉ mục 5,3× (thời gian PostgreSQL). Đặt ngay khi nạp (`etl/04_load_bq.py`, `etl/05_load_pg.py`); mart dựng lại trong DAG ([optimization.md](optimization.md)) |
+| Chỉ mục và hiệu năng truy vấn (bài 3 của môn) | Bảng `fact_student_week` đo 3 mức trên cùng câu hỏi "tuần 4 ai nguy cơ": BigQuery bảng thường / phân vùng / phân vùng + gom cụm (79,2 → 4,7 → 4,7 MB); PostgreSQL khóa chính / + chỉ mục B+-tree / + `CLUSTER` (125 → 172 → 74 ms; 22.016 → 22.047 → 567 trang). Chỉ mục một mình chậm hơn vì dòng nằm rải: minh họa clustering index. Chi phí ghi +91% ([indexing.md](indexing.md)) |
 | Container, chạy một lệnh | Docker Compose; Makefile; `scripts/run_all.py` dừng ở bước lỗi đầu tiên và ghi thời gian từng bước. `requirements.lock` khóa đủ 70 gói, build lại ở đâu cũng ra cùng một bộ thư viện |
 | Điều phối pipeline | Airflow 2.10 (`LocalExecutor`, CSDL trên PostgreSQL): sensor chờ dữ liệu nguồn, cổng chất lượng trước khi nạp, 2 bước nạp chạy song song, retries, báo lỗi qua log và webhook khi task lỗi hẳn; mỗi task gọi đúng một mục Makefile nên logic ETL không đổi ([report_tv1.md](report_tv1.md) mục 1.4) |
 | Phục vụ người dùng | Dashboard Streamlit chia theo vai trò, đọc BigQuery; test khói `tests/test_app.py`. Trang Click thời gian thực tự tải lại mỗi 10 giây khi bật (mặc định tắt vì mỗi lần quét ~48 MB), độ trễ cỡ 5–10 s do mỗi load job BigQuery mất khoảng 5 s |
