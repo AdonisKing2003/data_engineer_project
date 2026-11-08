@@ -11,8 +11,11 @@ Nhóm đã xây dựng một kho dữ liệu phân tích học tập hoàn chỉ
 file CSV gốc đến dashboard phục vụ bốn nhóm người dùng. Về thiết kế, dữ liệu được phân tích
 qua ba mức ý niệm, luận lý và vật lý; các phụ thuộc hàm được kiểm chứng trên dữ liệu thật để
 đưa lược đồ về dạng chuẩn, rồi phi chuẩn hóa có chủ đích thành dimensional model gồm 5
-dimension và 4 fact. Cùng bộ dữ liệu còn được tổ chức theo các mô hình 3NF, wide table, dạng
-lồng và tài liệu, kèm số đo cho thấy mỗi mô hình phù hợp với kiểu truy cập nào.
+dimension và 4 fact. Cùng bộ dữ liệu còn được tổ chức theo các mô hình khác: lược đồ 3NF, bảng
+phi chuẩn hóa toàn phần (wide table), dữ liệu dạng lồng (nested, kiểu \texttt{ARRAY<STRUCT>} trên
+BigQuery), mô hình tài liệu (document, kiểu \texttt{JSONB} trên PostgreSQL) và khóa-giá trị (state
+store của Spark), kèm số đo cho thấy mỗi mô hình phù hợp với kiểu truy cập nào
+(mục~\ref{sec:phi-quan-he}).
 
 Về hiện thực, pipeline ETL bằng Spark dựng lại toàn bộ kho trong khoảng 5 phút và nạp vào ba
 hệ lưu trữ nhất quán với nhau. Airflow điều phối pipeline theo lịch, với cổng chất lượng ngăn
