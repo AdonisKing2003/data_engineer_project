@@ -81,10 +81,10 @@ hàm ý nhân quả như ``click nhiều giúp điểm cao''.
 \hline
 \textbf{Mã} & \textbf{Người dùng} & \textbf{Câu hỏi nghiệp vụ} \\ \hline
 BR1 & Giảng viên & Mỗi bài tập có bao nhiêu sinh viên nộp, bao nhiêu nộp trễ, và điểm ra sao? \\ \hline
-BR2 & Giảng viên & Sinh viên dùng loại học liệu nào nhiều nhất, và vào giai đoạn nào của đợt họ hoạt động nhiều hay ít? \\ \hline
+BR2 & Giảng viên & Trong một đợt học, sinh viên click vào loại học liệu nào nhiều nhất, và tuần nào click nhiều, tuần nào click ít? \\ \hline
 BR3 & Giảng viên & Sinh viên click nhiều trước hạn bài TMA đầu tiên thì có hay được điểm bài đó cao hơn không? \\ \hline
 BR4 & Cố vấn học tập & Tính đến cuối tuần này, sinh viên nào đang có dấu hiệu nguy cơ rớt hoặc bỏ môn? \\ \hline
-BR5 & Cố vấn học tập & Sinh viên rút khỏi môn vào thời điểm nào, và đến mỗi mốc bao nhiêu phần trăm đã rút? \\ \hline
+BR5 & Cố vấn học tập & Sinh viên thường rút khỏi môn vào thời điểm nào, và tính đến cuối mỗi tuần thì đã có bao nhiêu phần trăm sinh viên rút? \\ \hline
 BR6 & Lãnh đạo khoa & Tỷ lệ đạt của nhóm IMD khó khăn nhất thấp hơn nhóm ít khó khăn nhất bao nhiêu, và thay đổi thế nào qua các kỳ? \\ \hline
 BR7 & Sinh viên & Tính đến tuần này, mình đang ở đâu so với các bạn cùng đợt về hoạt động, số bài đã nộp và điểm? \\ \hline
 BR8 & Sinh viên & Trong tuần này, mình dùng từng loại học liệu nhiều hay ít hơn so với các bạn đã đạt môn? \\ \hline
@@ -101,8 +101,8 @@ Chi tiết từng yêu cầu:
         không phải hạn nộp thật. Bài được chuyển điểm từ đợt trước không được tính.
   \item \textbf{BR2 -- Hoạt động trên VLE theo loại học liệu và theo tuần.} Số đo chính là số click trung bình mỗi sinh viên trong từng tuần: tổng click chia cho số
         sinh viên còn học đến cuối tuần, kể cả người không click. Kèm theo là tỷ trọng click của
-        từng loại học liệu. Để so hai đợt có độ dài khác nhau (234--269 ngày), trục thời gian
-        được đổi sang phần trăm độ dài đợt.
+        từng loại học liệu. Trục thời gian là tuần, tính từ tuần khai giảng (tuần 0); mỗi lần
+        xem một đợt.
   \item \textbf{BR3 -- Hoạt động trước bài TMA đầu tiên và điểm bài đó.} Với mỗi sinh viên, hệ thống lấy tổng click trước hạn của bài TMA đầu tiên có trọng số và
         điểm của bài đó, rồi tính hệ số tương quan hạng Spearman ($\rho$) riêng cho từng đợt, kèm
         khoảng tin cậy 95\%. Chỉ có 19/22 đợt vì môn GGG không có TMA nào có trọng số. Đây là
@@ -112,7 +112,7 @@ Chi tiết từng yêu cầu:
         dưới 40. Sinh viên có từ 2 dấu hiệu trở lên vào danh sách. Danh sách tuần $w$ chỉ dùng dữ
         liệu đến hết tuần $w$ và không dùng kết quả cuối kỳ. Kết quả cuối kỳ chỉ dùng sau khi đợt
         kết thúc, để đo độ chính xác và độ bao phủ của quy tắc.
-  \item \textbf{BR5 -- Đường cong rút lui.} Hệ thống vẽ phần trăm lượt đăng ký đã rút theo từng ngày, từ trước khai giảng đến hết đợt,
+  \item \textbf{BR5 -- Đường cong rút lui.} Hệ thống vẽ phần trăm lượt đăng ký đã rút tính đến cuối mỗi tuần, từ 4 tuần trước khai giảng đến hết đợt, có thể chồng nhiều đợt để so,
         kèm ngày rút trung vị và tỷ lệ rút trước khai giảng. ``Rút'' ở đây là rút khỏi một môn,
         không phải bỏ học cả trường.
   \item \textbf{BR6 -- Khoảng cách tỷ lệ đạt giữa các nhóm IMD.} Hệ thống so tỷ lệ đạt và tỷ lệ Distinction của nhóm IMD 0--10\% với nhóm 90--100\%, tính
