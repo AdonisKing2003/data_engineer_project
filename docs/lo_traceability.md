@@ -119,7 +119,6 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | Chưa có CDC | 2.1 | Nguồn là file tĩnh, không có CSDL đang thay đổi; Sandbox cấm `MERGE`. Kiến trúc nếu làm (Debezium → Kafka → Spark → bảng staging → `MERGE`) và phần đã có sẵn ở [report_tv1.md](report_tv1.md) mục 8.2 |
 | Bảng rộng 5× không dựng được trên BigQuery vì vượt hạn mức 10 GB | 1.2, 2.2 | So bảng rộng ở 1× trên BigQuery và ở 5× trên PostgreSQL |
 | Star 5× trên BigQuery chậm hơn 3NF dù quét cùng bytes; giả thuyết là do cách tạo bảng, chưa kiểm được | 2.2 | So bằng bytes quét, chỉ số đáng tin trên BigQuery ([benchmark.md](benchmark.md)) |
-| 3 trang của TV2 (`app/pages/`) vẫn đọc DuckDB qua `app/db.py`, chưa qua `app/data.py` | 2.1 | Demo các trang đó ở chế độ chạy tại máy |
 | Kho 5× là bản sao, không thêm đa dạng thật | 2.2 | Dùng để đo tải, không dùng để rút kết luận nghiệp vụ |
 
 ## Gợi ý thuyết trình (chuẩn 2.1 đến 3.2)
@@ -130,6 +129,22 @@ Chạy lại: `make models` (dạng lồng, tài liệu), `make bench` (3NF / st
 | 2.2 | Sơ đồ constellation, grain 4 fact, bảng ảnh chụp SV-tuần | Ở 5× trên PostgreSQL, bảng rộng gấp đôi dung lượng và chậm gấp 1,56 lần star ở BR2 | Chất lượng & benchmark |
 | 3.1 | Bảng vấn đề dữ liệu → cách xử lý; test chống rò rỉ nhãn | Đảo nhãn, danh sách cảnh báo vẫn 3.958 SV | Cảnh báo sớm & rút lui |
 | 3.2 | Batch và stream (thư mục, Kafka có watermark); 4 ví dụ tối ưu | Stream lệch 0 dòng so với batch; watermark giữ trạng thái nhỏ hơn ~10×; mart giảm 330× | Click thời gian thực (mở trước, rồi chạy `make stream-kafka STREAM_ARGS="--produce --to-bq --delay 1"`: đường stream dâng lên khớp batch); Spark UI tab Structured Streaming; Hoạt động học tập (đọc mart BR2) |
+
+Dashboard không phải chuẩn đầu ra riêng: giao diện chỉ là bằng chứng cho phần phục vụ người dùng của 2.1. Không cần
+làm đẹp thêm. Thời gian nên dồn vào các phần được chấm: thiết kế 3 mức, so sánh star / 3NF / bảng rộng, phân vùng và
+chỉ mục, stream khớp batch.
+
+### Chuẩn bị trước buổi demo
+
+- Bật app xong phải khởi động Streamlit riêng, vì container `app` chỉ chạy `sleep infinity`. Lần nào khởi động lại
+  container cũng phải chạy lại lệnh này:
+  `docker compose up -d app` rồi `docker compose exec -d app bash -c "cd /work && make app"`, mở http://localhost:8501.
+- Mở thử các trang demo trong bảng trên trước giờ thuyết trình. BigQuery Sandbox tự xóa bảng sau 60 ngày; nếu trang
+  báo lỗi không tìm thấy bảng thì nạp lại kho và dựng lại mart (`make marts`).
+- Lần mở đầu tiên của mỗi trang chờ BigQuery vài giây, sau đó kết quả được lưu tạm. Nên mở trước một lượt để lúc demo
+  trang hiện ngay.
+- Các lựa chọn khớp với số trong báo cáo: Hoạt động học tập và Cảnh báo sớm chọn BBB 2014J, tuần 4; Tiến độ so với lớp
+  chọn AAA 2014J, tuần 10.
 
 ## Câu hỏi thi nên ôn, và chỗ có ví dụ trong project
 
