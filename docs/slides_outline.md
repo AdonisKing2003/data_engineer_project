@@ -237,6 +237,10 @@ nên không cắt BR nào.
 
 **Slide 24. Hiệu quả khai thác qua ứng dụng** (TV2)
 - Dashboard trả lời được cả 20 câu hỏi mẫu trên giao diện (có test mô phỏng người dùng).
+- Bảng "Dữ liệu quét và thời gian tải từng trang" (mục "Hiệu quả khai thác qua ứng dụng" trong báo cáo): 7/8 trang tải
+  trong khoảng 2,5 giây lần đầu, trang Cảnh báo 7,7 giây; một lượt mở cả 8 trang quét khoảng 273 MB, hạn mức miễn phí
+  1 TB/tháng đủ cho hơn 3.000 lượt.
+- Có thể thêm 1 slide tóm tắt bảng "Đánh giá các công nghệ" (6 công nghệ × 4 tiêu chí) nếu còn thời gian.
 - Bảng BR4 theo tuần (Bảng "Hiệu quả quy tắc cảnh báo sớm BR4"): tuần 4 / 8 / 12, độ chính xác 80,6 / 84,6 / 80,6%,
   độ bao phủ 26,9 / 35,6 / 45,0%. Thảo luận: cảnh báo sớm thì danh sách ngắn mà phần lớn đúng; muộn hơn thì bắt được
   nhiều hơn nhưng còn ít thời gian hỗ trợ.

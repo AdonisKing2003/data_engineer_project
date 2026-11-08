@@ -276,7 +276,9 @@ BR nào.
 
 **Slide 24. Hiệu quả khai thác qua ứng dụng** (1 phút) — TV2
 > Thứ ba là hiệu quả khai thác. Nhóm mô phỏng người dùng cho cả 20 câu hỏi mẫu: mở đúng trang, chọn đúng đợt và tuần, rồi
-> tìm đáp án trên màn hình. Dashboard trả lời được cả 20 câu.
+> tìm đáp án trên màn hình. Dashboard trả lời được cả 20 câu. Nhóm cũng đo từng trang khi mở lần đầu: 7 trên 8 trang tải
+> trong khoảng 2,5 giây, chậm nhất là trang Cảnh báo 7,7 giây vì tính trên cả 27 nghìn sinh viên. Mở hết 8 trang chỉ quét
+> khoảng 273 MB, nên hạn mức miễn phí của BigQuery đủ cho hơn 3.000 lượt như vậy mỗi tháng.
 > Về giá trị nghiệp vụ, bảng này cho thấy quy tắc cảnh báo: ở tuần 4 danh sách ngắn mà 80,6% là đúng, phù hợp khi nguồn lực
 > hỗ trợ có hạn; đến tuần 12 bắt được 45% số sinh viên sẽ rớt hoặc rút. Nhà trường chọn tuần cảnh báo tùy nguồn lực.
 

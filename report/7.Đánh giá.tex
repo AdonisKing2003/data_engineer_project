@@ -6,10 +6,26 @@
 \section{Đánh giá tổng thể}
 \label{sec:danh-gia}
 
-Hệ thống được đánh giá trên năm khía cạnh: độ đúng của kho qua bộ kiểm thử, sự nhất quán
-giữa các hệ lưu trữ, khả năng trả lời các yêu cầu nghiệp vụ, hiệu quả của các kỹ thuật tối ưu
-truy vấn, và so sánh hiệu năng giữa các cách tổ chức dữ liệu. Cuối chương đối chiếu kết quả
-với yêu cầu của môn học và nêu các hạn chế.
+Giải pháp được đánh giá theo ba tiêu chí của đề bài: độ đúng của dữ liệu sau khi xử lý, hiệu
+năng của giải pháp, và hiệu quả hỗ trợ khai thác dữ liệu qua ứng dụng. Sau đó, từng công nghệ
+được đánh giá theo cùng một bộ tiêu chí. Bảng~\ref{tab:tieu-chi} nêu cách đo của mỗi tiêu chí
+và mục trình bày kết quả. Cuối chương đối chiếu kết quả với chuẩn đầu ra của môn học và nêu các
+hạn chế.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{2.6cm}|}
+\hline
+\textbf{Tiêu chí} & \textbf{Cách đo} & \textbf{Kết quả ở mục} \\ \hline
+Độ đúng của dữ liệu & Số dòng từng bảng và đáp án 20 câu hỏi mẫu trên ba hệ lưu trữ, so với đáp án chuẩn tính thẳng từ 7 file CSV gốc; bộ kiểm thử với số đúng chốt trước trong hợp đồng dữ liệu & \ref{sec:kiem-thu}, \ref{sec:doi-soat} \\ \hline
+Hiệu năng & Thời gian dựng lại kho; lượng dữ liệu quét (BigQuery) và thời gian chạy (PostgreSQL) trước và sau tối ưu; thời gian của ba cách tổ chức dữ liệu ở quy mô 1$\times$ và 5$\times$ & \ref{sec:airflow}, \ref{sec:toi-uu}, \ref{sec:chi-muc}, \ref{sec:benchmark} \\ \hline
+Hiệu quả khai thác qua ứng dụng & Số yêu cầu nghiệp vụ và câu hỏi mẫu tìm được đáp án trên giao diện; thời gian và dữ liệu quét khi mở từng trang; giá trị nghiệp vụ của kết quả & \ref{sec:ket-qua-br}, \ref{sec:khai-thac} \\ \hline
+Đánh giá công nghệ & Mỗi công nghệ xét theo bốn tiêu chí: độ đúng; hiệu năng và chi phí; khả năng mở rộng và vận hành; giới hạn gặp phải & \ref{sec:danh-gia-cong-nghe} \\ \hline
+\end{tabularx}
+\caption{Tiêu chí đánh giá và cách đo}
+\label{tab:tieu-chi}
+\end{table}
 
 % ------------------------------------------------------------
 \subsection{Kiểm thử}
@@ -129,7 +145,53 @@ mọi sinh viên còn học tại tuần đó.}
 Kết quả của BR3 cần được đọc thận trọng: hệ số tương quan dương ở mọi đợt chỉ cho thấy liên
 hệ, không cho phép kết luận rằng hoạt động nhiều hơn dẫn đến điểm cao hơn.
 
-% Ảnh chụp dashboard đặt ở mục Dashboard (chương 6, sec:dashboard), không lặp lại ở đây.
+% Ảnh chụp dashboard đặt ở mục Dashboard (sec:dashboard), không lặp lại ở đây.
+
+% ------------------------------------------------------------
+\subsection{Hiệu quả khai thác qua ứng dụng}
+\label{sec:khai-thac}
+
+Về độ phủ, cả 8 yêu cầu nghiệp vụ đều có trang riêng trên dashboard, chia cho 4 nhóm người dùng
+(Bảng~\ref{tab:trang}). Bộ kiểm thử mô phỏng người dùng cho cả 20 câu hỏi mẫu: mở đúng trang, chọn
+đúng đợt học và tuần như đề hỏi, rồi đọc đáp án trên màn hình. Cả 20 câu đều tìm được đáp án, và
+đáp án trùng với đáp án chuẩn (mục~\ref{sec:doi-soat}).
+
+Về tốc độ và chi phí, Bảng~\ref{tab:khai-thac} đo từng trang ở trạng thái mặc định khi mở lần
+đầu: chạy đúng các truy vấn mà trang gọi, theo cùng cách app gọi BigQuery, với bộ nhớ đệm kết
+quả của BigQuery tắt. Mỗi truy vấn chạy 3 lần, lấy trung vị thời gian; số đo ngày 08/11/2026
+trên kho quy mô 1$\times$.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|X|r|r|r|}
+\hline
+\textbf{Trang (trạng thái mặc định)} & \textbf{Số truy vấn} & \textbf{Dữ liệu quét} & \textbf{Thời gian} \\ \hline
+Tổng quan & 1 & 1,2 MB & 0,5 s \\ \hline
+Hoạt động học tập (BBB 2014J, cả hai tab) & 5 & 2,9 MB & 2,5 s \\ \hline
+Nộp bài và điểm (BBB 2014J) & 4 & 10,1 MB & 2,1 s \\ \hline
+Cảnh báo sớm và rút lui (toàn trường, tuần 4) & 5 & 5,8 MB & 7,7 s \\ \hline
+Khoảng cách IMD & 1 & 1,4 MB & 0,6 s \\ \hline
+Tiến độ so với lớp (AAA 2014J) & 4 & 123,1 MB & 2,1 s \\ \hline
+So với nhóm đạt (BBB 2013J, tuần 5) & 4 & 59,8 MB & 2,0 s \\ \hline
+Click thời gian thực & 2 & 69,1 MB & 1,6 s \\ \hline
+\textbf{Cả 8 trang} & \textbf{26} & \textbf{273,4 MB} & \\ \hline
+\end{tabularx}
+\caption{Dữ liệu quét và thời gian tải từng trang dashboard trên BigQuery, lần mở đầu tiên}
+\label{tab:khai-thac}
+\end{table}
+
+Bảy trên tám trang tải xong trong khoảng 2,5 giây. Trang Cảnh báo sớm chậm nhất, 7,7 giây, gần
+hết là truy vấn danh sách toàn trường (5,6 giây), vốn trả về 27.250 dòng, mỗi dòng một sinh viên
+còn học, để tính độ chính xác của cảnh báo. Mở lại trang trong vòng 1 đến 6 giờ thì dashboard
+dùng kết quả đã lưu tạm, không quét thêm. Một lượt mở cả 8 trang quét khoảng 273 MB, nên hạn
+mức truy vấn miễn phí 1 TB mỗi tháng của BigQuery đủ cho hơn 3.000 lượt như vậy. Trang Tiến độ so
+với lớp quét nhiều nhất vì tính phân vị của lớp từ bảng tiến độ theo tuần mỗi lần mở; nếu số người
+dùng tăng, trang này có thể dùng một bảng tổng hợp sẵn như trang Hoạt động học tập.
+
+Về giá trị nghiệp vụ, kết quả có ích nhất là danh sách cảnh báo BR4 (Bảng~\ref{tab:br4-tuan}):
+ngay từ tuần 4, 80,6\% sinh viên trong danh sách cuối cùng rớt hoặc rút, gần gấp đôi tỷ lệ nền,
+nên cố vấn học tập có thể dồn nguồn lực hỗ trợ vào một danh sách ngắn mà phần lớn là đúng.
 
 % ------------------------------------------------------------
 \subsection{Tối ưu truy vấn}
@@ -396,6 +458,38 @@ truy vấn nhất, ngang 3NF trên PostgreSQL, nhanh hơn wide table ở các tr
 lớn, và quét cùng lượng dữ liệu với 3NF trên BigQuery. Việc
 tăng tốc cho từng trang dashboard được thực hiện bằng phân vùng, gom cụm, chỉ mục và bảng tổng
 hợp sẵn (mục~\ref{sec:toi-uu}) thay vì thay đổi cả cách tổ chức.
+
+% ------------------------------------------------------------
+\subsection{Đánh giá công nghệ}
+\label{sec:danh-gia-cong-nghe}
+
+Mỗi công nghệ trong hệ thống được xét theo bốn tiêu chí. \emph{Độ đúng}: kết quả của công nghệ
+có khớp với đáp án chuẩn hoặc với một hệ khác hay không. \emph{Hiệu năng và chi phí}: số đo trên
+truy vấn hoặc công việc thật của project, và chi phí phải trả. \emph{Mở rộng và vận hành}: chạy
+được ở quy mô 5$\times$ hay trên cụm không, và cần bao nhiêu công sức để chạy lại. \emph{Giới hạn
+gặp phải}: những gì công nghệ chưa làm được hoặc làm nhóm phải đổi cách làm. Mọi số liệu trong
+Bảng~\ref{tab:danh-gia-cong-nghe} lấy từ các mục trước của báo cáo.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{2.0cm}|X|X|X|X|}
+\hline
+\textbf{Công nghệ} & \textbf{Độ đúng} & \textbf{Hiệu năng và chi phí} & \textbf{Mở rộng và vận hành} & \textbf{Giới hạn gặp phải} \\ \hline
+Spark (ETL batch) & Gộp 10,6 triệu dòng click còn 8,46 triệu, tổng click giữ nguyên; số dòng mọi bảng đúng hợp đồng dữ liệu & Dựng lại toàn bộ kho trong 303 giây; mã nguồn mở, không tốn phí & Dựng được kho 5$\times$ với 42,3 triệu dòng click; lên cụm chỉ đổi cấu hình; một lệnh \texttt{make all} & Chỉ chạy chế độ local trên một máy, chưa thử trên cụm thật \\ \hline
+BigQuery (kho chính) & 20 câu hỏi mẫu trùng đáp án chuẩn; đối chiếu với DuckDB phát hiện và sửa lỗi phân vị xấp xỉ & 7/8 trang tải trong khoảng 2,5 giây; tối ưu giảm dữ liệu quét 15,9 đến 330 lần; một lượt mở 8 trang quét khoảng 273 MB & Không phải quản trị máy chủ; nạp kho 5$\times$ được, trừ bảng rộng & Sandbox: 10 GB, bảng tự xóa sau 60 ngày, không có \texttt{INSERT}/\texttt{UPDATE} nên phải nạp lại toàn bộ; star chậm hơn 3NF dù quét cùng dữ liệu, chưa rõ nguyên nhân \\ \hline
+PostgreSQL (kho đối chứng) & Số dòng 9 bảng và 20 đáp án khớp với BigQuery và Parquet & Chỉ mục B-tree nhanh hơn 5,3 lần; \texttt{CLUSTER} giảm số trang đọc từ 22.016 xuống 567 & Chạy được cả ba cách tổ chức ở 5$\times$, kể cả bảng rộng; phải tự quản trị chỉ mục và thống kê & Chỉ mục chiếm chỗ (499 MB) và làm chậm việc ghi (thêm 91\%) \\ \hline
+Kafka và Structured Streaming & Kết quả stream lệch 0 dòng so với batch trên 1.342.949 dòng; chạy lại một micro-batch không sinh dòng trùng & Watermark giữ trạng thái lớn nhất 65 nghìn khóa thay vì 627 nghìn; dashboard chậm hơn stream 5 đến 10 giây & Dừng rồi chạy lại đọc tiếp đúng offset nhờ checkpoint; cùng engine và cách viết với batch & Một broker, không có bản sao; nguồn là phát lại dữ liệu lịch sử; Sandbox chỉ cho nạp bằng load job \\ \hline
+Airflow (điều phối) & Cổng chất lượng chạy trước khi nạp; lỗi thì BigQuery giữ bản cũ & DAG chạy 223 giây so với 303 giây chạy tay, vì hai bước nạp chạy song song & Lập lịch, chờ dữ liệu, chạy lại khi lỗi, báo lỗi qua log và webhook; mỗi task gọi lại đúng một lệnh \texttt{make} & \texttt{LocalExecutor} trên một máy; tốn thêm bộ nhớ nên chỉ bật khi cần \\ \hline
+Streamlit (dashboard) & Cả 20 câu hỏi mẫu tìm được đáp án trên giao diện & Kết quả lưu tạm 1 đến 6 giờ nên mở lại không quét thêm & Viết hoàn toàn bằng Python, đổi nơi đọc dữ liệu bằng một biến môi trường & Một tiến trình trên một máy; trang thời gian thực quét khoảng 48 MB mỗi lần tự tải lại \\ \hline
+\end{tabularx}
+\caption{Đánh giá các công nghệ đã sử dụng theo bốn tiêu chí}
+\label{tab:danh-gia-cong-nghe}
+\end{table}
+
+Nhìn chung, mỗi công nghệ đáp ứng được vai trò của nó trong project, và phần lớn giới hạn đến
+từ hạ tầng miễn phí (gói Sandbox, một máy, một broker) chứ không phải từ cách thiết kế. Các giới
+hạn này được tổng hợp ở mục~\ref{sec:han-che}, cùng hướng khắc phục ở chương Tổng kết.
 
 % ------------------------------------------------------------
 \subsection{Đối chiếu với yêu cầu môn học}
