@@ -7,90 +7,38 @@
 
 \subsection{Kết quả đạt được}
 
-Nhóm đã xây dựng một kho dữ liệu phân tích học tập hoàn chỉnh từ bộ dữ liệu OULAD, đi từ 7
-file CSV gốc đến dashboard phục vụ bốn nhóm người dùng. Về thiết kế, dữ liệu được phân tích
-qua ba mức ý niệm, luận lý và vật lý; các phụ thuộc hàm được kiểm chứng trên dữ liệu thật để
-đưa lược đồ về dạng chuẩn, rồi phi chuẩn hóa có chủ đích thành dimensional model gồm 5
-dimension và 4 fact. Cùng bộ dữ liệu còn được tổ chức theo các mô hình khác: lược đồ 3NF, bảng
-phi chuẩn hóa toàn phần (wide table), dữ liệu dạng lồng (nested, kiểu \texttt{ARRAY<STRUCT>} trên
-BigQuery), mô hình tài liệu (document, kiểu \texttt{JSONB} trên PostgreSQL) và khóa-giá trị (state
-store của Spark), kèm số đo cho thấy mỗi mô hình phù hợp với kiểu truy cập nào
-(mục~\ref{sec:phi-quan-he}).
+Nhóm đã xây dựng kho dữ liệu phân tích học tập từ bộ dữ liệu OULAD, đi từ 7 file CSV gốc đến
+dashboard cho bốn nhóm người dùng. Kết quả chính:
 
-Về hiện thực, pipeline ETL bằng Spark dựng lại toàn bộ kho trong khoảng 5 phút và nạp vào ba
-hệ lưu trữ nhất quán với nhau. Airflow điều phối pipeline theo lịch, với cổng chất lượng ngăn
-dữ liệu sai đến tay người dùng. Bộ 290 bài kiểm thử bảo đảm số liệu của kho khớp với dữ liệu
-nguồn và với đặc tả nghiệp vụ; 20 câu hỏi mẫu cho cùng đáp án trên cả ba hệ lưu trữ. Các kỹ
-thuật tối ưu, đã áp dụng cho kho chính, giảm lượng dữ liệu quét trên BigQuery từ 15,9 đến 330 lần.
-
-Về nghiệp vụ, hệ thống trả lời được cả 8 yêu cầu. Kết quả nổi bật là quy tắc cảnh báo sớm:
-chỉ với dữ liệu đến hết tuần 4, 80,6\% sinh viên trong danh sách cảnh báo thực sự rớt hoặc rút
-khi đợt học kết thúc, gần gấp đôi tỷ lệ nền. Thiết kế bảng ảnh chụp theo tuần không chứa kết
-quả cuối kỳ bảo đảm kết quả này không bị rò rỉ thông tin từ tương lai.
-
-\subsection{Hướng phát triển}
-\label{sec:huong-phat-trien}
-
-\textbf{Nạp tăng dần và bắt thay đổi dữ liệu (CDC).} Hiện tại kho được dựng lại toàn bộ mỗi
-lần, vì nguồn là bản xuất tĩnh và gói Sandbox của BigQuery không cho dùng lệnh
-\texttt{MERGE}. Nếu nguồn là một cơ sở dữ liệu vận hành đang thay đổi liên tục, kiến trúc đề
-xuất như sau. Debezium đọc nhật ký giao dịch (WAL) của PostgreSQL nguồn và phát mỗi thay đổi
-thêm, sửa, xóa thành một thông điệp vào Kafka, mỗi bảng nguồn một topic. Spark Structured
-Streaming đọc các topic này, giữ lại thay đổi mới nhất của mỗi khóa trong từng lô nhỏ, rồi ghi
-vào một bảng staging chỉ ghi thêm trên BigQuery. Airflow định kỳ chạy \texttt{MERGE} từ bảng
-staging vào kho: dimension được cập nhật thuộc tính (SCD loại 1, hoặc loại 2 với thuộc tính
-cần lưu lịch sử), fact được thêm dòng mới, còn dòng bị xóa ở nguồn được đánh dấu bằng cờ thay
-vì xóa khỏi kho; bảng tiến độ theo tuần chỉ được tính lại cho các lượt đăng ký có thay đổi.
-
-Một bước trung gian nhẹ hơn là nạp tăng dần theo đợt học: mỗi lần chỉ dựng và nạp lại các đợt
-có dữ liệu mới. Spark hỗ trợ ghi đè từng phân vùng, còn BigQuery cho phép load job ghi đè đúng
-một phân vùng của bảng. Cách này phù hợp với OULAD vì dữ liệu vốn đã chia theo đợt học, nhưng
-chưa được thử nghiệm trong project.
-
-\textbf{Tiến tới môi trường production.} Bảng~\ref{tab:production} so sánh hiện trạng của
-project với yêu cầu của một hệ thống vận hành thật.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{2.6cm}|X|X|}
-\hline
-\textbf{Thành phần} & \textbf{Yêu cầu khi vận hành thật} & \textbf{Hiện trạng} \\ \hline
-Spark & Chạy trên cụm (Dataproc, Databricks, Kubernetes) & Một máy, chế độ local \\ \hline
-BigQuery & Bật tính phí để dùng lệnh sửa dữ liệu, ghi stream độ trễ thấp, bảng không tự hết hạn & Gói Sandbox: chỉ load job, bảng tự xóa sau 60 ngày \\ \hline
-Airflow & Phiên bản đang được hỗ trợ (3.x), executor chạy trên nhiều máy, cảnh báo khi DAG chạy quá lâu & Phiên bản 2.10.5, \texttt{LocalExecutor}; đã có báo lỗi khi task thất bại \\ \hline
-CI/CD & Tự động kiểm thử, dựng image và triển khai mỗi lần cập nhật mã nguồn & Chạy kiểm thử thủ công \\ \hline
-Giám sát & Cảnh báo dữ liệu cũ quá hạn, số dòng bất thường; truy vết nguồn gốc dữ liệu (lineage) & Log và báo lỗi của Airflow; cổng chất lượng chặn số dòng sai \\ \hline
-Bảo mật & Quản lý khóa bí mật tập trung, phân quyền theo vai trò, che dữ liệu cá nhân & Khóa lưu trong file cục bộ; mọi thành viên cùng một quyền \\ \hline
-Kafka & Ít nhất 3 broker, mỗi partition có 3 bản sao để một broker hỏng không mất dữ liệu & 1 broker, 1 bản sao; chỉ bật khi chạy nhánh stream \\ \hline
-\end{tabularx}
-\caption{Hiện trạng của project so với yêu cầu vận hành thật}
-\label{tab:production}
-\end{table}
+\begin{itemize}
+  \item \textbf{Thiết kế:} thiết kế ở ba mức ý niệm, luận lý, vật lý; kho dạng star gồm 5 dimension
+        và 4 fact; so sánh thêm với 3NF, wide table và các mô hình phi quan hệ (dạng lồng, tài liệu,
+        khóa-giá trị).
+  \item \textbf{Pipeline:} Spark dựng lại toàn bộ kho trong khoảng 5 phút và nạp vào BigQuery,
+        PostgreSQL, Parquet; Airflow điều phối theo lịch, kiểm tra chất lượng trước khi nạp; nhánh
+        stream từ Kafka cho kết quả khớp với batch.
+  \item \textbf{Độ chính xác:} 290 bài kiểm thử, không bài nào thất bại; 20 câu hỏi mẫu đúng đáp án
+        trên cả ba hệ lưu trữ và trên dashboard.
+  \item \textbf{Hiệu năng:} các kỹ thuật tối ưu giảm dữ liệu quét trên BigQuery từ 15,9 đến 330 lần;
+        7/8 trang dashboard tải trong khoảng 2,5 giây.
+  \item \textbf{Nghiệp vụ:} trả lời được cả 8 yêu cầu; quy tắc cảnh báo sớm chỉ dùng dữ liệu 4 tuần
+        đầu nhưng 80,6\% sinh viên bị cảnh báo thực sự rớt hoặc rút, gần gấp đôi tỷ lệ chung.
+\end{itemize}
 
 \subsection{Đạo đức và sử dụng dữ liệu}
 \label{sec:dao-duc}
 
-Bộ dữ liệu OULAD được công bố theo giấy phép CC BY 4.0, cho phép dùng và chia sẻ lại với điều
-kiện ghi nguồn; báo cáo trích dẫn cả bài báo mô tả bộ dữ liệu và trang công bố
-dữ liệu~\cite{kuzilek2017oulad,oulad_dataset}. Thông tin sinh viên đã được ẩn danh từ nguồn: mỗi
-sinh viên chỉ có một mã số, không có tên hay thông tin liên lạc, và mức độ khó khăn kinh tế chỉ có ở
-mức khu vực (IMD) chứ không ở mức cá nhân. Nhóm không tìm cách nối dữ liệu với nguồn khác để nhận diện lại sinh viên, và không đưa file
-dữ liệu lên kho mã nguồn. Bản mở rộng 5$\times$ đổi mã sinh viên của các bản sao nên không tạo ra
-sinh viên nào trùng với dữ liệu gốc.
+Bộ dữ liệu OULAD được công bố theo giấy phép CC BY 4.0~\cite{kuzilek2017oulad,oulad_dataset} và đã
+được ẩn danh: mỗi sinh viên chỉ có một mã số, mức khó khăn kinh tế chỉ có ở mức khu vực (IMD).
+Nhóm không nối dữ liệu với nguồn khác để nhận diện sinh viên và không đưa file dữ liệu lên kho mã
+nguồn. Để kết quả không bị hiểu sai, dashboard ghi kèm cách đọc:
 
-Một số kết quả dễ bị hiểu sai nếu dùng ngoài bối cảnh, nên dashboard và báo cáo đặt kèm cách đọc:
 \begin{itemize}
-  \item \textbf{Cảnh báo sớm (BR4)} là công cụ để chủ động hỗ trợ, không phải để đánh giá hay xử lý
-        sinh viên. Ở tuần 4, khoảng 1 trong 5 sinh viên trong danh sách vẫn qua môn, nên danh sách
-        chỉ nên dùng để liên hệ và hỏi han.
-  \item \textbf{Khoảng cách IMD (BR6)} mô tả chênh lệch giữa các nhóm khu vực, không nói về khả năng
-        của từng sinh viên; ô có dưới 30 sinh viên được ghi ``$n < 30$'' thay vì hiện tỷ lệ dễ dao động.
-  \item \textbf{BR3 và BR8} chỉ cho thấy liên hệ. Câu chữ trên dashboard tránh các cụm như ``để đạt'',
-        ``giúp bạn'', ``làm tăng'' để không ngầm khẳng định quan hệ nhân quả.
-  \item \textbf{Trang sinh viên (BR7, BR8)} so một sinh viên với số liệu tổng hợp của lớp (phân vị),
-        không xếp hạng sinh viên. Bản demo cho chọn mọi mã sinh viên; khi dùng thật, mỗi sinh viên
-        chỉ nên xem được số liệu của mình.
+  \item \textbf{Cảnh báo sớm (BR4)} dùng để chủ động hỗ trợ, không để đánh giá sinh viên; khoảng 1
+        trong 5 sinh viên bị cảnh báo ở tuần 4 vẫn qua môn.
+  \item \textbf{Khoảng cách IMD (BR6)} chỉ nói về nhóm khu vực, không nói về từng sinh viên.
+  \item \textbf{BR3 và BR8} chỉ cho thấy liên hệ, không phải quan hệ nhân quả.
+  \item \textbf{Trang sinh viên (BR7, BR8)} so với số liệu chung của lớp, không xếp hạng sinh viên.
 \end{itemize}
 
 \subsection{Khai báo sử dụng công cụ AI}
@@ -120,7 +68,6 @@ TV3 & % TODO: Mai Linh ghi công cụ AI đã dùng (hoặc "Không sử dụng"
 \end{table}
 
 \subsection{Mã nguồn}
-Toàn bộ mã nguồn, hợp đồng bảng và cột (\texttt{docs/contract.md}), SQL của 20 câu hỏi mẫu
-(\texttt{sql/questions/}), bảng truy vết chuẩn đầu ra đầy đủ (\texttt{docs/lo\_traceability.md}) và
-hướng dẫn dựng lại hệ thống từ đầu (\texttt{README.md}) được lưu tại kho mã nguồn của nhóm:
+Toàn bộ mã nguồn, hợp đồng bảng và cột, SQL của 20 câu hỏi mẫu
+(\texttt{sql/questions/}) và hướng dẫn dựng lại hệ thống từ đầu (\texttt{README.md}) được lưu tại kho mã nguồn của nhóm:
 \url{https://github.com/AdonisKing2003/data_engineer_project}.

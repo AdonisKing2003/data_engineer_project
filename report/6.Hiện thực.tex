@@ -5,8 +5,7 @@
 \section{Hiện thực}
 \label{sec:hien-thuc}
 
-Chương này trình bày cách hiện thực từng thành phần của kiến trúc ở
-chương~\ref{sec:kien-truc}: môi trường triển khai, quá trình ETL, việc nạp kho, điều phối,
+Chương này trình bày cách hiện thực từng thành phần của kiến trúc ở chương~\ref{sec:kien-truc}: môi trường triển khai, quá trình ETL, việc nạp kho, điều phối,
 các truy vấn nghiệp vụ và dashboard.
 
 % ------------------------------------------------------------
@@ -15,12 +14,11 @@ các truy vấn nghiệp vụ và dashboard.
 
 Toàn bộ hệ thống chạy trong các container được định nghĩa bằng Docker Compose:
 \begin{itemize}
-  \item \textbf{Container ứng dụng}: Python, Java, Spark và các thư viện, dùng chung cho ETL,
-        kiểm thử và dashboard.
+  \item \textbf{Container ứng dụng}: Python, Java, Spark và các thư viện, dùng chung cho ETL, kiểm thử và dashboard.
   \item \textbf{Container PostgreSQL}: kho đối chứng.
-  \item \textbf{Kafka và Airflow}: tách thành các profile riêng, chỉ khởi động khi cần, để máy
-        cá nhân không phải chạy những thành phần không dùng tới.
+  \item \textbf{Kafka và Airflow}: tách thành các profile riêng, chỉ khởi động khi cần, để máy cá nhân không phải chạy những thành phần không dùng tới.
 \end{itemize}
+
 Khóa truy cập Google Cloud và các biến cấu hình được đặt ngoài kho mã nguồn.
 
 Mỗi bước của pipeline là một lệnh trong Makefile, và một lệnh tổng hợp chạy toàn bộ các bước
@@ -37,11 +35,9 @@ bài kiểm thử. Từ đó, image dựng lại ở bất kỳ máy nào đều
 \subsection{ETL bằng Spark}
 \label{sec:etl}
 
-\subsubsection{Các bước và thời gian}
+\subsubsection{Các bước xử lý và thời gian}
 
-Nhóm chia ETL thành bốn bước Spark, tiếp theo là hai bước nạp và một bước kiểm thử
-(Bảng~\ref{tab:etl-thoi-gian}). Nhóm đo thời gian trên máy 16 CPU, cấp 8 GB RAM cho container
-và 3 GB cho Spark driver; toàn bộ pipeline dựng lại kho từ đầu trong khoảng 5 phút.
+Nhóm chia ETL thành bốn bước Spark, tiếp theo là hai bước nạp và một bước kiểm thử (Bảng~\ref{tab:etl-thoi-gian}). Nhóm đo thời gian trên máy 16 CPU, cấp 8 GB RAM cho container và 3 GB cho Spark driver; toàn bộ pipeline dựng lại kho từ đầu trong khoảng 5 phút.
 
 \begin{table}[htbp]
 \centering
@@ -66,7 +62,7 @@ Bảng nặng nhất là bảng click (\texttt{fact\_vle\_daily}): nhóm gộp 1
 còn 8.459.320 dòng. Riêng việc ghi bảng này ra Parquet mất 17,4 giây và nạp lên BigQuery mất
 30,0 giây.
 
-\subsubsection{Nguyên tắc làm sạch}
+\subsubsection{Nguyên tắc làm sạch dữ liệu}
 
 Nhóm làm sạch dữ liệu theo bốn nguyên tắc:
 \begin{enumerate}
@@ -122,16 +118,14 @@ báo sau khi đợt học kết thúc. Nhóm kiểm chứng thiết kế này b�
 \begin{itemize}
   \item Bài thứ nhất kiểm tra bảng tiến độ theo tuần không có cột kết quả cuối kỳ
         (\texttt{final\_result}).
-  \item Bài thứ hai đảo ngược kết quả cuối kỳ của mọi sinh viên rồi lập lại danh sách cảnh báo
-        tuần 4; danh sách không thay đổi, chứng tỏ nó không dùng kết quả cuối kỳ.
+  \item Bài thứ hai đảo ngược kết quả cuối kỳ của mọi sinh viên rồi lập lại danh sách cảnh báo tuần 4; danh sách không thay đổi, chứng tỏ nó không dùng kết quả cuối kỳ.
 \end{itemize}
 
 % ------------------------------------------------------------
 \subsection{Nạp kho}
 \label{sec:nap-kho}
 
-Nhóm nạp 9 bảng của kho từ Parquet lên hai hệ lưu trữ, BigQuery (kho chính) và PostgreSQL
-(kho đối chứng):
+Nhóm nạp 9 bảng của kho từ Parquet lên hai hệ lưu trữ, BigQuery (kho chính) và PostgreSQL (kho đối chứng):
 \begin{itemize}
   \item \textbf{BigQuery}: mỗi bảng được nạp bằng một load job ở chế độ thay thế toàn bộ bảng
         (\texttt{WRITE\_TRUNCATE}). Load job thành công thì bảng mới thay bảng cũ trong một lần,
@@ -151,26 +145,17 @@ Nhóm nạp 9 bảng của kho từ Parquet lên hai hệ lưu trữ, BigQuery (
         Nạp xong, nhóm so số dòng của cả 9 bảng với Parquet và BigQuery.
 \end{itemize}
 
-Nhóm cho mọi bước của pipeline ghi đè thay vì ghi thêm: Spark ghi Parquet ở chế độ overwrite,
-BigQuery thay toàn bộ bảng, PostgreSQL tạo lại bảng trong giao dịch. Vì vậy chạy lại pipeline
-bao nhiêu lần cũng ra cùng một kết quả, không sinh dòng trùng (idempotent); nhóm có một bài
-kiểm thử nạp PostgreSQL hai lần liên tiếp và kiểm tra không có dòng trùng.
+Nhóm cho mọi bước của pipeline ghi đè thay vì ghi thêm: Spark ghi Parquet ở chế độ overwrite, BigQuery thay toàn bộ bảng, PostgreSQL tạo lại bảng trong giao dịch. Vì vậy chạy lại pipeline bao nhiêu lần cũng ra cùng một kết quả, không sinh dòng trùng (idempotent); nhóm có một bài kiểm thử nạp PostgreSQL hai lần liên tiếp và kiểm tra không có dòng trùng.
 
-Để đo hiệu năng ở quy mô lớn hơn, nhóm dựng thêm một bản kho gấp 5 lần: mỗi sinh viên được
-nhân thành 5 bản với mã sinh viên khác nhau, kéo theo toàn bộ dữ liệu fact của sinh viên đó;
-các dimension tĩnh giữ nguyên. Vì nhân bản nguyên vẹn, mọi tỷ lệ bằng kho gốc, chỉ khối lượng
-tăng 5 lần: bảng click đạt 42,3 triệu dòng, khoảng 2,6 GB trên BigQuery.
+Để đo hiệu năng ở quy mô lớn hơn, nhóm dựng thêm một bản kho gấp 5 lần: mỗi sinh viên được nhân thành 5 bản với mã sinh viên khác nhau, kéo theo toàn bộ dữ liệu fact của sinh viên đó; các dimension tĩnh giữ nguyên. Vì nhân bản nguyên vẹn, mọi tỷ lệ bằng kho gốc, chỉ khối lượng tăng 5 lần: bảng click đạt 42,3 triệu dòng, khoảng 2,6 GB trên BigQuery.
 
-Bản 5$\times$ và các bố trí 3NF, bảng rộng chỉ có khóa chính, không có phân vùng, gom cụm hay
-chỉ mục phụ. Để phép so sánh ở mục~\ref{sec:benchmark} công bằng, trước khi đo nhóm nạp lại
-kho chính ở dạng bảng thường bằng một lệnh riêng, đo xong thì nạp lại dạng tối ưu.
+Bản 5$\times$ và các bố trí 3NF, bảng rộng chỉ có khóa chính, không có phân vùng, gom cụm hay chỉ mục phụ. Để phép so sánh ở mục~\ref{sec:benchmark} công bằng, trước khi đo nhóm nạp lại kho chính ở dạng bảng thường bằng một lệnh riêng, đo xong thì nạp lại dạng tối ưu.
 
 % ------------------------------------------------------------
 \subsection{Xử lý stream}
 \label{sec:stream}
 
-Nhóm dùng Spark Structured Streaming tính lại tổng click theo sinh viên, đợt học và tuần, rồi
-đối chiếu với bảng tiến độ theo tuần của batch. Cùng một phép tính được chạy trên hai nguồn:
+Nhóm dùng Spark Structured Streaming tính lại tổng click theo sinh viên, đợt học và tuần, rồi đối chiếu với bảng tiến độ theo tuần của batch. Cùng một phép tính được chạy trên hai nguồn:
 \begin{itemize}
   \item \textbf{Thư mục} nhận file theo từng ngày: không cần thêm hệ thống nào.
   \item \textbf{Kafka}: gần với hệ thống thật hơn, có watermark để giới hạn bộ nhớ.
@@ -193,11 +178,7 @@ Phục vụ & Mỗi micro-batch được nạp lên BigQuery; trang dashboard đ
 \label{tab:stream-buoc}
 \end{table}
 
-\textbf{Thời gian sự kiện và watermark.} Vì OULAD không có ngày giờ thật, nhóm quy đổi số ngày
-từ khai giảng thành mốc thời gian sao cho mỗi cửa sổ 7 ngày của Spark trùng đúng một tuần OULAD. Nhóm đặt watermark trễ 7 ngày: tuần nào
-bị watermark vượt qua thì được xóa khỏi trạng thái, click của tuần đó đến muộn hơn bị bỏ và được
-đếm riêng. Nhóm chọn chế độ ghi \texttt{update} thay cho \texttt{append}, vì \texttt{append} chỉ
-ghi một tuần khi tuần đó đã đóng, khiến các tuần cuối không bao giờ được ghi.
+\textbf{Thời gian sự kiện và watermark.} Vì OULAD không có ngày giờ thật, nhóm quy đổi số ngày từ khai giảng thành mốc thời gian sao cho mỗi cửa sổ 7 ngày của Spark trùng đúng một tuần OULAD. Nhóm đặt watermark trễ 7 ngày: tuần nào bị watermark vượt qua thì được xóa khỏi trạng thái, click của tuần đó đến muộn hơn bị bỏ và được đếm riêng. Nhóm chọn chế độ ghi \texttt{update} thay cho \texttt{append}, vì \texttt{append} chỉ ghi một tuần khi tuần đó đã đóng, khiến các tuần cuối không bao giờ được ghi.
 
 \textbf{Xử lý đúng một lần (exactly-once).} Nhóm chặn dữ liệu trùng hoặc mất ở bốn chỗ:
 \begin{itemize}
@@ -208,6 +189,8 @@ ghi một tuần khi tuần đó đã đóng, khiến các tuần cuối không 
         một bảng nhật ký, và một view lấy dòng có số thứ tự micro-batch lớn nhất cho mỗi khóa;
         micro-batch bị nạp hai lần thì view vẫn trả đúng một dòng.
 \end{itemize}
+
+\newpage
 
 \begin{table}[htbp]
 \centering
@@ -224,20 +207,13 @@ Dòng bị watermark bỏ & không có watermark & 0 \\ \hline
 Lệch so với batch (1.342.949 dòng) & 0 & 0 \\ \hline
 Tổng click & 39.605.099 & 39.605.099 \\ \hline
 \end{tabular}
-\caption{Kết quả hai nguồn stream so với batch (lần chạy ngày 31/10/2026)}
+\caption{Kết quả hai nguồn stream so với batch}
 \label{tab:stream-ket-qua}
 \end{table}
 
-Bảng~\ref{tab:stream-ket-qua} cho thấy hai nguồn ra cùng kết quả và khớp batch từng dòng.
-Khác biệt chính nằm ở bộ nhớ: không có watermark, Spark giữ tổng click của mọi tuần đã gặp tới
-cuối lần chạy, nên với luồng chạy mãi bộ nhớ sẽ tăng không giới hạn; có watermark, trạng thái lúc
-lớn nhất nhỏ hơn khoảng 10 lần và được dọn gần hết khi luồng kết thúc. Cái giá của watermark là
-dữ liệu đến quá trễ bị bỏ: khi cố ý giữ lại 0,1\% số click và gửi sau cùng, Spark bỏ đúng các
-click đó và kết quả lệch so với batch.
+Bảng~\ref{tab:stream-ket-qua} cho thấy hai nguồn ra cùng kết quả và khớp batch từng dòng. Khác biệt chính nằm ở bộ nhớ: không có watermark, Spark giữ tổng click của mọi tuần đã gặp tới cuối lần chạy, nên với luồng chạy mãi bộ nhớ sẽ tăng không giới hạn; có watermark, trạng thái lúc lớn nhất nhỏ hơn khoảng 10 lần và được dọn gần hết khi luồng kết thúc. Cái giá của watermark là dữ liệu đến quá trễ bị bỏ: khi cố ý giữ lại 0,1\% số click và gửi sau cùng, Spark bỏ đúng các click đó và kết quả lệch so với batch.
 
-Khi ghi lên BigQuery, mỗi micro-batch là một load job, nên độ trễ từ lúc click vào Kafka tới
-lúc hiện trên dashboard khoảng 5--10 giây; muốn nhanh hơn cần ghi stream trực tiếp vào BigQuery,
-vốn phải bật tính phí.
+Khi ghi lên BigQuery, mỗi micro-batch là một load job, nên độ trễ từ lúc click vào Kafka tới lúc hiện trên dashboard khoảng 5--10 giây; muốn nhanh hơn cần ghi stream trực tiếp vào BigQuery, vốn phải bật tính phí.
 
 % ------------------------------------------------------------
 \subsection{Điều phối bằng Airflow}
@@ -245,7 +221,7 @@ vốn phải bật tính phí.
 
 Lệnh tổng hợp ở mục~\ref{sec:moi-truong} chạy tuần tự, cần người khởi động và dừng hẳn khi
 gặp lỗi. Nhóm viết một DAG Airflow chạy cùng các bước đó và bổ sung các cơ chế điều phối
-(Bảng~\ref{tab:co-che-airflow}). Thứ tự các task:
+(Bảng~\ref{tab:co-che-airflow}). Thứ tự các task như sau:
 
 \begin{center}
 \small
@@ -316,20 +292,16 @@ là 240 giây; chạy song song hai bước nạp tiết kiệm
 khoảng 4,5 giây cho cả lần chạy, không đáng kể so với các bước Spark. Cổng chất lượng chỉ tốn
 3 giây nhưng ngăn được việc đẩy dữ liệu sai lên kho mà dashboard đang đọc.
 
+% TODO Bảng thời gian vẫn là số của lần chạy cũ, trước khi có task marts. Nếu muốn số khớp với DAG hiện tại, cần chạy lại DAG một lần. Đằng nào bạn cũng cần chụp ảnh Graph và Gantt cho buổi demo, nên có thể lấy số mới từ chính lần chạy đó.
+
 % ------------------------------------------------------------
 \subsection{Truy vấn nghiệp vụ và bảng tổng hợp sẵn}
 \label{sec:truy-van}
 
-Nhóm viết SQL của 20 câu hỏi mẫu theo cú pháp chung, không dùng hàm riêng của hệ quản trị nào;
-trung vị và phân vị được tính bằng đánh số dòng và nội suy tuyến tính thay vì các hàm phân vị
-đặc thù. Nhờ vậy, cùng một file SQL chạy được trên BigQuery, PostgreSQL và DuckDB, và kết quả
+Nhóm viết SQL của 20 câu hỏi mẫu theo cú pháp chung, không dùng hàm riêng của hệ quản trị nào; trung vị và phân vị được tính bằng đánh số dòng và nội suy tuyến tính thay vì các hàm phân vị đặc thù. Nhờ vậy, cùng một file SQL chạy được trên BigQuery, PostgreSQL và DuckDB, và kết quả
 trên ba hệ đối chiếu trực tiếp được với nhau.
 
-Cho hai trang có truy vấn nặng nhất, nhóm dựng hai bảng tổng hợp sẵn (data mart) trên BigQuery
-(Bảng~\ref{tab:mart}): phép gom nhóm nặng được chạy một lần sau khi nạp kho, dashboard chỉ đọc
-kết quả. Với trang BR2, lượng dữ liệu quét mỗi lần mở trang giảm từ 381,6 MB xuống 1,2 MB
-(mục~\ref{sec:toi-uu}). Mart được tạo bằng \texttt{CREATE OR REPLACE TABLE ... AS SELECT} trên
-các bảng của kho, nên mỗi lần làm mới thay toàn bộ nội dung; task \texttt{marts} của DAG làm mới
+Cho hai trang có truy vấn nặng nhất, nhóm dựng hai bảng tổng hợp sẵn (data mart) trên BigQuery (Bảng~\ref{tab:mart}): phép gom nhóm nặng được chạy một lần sau khi nạp kho, dashboard chỉ đọc kết quả. Với trang BR2, lượng dữ liệu quét mỗi lần mở trang giảm từ 381,6 MB xuống 1,2 MB (mục~\ref{sec:toi-uu}). Mart được tạo bằng \texttt{CREATE OR REPLACE TABLE ... AS SELECT} trên các bảng của kho, nên mỗi lần làm mới thay toàn bộ nội dung; task \texttt{marts} của DAG làm mới
 cả hai ngay sau bước nạp BigQuery.
 
 \begin{table}[htbp]
@@ -354,6 +326,8 @@ Nhóm xây dashboard bằng Streamlit, gồm 9 trang chia theo nhóm người d�
 dùng chung lựa chọn đợt học để người dùng không phải chọn lại khi chuyển trang. Dashboard chỉ
 đọc kết quả: mỗi biểu đồ là một file SQL trong thư mục \texttt{sql/} (mục~\ref{sec:truy-van})
 chạy trên kho hoặc data mart, không tự tính lại từ dữ liệu thô.
+
+\newpage
 
 \begin{table}[htbp]
 \centering
@@ -409,7 +383,7 @@ mỗi trang phục vụ một nhóm người dùng.
 \centering
 \includegraphics[width=\textwidth]{Images/dashboard_imd.png}
 \vspace{0.5 cm}
-\caption{Trang Khoảng cách IMD (lãnh đạo khoa): tỷ lệ hoàn thành theo nhóm IMD (BR6)}
+\caption{Trang Khoảng cách IMD (lãnh đạo khoa): tỷ lệ đạt theo nhóm IMD (BR6)}
 \label{fig:dashboard-imd}
 \end{figure}
 

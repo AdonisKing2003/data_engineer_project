@@ -14,6 +14,7 @@ nạp được Airflow điều phối và kiểm tra chất lượng trước kh
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{Images/Kien_truc.png}
+\vspace{0.5 cm}
 \caption{Kiến trúc tổng thể của hệ thống}
 \label{fig:kien-truc}
 \end{figure}
@@ -28,6 +29,8 @@ phí (Sandbox). Bảng~\ref{tab:cong-nghe} liệt kê các công nghệ theo th�
 môi trường chạy, xử lý, lưu trữ, điều phối, rồi phục vụ người dùng. Toàn bộ hệ thống chạy
 trong Docker, và phiên bản của mọi thư viện Python đều được khóa cố định, nên dựng lại ở
 máy nào cũng ra cùng một môi trường.
+
+\newpage
 
 \begin{table}[htbp]
 \centering
@@ -55,21 +58,23 @@ Make & & Chạy pipeline & Mỗi bước là một lệnh, dùng chung cho ngư�
 
 \subsubsection{Lựa chọn engine xử lý}
 File click lớn nhất có khoảng 10,6 triệu dòng. Lượng dữ liệu này một thư viện chạy trên
-một máy như pandas vẫn xử lý được, nhưng nhóm chọn Spark vì ba lý do. Thứ nhất, khi dựng kho
-lớn gấp 5 lần để đo hiệu năng, bảng click lên tới 42,3 triệu dòng. Thứ hai, Spark có cả
-xử lý theo lô lẫn xử lý stream trên cùng một engine và cùng một cách viết. Thứ ba, xử lý
-phân tán là một kiểu mẫu xử lý dữ liệu hiện đại mà môn học yêu cầu. Trong project, Spark
-chạy ở chế độ local trên một máy; khi chuyển lên cụm thì code giữ nguyên, chỉ đổi cấu hình.
+một máy như pandas vẫn xử lý được, nhưng nhóm chọn Spark vì ba lý do. 
+\begin{itemize}
+    \item Thứ nhất, khi dựng kho
+    lớn gấp 5 lần để đo hiệu năng, bảng click lên tới 42,3 triệu dòng.
+    \item Thứ hai, Spark có cả
+    xử lý theo lô lẫn xử lý stream trên cùng một engine và cùng một cách viết.
+    \item Thứ ba, xử lý phân tán là kiểu mẫu xử lý dữ liệu lớn phổ biến hiện nay: khi dữ liệu tăng, chỉ cần thêm máy vào cụm thay vì viết lại code, và khi một phần việc bị lỗi, Spark tự tính lại riêng phần đó mà không phải chạy lại từ đầu.
+\end{itemize}  
 
 \subsubsection{Lựa chọn nơi lưu trữ}
-Mỗi nơi lưu có một vai trò riêng. BigQuery là kho chính cho dashboard, vì không phải quản
-trị máy chủ và lưu dữ liệu theo cột, nên truy vấn tổng hợp chỉ đọc những cột cần dùng. Gói
-Sandbox miễn phí nhưng có giới hạn: tối đa 10 GB lưu trữ, bảng tự xóa sau 60 ngày, và không
-cho dùng các lệnh sửa dữ liệu như \texttt{INSERT}, \texttt{UPDATE}. PostgreSQL lưu theo
-dòng và có chỉ mục, nên được dùng làm kho đối chứng: cùng một truy vấn phải ra cùng kết quả
-trên hai hệ thống có cách lưu khác nhau. DuckDB đọc thẳng file Parquet trên máy, giúp nhóm
-viết và kiểm tra SQL nhanh mà không tốn hạn mức truy vấn của BigQuery. Vai trò của từng nơi
-lưu trong kiến trúc được trình bày ở mục~\ref{sec:noi-luu}.
+Mỗi nơi lưu có một vai trò riêng. 
+\begin{itemize}
+    \item BigQuery là kho chính cho dashboard, vì không phải quản trị máy chủ và lưu dữ liệu theo cột, nên truy vấn tổng hợp chỉ đọc những cột cần dùng. Gói Sandbox miễn phí nhưng có giới hạn: tối đa 10 GB lưu trữ, bảng tự xóa sau 60 ngày, và không cho dùng các lệnh sửa dữ liệu như \texttt{INSERT}, \texttt{UPDATE}.
+    \item  PostgreSQL lưu theo dòng và có chỉ mục, nên được nhóm dùng làm kho đối chứng: cùng một truy vấn phải ra cùng kết quả trên hai hệ thống có cách lưu khác nhau.
+    \item DuckDB đọc thẳng file Parquet trên máy, giúp nhóm viết và kiểm tra SQL nhanh mà không tốn hạn mức truy vấn của BigQuery.
+\end{itemize}
+Vai trò của từng nơi lưu trong kiến trúc được trình bày ở mục~\ref{sec:noi-luu}.
 
 % ------------------------------------------------------------
 \subsection{Các tầng dữ liệu}
@@ -82,12 +87,9 @@ lưu trong kiến trúc được trình bày ở mục~\ref{sec:noi-luu}.
 bước này Spark chỉ đọc file theo kiểu dữ liệu khai báo sẵn và đổi các ký hiệu thiếu như
 \texttt{"?"} hay ô trống thành giá trị rỗng (\texttt{NULL}); chưa có quy tắc nghiệp vụ nào
 được áp dụng. Tách riêng tầng này giúp các bước sau làm việc trên dữ liệu đã đúng kiểu,
-và khi kết quả sai thì biết ngay lỗi nằm ở dữ liệu nguồn hay ở phép biến đổi.
+và khi kết quả sai có thể xác định được lỗi nằm ở dữ liệu nguồn hay ở phép biến đổi.
 
-\textbf{Tầng kho} là kho dữ liệu theo dimensional model, gồm 5 bảng dimension và 4 bảng
-fact (chương~\ref{sec:thiet-ke}), cũng lưu dưới dạng Parquet. Mọi bước làm sạch, gộp dòng
-trùng, gắn cờ chất lượng và tính bảng tiến độ theo tuần đều diễn ra khi đi từ staging lên
-tầng này. Bản kho trên Parquet là nguồn duy nhất cho mọi nơi lưu phía sau.
+\textbf{Tầng kho} là kho dữ liệu được thiết kế theo mô hình chiều (dimensional model), gồm 5 bảng dimension và 4 bảng fact (chương~\ref{sec:thiet-ke}), và cũng được lưu dưới dạng Parquet. Các bước làm sạch, gộp dòng trùng, gắn cờ chất lượng và tính bảng tiến độ theo tuần đều được thực hiện trong quá trình chuyển dữ liệu từ tầng staging lên tầng kho. Cờ chất lượng là các cột kiểu đúng/sai đánh dấu những dòng có vấn đề, chẳng hạn thiếu nhóm IMD hoặc hạn nộp phải điền bổ sung; nhóm giữ nguyên các dòng này thay vì xóa, để mỗi truy vấn tự quyết định cách xử lý (Bảng~\ref{tab:co}). Bản kho trên Parquet là nguồn dữ liệu duy nhất cho mọi hệ lưu trữ phía sau.
 
 \textbf{Tầng phục vụ} là nơi người dùng và ứng dụng đọc dữ liệu: bản kho trên BigQuery và
 PostgreSQL, cộng thêm hai bảng tổng hợp sẵn trên BigQuery cho BR2 và BR3. Hai bảng này gom
@@ -137,23 +139,15 @@ Luồng batch dựng lại toàn bộ kho từ 7 file CSV qua các bước theo 
 
 Mỗi bước ghi đè hoàn toàn kết quả cũ thay vì ghi thêm, nên chạy lại bao nhiêu lần cũng ra
 cùng một kết quả, không sinh dòng trùng. Cả luồng chạy được bằng một lệnh và dừng ngay ở
-bước lỗi đầu tiên. Nội dung và thời gian của từng bước được trình bày ở mục~\ref{sec:etl}.
+bước lỗi đầu tiên. Nội dung và thời gian của từng bước được nhóm trình bày ở mục~\ref{sec:etl}.
 
 % ------------------------------------------------------------
 \subsection{Luồng stream}
 \label{sec:kien-truc-stream}
 
-OULAD là dữ liệu lịch sử, không có luồng sự kiện thật. Để mô phỏng dữ liệu đến dần theo thời
-gian, nhánh stream phát lại các click theo từng ngày và chạy song song với luồng batch. Nhánh
-này không dựng lại toàn bộ kho mà chỉ tính tổng click của mỗi sinh viên trong mỗi đợt học theo
-từng tuần, tương ứng với hai cột \texttt{clicks\_week} và \texttt{clicks\_cum} của bảng tiến độ
-theo tuần.
+OULAD là dữ liệu lịch sử, không có luồng sự kiện thật. Để mô phỏng dữ liệu đến dần theo thời gian, nhánh stream phát lại các click theo từng ngày và chạy song song với luồng batch. Nhánh này không dựng lại toàn bộ kho mà chỉ tính tổng click của mỗi sinh viên trong mỗi đợt học theo từng tuần, tương ứng với hai cột clicks\_week và clicks\_cum của bảng tiến độ theo tuần.
 
-Trong nhánh stream, click của mỗi ngày được gửi vào Kafka. Spark Structured Streaming đọc dữ
-liệu từ Kafka và cộng dồn click theo tuần; sau mỗi lô nhỏ (micro-batch), kết quả được ghi ra
-Parquet và nạp lên BigQuery, nơi trang Click thời gian thực của dashboard đọc. Luồng batch vẫn
-là nguồn chuẩn: kết quả của nhánh stream được đối chiếu với bảng tiến độ theo tuần do luồng
-batch tạo ra, để kiểm tra hai nhánh cho cùng số liệu (mục~\ref{sec:stream}).
+Trong nhánh stream, click của mỗi ngày được gửi vào Kafka. Spark Structured Streaming đọc dữ liệu từ Kafka và cộng dồn click theo tuần; sau mỗi lô nhỏ (micro-batch), kết quả được ghi ra Parquet và nạp lên BigQuery, nơi trang Click thời gian thực của dashboard đọc. Luồng batch vẫn là nguồn chuẩn: kết quả của nhánh stream được đối chiếu với bảng tiến độ theo tuần do luồng batch tạo ra, để kiểm tra hai nhánh cho cùng số liệu.
 
 % ------------------------------------------------------------
 \subsection{Điều phối}
@@ -186,8 +180,9 @@ Mục~\ref{sec:dashboard} nêu cụ thể mỗi trang đọc những bảng nào
 
 Trong ETL (Extract -- Transform -- Load), dữ liệu được biến đổi xong rồi mới nạp vào kho.
 Trong ELT (Extract -- Load -- Transform), dữ liệu thô được nạp vào kho trước, rồi biến đổi
-bằng SQL ngay trong kho. Hệ thống dùng cả hai. Phần chính là ETL: Spark làm sạch và dựng
-toàn bộ dimension và fact trên Parquet, sau đó mới nạp lên BigQuery và PostgreSQL. Cách này
-giữ logic biến đổi ở một chỗ duy nhất, nên mọi nơi lưu nhận cùng một kết quả. Phần nhỏ là
-ELT: hai bảng tổng hợp sẵn cho BR2 và BR3 được tính bằng SQL ngay trên BigQuery từ các bảng
-đã nạp, vì chúng chỉ phục vụ dashboard đọc từ BigQuery.
+bằng SQL ngay trong kho. Hệ thống dùng cả hai cách xử lý trên. 
+\begin{itemize}
+    \item Phần chính là ETL: Spark làm sạch và dựng toàn bộ dimension và fact trên Parquet, sau đó mới nạp lên BigQuery và PostgreSQL. Cách này giữ logic biến đổi ở một chỗ duy nhất, nên mọi nơi lưu nhận cùng một kết quả.
+    \item Phần nhỏ là ELT: hai bảng tổng hợp sẵn cho BR2 và BR3 được tính bằng SQL ngay trên BigQuery từ các bảng đã nạp, vì chúng chỉ phục vụ dashboard đọc từ BigQuery.
+\end{itemize}
+ 

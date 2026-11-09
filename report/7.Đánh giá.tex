@@ -6,36 +6,51 @@
 \section{Đánh giá tổng thể}
 \label{sec:danh-gia}
 
-Giải pháp được đánh giá theo ba tiêu chí của đề bài: độ đúng của dữ liệu sau khi xử lý, hiệu
-năng của giải pháp, và hiệu quả hỗ trợ khai thác dữ liệu qua ứng dụng. Sau đó, từng công nghệ
-được đánh giá theo cùng một bộ tiêu chí. Bảng~\ref{tab:tieu-chi} nêu cách đo của mỗi tiêu chí
-và mục trình bày kết quả. Cuối chương đối chiếu kết quả với chuẩn đầu ra của môn học và nêu các
-hạn chế.
+Chương này trình bày những gì nhóm đã làm để kiểm chứng giải pháp và kết quả thu được, theo ba
+tiêu chí của đề bài:
 
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{2.6cm}|}
-\hline
-\textbf{Tiêu chí} & \textbf{Cách đo} & \textbf{Kết quả ở mục} \\ \hline
-Độ đúng của dữ liệu & Số dòng từng bảng và đáp án 20 câu hỏi mẫu trên ba hệ lưu trữ, so với đáp án chuẩn tính thẳng từ 7 file CSV gốc; bộ kiểm thử với số đúng chốt trước trong hợp đồng dữ liệu & \ref{sec:kiem-thu}, \ref{sec:doi-soat} \\ \hline
-Hiệu năng & Thời gian dựng lại kho; lượng dữ liệu quét (BigQuery) và thời gian chạy (PostgreSQL) trước và sau tối ưu; thời gian của ba cách tổ chức dữ liệu ở quy mô 1$\times$ và 5$\times$ & \ref{sec:airflow}, \ref{sec:toi-uu}, \ref{sec:chi-muc}, \ref{sec:benchmark} \\ \hline
-Hiệu quả khai thác qua ứng dụng & Số yêu cầu nghiệp vụ và câu hỏi mẫu tìm được đáp án trên giao diện; thời gian và dữ liệu quét khi mở từng trang; giá trị nghiệp vụ của kết quả & \ref{sec:ket-qua-br}, \ref{sec:khai-thac} \\ \hline
-Đánh giá công nghệ & Mỗi công nghệ xét theo bốn tiêu chí: độ đúng; hiệu năng và chi phí; khả năng mở rộng và vận hành; giới hạn gặp phải & \ref{sec:danh-gia-cong-nghe} \\ \hline
-\end{tabularx}
-\caption{Tiêu chí đánh giá và cách đo}
-\label{tab:tieu-chi}
-\end{table}
+\begin{itemize}
+  \item \textbf{Độ chính xác của dữ liệu sau khi xử lý} (mục~\ref{sec:kiem-thu},
+        \ref{sec:doi-soat}). Nhóm viết 290 bài kiểm thử với kết quả mong đợi (expected result)
+        được chốt trước trong hợp đồng dữ liệu, và tính đáp án chuẩn của 20 câu hỏi mẫu thẳng từ 7 file CSV để đối soát với ba hệ
+        lưu trữ BigQuery, PostgreSQL và Parquet. Kết quả: không có bài kiểm thử nào thất bại; cả
+        20 câu trùng đáp án chuẩn trên cả ba hệ; qua đối soát, nhóm tìm và sửa một lỗi tính phân
+        vị trên BigQuery.
+  \item \textbf{Hiệu năng} (mục~\ref{sec:airflow}, \ref{sec:toi-uu}, \ref{sec:chi-muc},
+        \ref{sec:benchmark}). Nhóm tự động hóa việc dựng kho bằng Spark và Airflow, áp dụng các kỹ
+        thuật tối ưu (phân vùng, gom cụm, bảng tổng hợp sẵn, chỉ mục), và so sánh ba cách tổ chức
+        dữ liệu (star, 3NF, wide table) ở hai quy mô: quy mô 1$\times$ là dữ liệu gốc, quy mô
+        5$\times$ là bản nhân bản dữ liệu gốc thành 5 lần (bảng click 42,3 triệu dòng) để đo tải.
+        Kết quả: dựng lại toàn bộ kho trong 303 giây, còn 223 giây khi chạy qua Airflow; dữ liệu
+        quét trên BigQuery giảm 15,9 đến 330 lần; truy vấn trên PostgreSQL nhanh hơn 5,3 lần. Phép
+        so sánh đo được 44 trên 48 tổ hợp; 4 tổ hợp còn lại là wide table quy mô 5$\times$ trên
+        BigQuery, không dựng được vì vượt giới hạn lưu trữ 10 GB của gói BigQuery Sandbox.
+  \item \textbf{Hiệu quả khai thác dữ liệu qua ứng dụng} (mục~\ref{sec:ket-qua-br},
+        \ref{sec:khai-thac}). Nhóm dựng dashboard 9 trang cho 4 nhóm người dùng, kiểm tra người
+        dùng có tìm được đáp án của 20 câu hỏi mẫu trên giao diện hay không, và đo thời gian tải
+        cùng lượng dữ liệu quét của 8 trang đọc dữ liệu từ kho. Kết quả: tìm được đáp án của cả 20
+        câu; 7 trên 8 trang tải trong khoảng 2,5 giây; mở cả 8 trang quét khoảng 273 MB. Về nghiệp vụ, quy tắc
+        cảnh báo sớm chỉ dùng dữ liệu 4 tuần đầu, nhưng 80,6\% sinh viên bị cảnh báo thực sự rớt
+        hoặc rút khi đợt học kết thúc, gần gấp đôi tỷ lệ chung 43,5\%.
+\end{itemize}
+
+Sau ba tiêu chí trên, chương đánh giá sáu công nghệ đã dùng (mục~\ref{sec:danh-gia-cong-nghe})
+và nêu các hạn chế chưa được giải quyết của project (mục~\ref{sec:han-che}).
 
 % ------------------------------------------------------------
 \subsection{Kiểm thử}
 \label{sec:kiem-thu}
 
-Bộ kiểm thử gồm 290 bài, viết bằng pytest. Kết quả lần chạy gần nhất: 289 bài đạt và 1 bài được
-bỏ qua. Bài bị bỏ qua là bộ kiểm thử DAG, vì cần môi trường Airflow nên được chạy riêng trong
-container Airflow, với 11 bài đều đạt. Các bài kiểm thử được chia theo nhóm như
-Bảng~\ref{tab:nhom-kiem-thu}; số đúng của mỗi bài được chốt trước trong hợp đồng dữ liệu và
-trong đặc tả yêu cầu nghiệp vụ, không lấy từ chính kết quả của pipeline.
+Nhóm viết 290 bài kiểm thử bằng pytest, chia theo nhóm như Bảng~\ref{tab:nhom-kiem-thu}. Kết quả
+mong đợi của mỗi bài được chốt trước trong hợp đồng dữ liệu và đặc tả yêu cầu nghiệp vụ, không lấy từ kết
+quả của pipeline, nên bộ kiểm thử bắt được cả lỗi làm sai số liệu chứ không chỉ lỗi làm pipeline
+dừng.
+
+Kết quả lần chạy cuối cùng: toàn bộ bài kiểm thử đều đạt, không có bài nào thất bại. Lệnh
+\texttt{make test} báo 289 bài đạt và 1 mục bỏ qua. Mục bỏ qua là bộ kiểm thử DAG Airflow: bộ
+test này cần thư viện Airflow, không được cài trong container \texttt{app} nơi chạy \texttt{make test},
+nên cần chạy riêng trong container Airflow. Nhóm đã chạy bộ test này trong container Airflow và cả 11
+bài đều đạt.
 
 \begin{table}[htbp]
 \centering
@@ -69,62 +84,58 @@ DAG Airflow & Đủ task, đúng thứ tự, cổng chất lượng đứng trư
 % Nếu số bài thay đổi, cập nhật lại theo `make test`.
 
 % ------------------------------------------------------------
-\subsection{Đối soát và độ đúng của câu hỏi mẫu}
+\subsection{Đối soát và độ chính xác của câu hỏi mẫu}
 \label{sec:doi-soat}
 
-Sau mỗi lần nạp, số dòng của cả 9 bảng trên BigQuery, PostgreSQL và Parquet khớp nhau. Ở
-mức nghiệp vụ, SQL của 20 câu hỏi mẫu chạy trên cả ba hệ đều cho đáp án trùng với đáp án
-chuẩn, vốn được tính trực tiếp từ 7 file CSV mà không đi qua kho. Kết quả này cho thấy quá
-trình ETL không làm sai lệch dữ liệu và ba hệ lưu trữ nhất quán với nhau.
+Nhóm đối soát dữ liệu ở hai mức. Ở mức bảng, số dòng của cả 9 bảng trên BigQuery, PostgreSQL
+và Parquet khớp nhau sau mỗi lần nạp. Ở mức nghiệp vụ, nhóm tính đáp án chuẩn của 20 câu hỏi
+mẫu trực tiếp từ 7 file CSV, không đi qua kho, rồi chạy SQL của 20 câu trên cả ba hệ: cả 20 câu
+đều trùng đáp án chuẩn trên cả ba hệ. Như vậy ETL không làm sai lệch dữ liệu và ba hệ lưu trữ
+nhất quán với nhau.
 
-Ngoài việc kiểm tra SQL, nhóm còn kiểm tra người dùng có tìm được đáp án trên giao diện hay
-không: mỗi câu hỏi được mô phỏng bằng cách mở đúng trang, chọn đúng đợt học và tuần như đề
-hỏi, rồi tìm đáp án trong những gì trang hiển thị. Dashboard trả lời được cả 20 câu, và mọi
-con số hiển thị đều được tính từ kho tại thời điểm mở trang, không có số ghi cố định trong mã.
+Nhóm cũng kiểm tra người dùng có tìm được đáp án trên giao diện hay không: bộ kiểm thử mở đúng
+trang, chọn đúng đợt học và tuần như đề hỏi, rồi tìm đáp án trong nội dung trang hiển thị.
+Dashboard trả lời được cả 20 câu; mọi con số được tính từ kho lúc mở trang, không ghi cố định
+trong mã.
 
-Khi đối chiếu cùng một truy vấn của dashboard trên DuckDB và BigQuery, nhóm phát hiện bản BigQuery
-của một số truy vấn BR1, BR4, BR5, BR7 dùng hàm phân vị xấp xỉ (\texttt{APPROX\_QUANTILES}),
-làm danh sách cảnh báo tuần 4 có 3.953 thay vì 3.958 sinh viên. Các truy vấn này đã được đổi sang
-phân vị chính xác có nội suy (\texttt{PERCENTILE\_CONT}), cùng cách tính với \texttt{QUANTILE\_CONT}
-của DuckDB; sau khi sửa, hai hệ cho kết quả trùng nhau.
+Đối soát chéo giúp nhóm phát hiện một lỗi: danh sách cảnh báo tuần 4 trên BigQuery có 3.953 sinh
+viên, trong khi DuckDB cho 3.958, do bản BigQuery dùng hàm phân vị xấp xỉ
+(\texttt{APPROX\_QUANTILES}). Nhóm đổi sang phân vị chính xác (\texttt{PERCENTILE\_CONT}), và sau khi
+sửa hai hệ cho kết quả trùng nhau.
 
 % ------------------------------------------------------------
 \subsection{Kết quả các yêu cầu nghiệp vụ}
 \label{sec:ket-qua-br}
 
-Bảng~\ref{tab:ket-qua-br} tóm tắt kết quả tiêu biểu của từng yêu cầu nghiệp vụ trên toàn bộ
-dữ liệu hoặc trên đợt học được chọn làm ví dụ trong đặc tả.
+Hệ thống trả lời được cả 8 yêu cầu nghiệp vụ. Bảng~\ref{tab:ket-qua-br} nêu, với mỗi yêu cầu,
+hệ thống làm được gì và một kết quả ví dụ lấy từ hệ thống, trên toàn bộ dữ liệu hoặc trên đợt học
+được chọn làm ví dụ trong đặc tả.
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|l|X|}
+\begin{tabularx}{\textwidth}{|p{2.6cm}|X|X|}
 \hline
-\textbf{BR} & \textbf{Kết quả tiêu biểu} \\ \hline
-BR1 & 16,8\% bài TMA nộp trễ (16.320 bài) \\ \hline
-BR2 & \texttt{oucontent} chiếm 28,3\% tổng click; tuần 2 có nhiều click nhất (2.307.080) \\ \hline
-BR3 & Cả 19 đợt đều có $\rho$ dương, từ 0,16 (BBB 2014J) đến 0,41 (EEE 2014J): liên hệ dương nhưng yếu đến vừa \\ \hline
-BR4 & Tuần 4: 3.958 sinh viên vào danh sách; 80,6\% trong số đó cuối cùng rớt hoặc rút, so với tỷ lệ nền 43,5\%; độ bao phủ 26,9\% \\ \hline
-BR5 & 30,4\% số lượt rút diễn ra từ ngày khai giảng trở về trước; ngày rút trung vị là ngày 27 \\ \hline
-BR6 & Kỳ 2014J: nhóm IMD 90--100\% đạt 63,3\%, nhóm 0--10\% đạt 41,1\%, chênh 22,2 điểm phần trăm (kỳ 2013B chênh 25,3 điểm) \\ \hline
-BR7 & AAA 2014J, tuần 10: trung vị tổng click của 336 sinh viên còn học là 593 \\ \hline
-BR8 & BBB 2013J, tuần 5: nhóm đạt (1.072 sinh viên) có trung vị 5 click vào diễn đàn, khoảng 25\%--75\% là 0--22 \\ \hline
+\textbf{Yêu cầu} & \textbf{Hệ thống làm được} & \textbf{Kết quả ví dụ} \\ \hline
+BR1 -- Nộp bài và điểm & Tính tỷ lệ nộp, tỷ lệ nộp trễ và phân bố điểm của từng bài & 16,8\% bài TMA bị nộp trễ, khoảng 1 trong 6 bài \\ \hline
+BR2 -- Hoạt động theo loại học liệu và theo tuần & Cho xem số click theo tuần và tỷ trọng click của từng loại học liệu & Trang nội dung bài học được click nhiều nhất, chiếm 28,3\% tổng click \\ \hline
+BR3 -- Click trước bài TMA đầu tiên và điểm bài đó & Đo mức liên hệ giữa số click trước hạn và điểm bài TMA đầu tiên, riêng cho từng đợt & Ở cả 19 đợt, liên hệ giữa số click và điểm là dương nhưng chỉ yếu đến vừa \\ \hline
+BR4 -- Cảnh báo sớm & Mỗi tuần lập danh sách sinh viên có nguy cơ rớt hoặc rút, chỉ dùng dữ liệu đến tuần đó & 80,6\% sinh viên bị cảnh báo ở tuần 4 thực sự rớt hoặc rút (tỷ lệ chung 43,5\%) \\ \hline
+BR5 -- Thời điểm sinh viên rút & Vẽ phần trăm sinh viên đã rút theo từng tuần, so được nhiều đợt với nhau & 30,4\% lượt rút xảy ra trước hoặc đúng ngày khai giảng \\ \hline
+BR6 -- Khoảng cách theo mức khó khăn của khu vực (IMD) & So tỷ lệ đạt giữa khu vực khó khăn nhất và ít khó khăn nhất qua 4 kỳ & Kỳ 2014J, khu vực khó khăn nhất có tỷ lệ đạt thấp hơn 22,2 điểm phần trăm \\ \hline
+BR7 -- Sinh viên so với các bạn cùng đợt & Cho sinh viên thấy số click, số bài đã nộp và điểm của mình so với mức thấp, giữa và cao của lớp & Đợt AAA 2014J, tuần 10: mức giữa lớp là 593 click \\ \hline
+BR8 -- Sinh viên so với nhóm đã đạt môn & Cho sinh viên so số click từng loại học liệu trong tuần với nhóm đã đạt môn & Đợt BBB 2013J, tuần 5: mức giữa của nhóm đạt là 5 click vào diễn đàn \\ \hline
 \end{tabularx}
-\caption{Kết quả tiêu biểu của 8 yêu cầu nghiệp vụ}
+\caption{Những gì hệ thống làm được cho 8 yêu cầu nghiệp vụ và kết quả ví dụ}
 \label{tab:ket-qua-br}
 \end{table}
 
-Kết quả đáng chú ý nhất là quy tắc cảnh báo sớm của BR4. Chỉ với dữ liệu đến hết tuần 4, quy
-tắc 4 dấu hiệu chọn ra 3.958 sinh viên, trong đó 80,6\% thực sự rớt hoặc rút khi đợt học kết
-thúc, gần gấp đôi tỷ lệ nền 43,5\%. Độ bao phủ 26,9\% cho thấy quy tắc ưu tiên độ chính xác:
-danh sách ngắn nhưng phần lớn là đúng, phù hợp khi nguồn lực hỗ trợ sinh viên có hạn.
-
-Bảng~\ref{tab:br4-tuan} cho thấy hiệu quả của cùng quy tắc khi áp dụng muộn hơn. Mỗi tuần chỉ
-dùng dữ liệu đến hết tuần đó, và kết quả cuối kỳ chỉ dùng để chấm, không dùng để chọn. Đến tuần
-12, độ bao phủ tăng từ 26,9\% lên 45,0\% trong khi độ chính xác giữ trên 80\%: càng về sau quy
-tắc tìm được càng nhiều sinh viên có nguy cơ mà không chọn nhầm nhiều hơn. Đổi lại, cảnh báo
-càng muộn thì càng ít thời gian để hỗ trợ. Tỷ lệ nền giảm dần vì một phần sinh viên rớt hoặc rút
-đã rời đợt học trước tuần đang xét.
+Kết quả có giá trị nhất là quy tắc cảnh báo sớm BR4 (Bảng~\ref{tab:br4-tuan}). Ở tuần 4, 80,6\%
+sinh viên bị cảnh báo thực sự rớt hoặc rút, gần gấp đôi tỷ lệ nền 43,5\%. Tỷ lệ này không thể đạt
+100\% vì quy tắc dự báo kết quả cuối kỳ chỉ từ dữ liệu 4 tuần đầu. Áp dụng ở tuần muộn hơn, quy
+tắc bắt được nhiều sinh viên có nguy cơ hơn (độ bao phủ tăng từ 26,9\% lên 45,0\% ở tuần 12) mà độ
+chính xác vẫn trên 80\%, đổi lại còn ít thời gian để hỗ trợ. Danh sách không dùng kết quả cuối kỳ;
+bài kiểm thử đảo nhãn (mục~\ref{sec:kiem-thu}) xác nhận điều này.
 
 \begin{table}[htbp]
 \centering
@@ -137,13 +148,12 @@ càng muộn thì càng ít thời gian để hỗ trợ. Tỷ lệ nền giảm
 12 & 25.562 & 5.685 & 4.581 & 80,6\% & 45,0\% & 39,8\% \\ \hline
 \end{tabular}
 \caption{Hiệu quả quy tắc cảnh báo sớm BR4 trên toàn bộ 22 đợt tại tuần 4, 8 và 12. ``Cảnh báo
-đúng'' là sinh viên trong danh sách cuối cùng rớt hoặc rút; tỷ lệ nền là tỷ lệ rớt hoặc rút của
-mọi sinh viên còn học tại tuần đó.}
+đúng'' là sinh viên trong danh sách cuối cùng rớt hoặc rút; độ chính xác (precision) là tỷ lệ cảnh
+báo đúng trên số sinh viên vào danh sách; độ bao phủ (recall) là tỷ lệ cảnh báo đúng trên mọi sinh
+viên còn học cuối cùng rớt hoặc rút; tỷ lệ nền là tỷ lệ rớt hoặc rút của mọi sinh viên còn học tại
+tuần đó.}
 \label{tab:br4-tuan}
 \end{table}
-
-Kết quả của BR3 cần được đọc thận trọng: hệ số tương quan dương ở mọi đợt chỉ cho thấy liên
-hệ, không cho phép kết luận rằng hoạt động nhiều hơn dẫn đến điểm cao hơn.
 
 % Ảnh chụp dashboard đặt ở mục Dashboard (sec:dashboard), không lặp lại ở đây.
 
@@ -151,15 +161,14 @@ hệ, không cho phép kết luận rằng hoạt động nhiều hơn dẫn đ�
 \subsection{Hiệu quả khai thác qua ứng dụng}
 \label{sec:khai-thac}
 
-Về độ phủ, cả 8 yêu cầu nghiệp vụ đều có trang riêng trên dashboard, chia cho 4 nhóm người dùng
-(Bảng~\ref{tab:trang}). Bộ kiểm thử mô phỏng người dùng cho cả 20 câu hỏi mẫu: mở đúng trang, chọn
-đúng đợt học và tuần như đề hỏi, rồi đọc đáp án trên màn hình. Cả 20 câu đều tìm được đáp án, và
-đáp án trùng với đáp án chuẩn (mục~\ref{sec:doi-soat}).
+Nhóm dựng dashboard gồm 9 trang, phục vụ cả 8 yêu cầu nghiệp vụ cho 4 nhóm người dùng
+(Bảng~\ref{tab:trang}). Người dùng tìm được đáp án của cả 20 câu hỏi mẫu trên giao diện, và đáp án
+trùng với đáp án chuẩn (mục~\ref{sec:doi-soat}).
 
-Về tốc độ và chi phí, Bảng~\ref{tab:khai-thac} đo từng trang ở trạng thái mặc định khi mở lần
-đầu: chạy đúng các truy vấn mà trang gọi, theo cùng cách app gọi BigQuery, với bộ nhớ đệm kết
-quả của BigQuery tắt. Mỗi truy vấn chạy 3 lần, lấy trung vị thời gian; số đo ngày 08/11/2026
-trên kho quy mô 1$\times$.
+Để đánh giá tốc độ và chi phí, nhóm đo 8 trang đọc dữ liệu từ kho (trừ trang Chất lượng và
+benchmark) ở trạng thái mặc định khi mở lần đầu (Bảng~\ref{tab:khai-thac}): chạy đúng các truy vấn mà trang gọi, theo cùng cách app gọi BigQuery,
+với bộ nhớ đệm kết quả của BigQuery tắt. Mỗi truy vấn chạy 3 lần, lấy trung vị thời gian; số đo
+ngày 08/11/2026 trên kho quy mô 1$\times$.
 
 \begin{table}[htbp]
 \centering
@@ -183,27 +192,38 @@ Click thời gian thực & 2 & 69,1 MB & 1,6 s \\ \hline
 
 Bảy trên tám trang tải xong trong khoảng 2,5 giây. Trang Cảnh báo sớm chậm nhất, 7,7 giây, gần
 hết là truy vấn danh sách toàn trường (5,6 giây), vốn trả về 27.250 dòng, mỗi dòng một sinh viên
-còn học, để tính độ chính xác của cảnh báo. Mở lại trang trong vòng 1 đến 6 giờ thì dashboard
-dùng kết quả đã lưu tạm, không quét thêm. Một lượt mở cả 8 trang quét khoảng 273 MB, nên hạn
-mức truy vấn miễn phí 1 TB mỗi tháng của BigQuery đủ cho hơn 3.000 lượt như vậy. Trang Tiến độ so
-với lớp quét nhiều nhất vì tính phân vị của lớp từ bảng tiến độ theo tuần mỗi lần mở; nếu số người
-dùng tăng, trang này có thể dùng một bảng tổng hợp sẵn như trang Hoạt động học tập.
-
-Về giá trị nghiệp vụ, kết quả có ích nhất là danh sách cảnh báo BR4 (Bảng~\ref{tab:br4-tuan}):
-ngay từ tuần 4, 80,6\% sinh viên trong danh sách cuối cùng rớt hoặc rút, gần gấp đôi tỷ lệ nền,
-nên cố vấn học tập có thể dồn nguồn lực hỗ trợ vào một danh sách ngắn mà phần lớn là đúng.
+còn học, để tính độ chính xác của cảnh báo. Nhóm cho dashboard lưu tạm kết quả từ 1 đến 6 giờ
+tùy trang, nên mở lại trang trong khoảng đó không quét thêm. Trang Tiến độ so với lớp quét nhiều nhất vì tính phân vị của lớp từ bảng tiến độ theo tuần mỗi
+lần mở; nếu số người dùng tăng, trang này có thể dùng bảng tổng hợp sẵn như nhóm đã làm cho trang
+Hoạt động học tập.
 
 % ------------------------------------------------------------
 \subsection{Tối ưu truy vấn}
 \label{sec:toi-uu}
 
-Bốn kỹ thuật tối ưu được áp dụng cho kho chính và đo trên các truy vấn thực tế của dashboard
-(Bảng~\ref{tab:toi-uu}). Mốc ``trước'' là bản sao bảng thường của cùng bảng, tạo tạm khi đo;
-với PostgreSQL, chỉ mục được xóa để đo rồi tạo lại. Mỗi truy vấn chạy 5 lần, lấy trung vị; bộ nhớ đệm kết quả của
-BigQuery được tắt. Với mỗi kỹ thuật, kết quả trước và sau tối ưu được so sánh và phải giống
-hệt nhau. Trên BigQuery, chỉ số chính là lượng dữ liệu quét, vì chi phí và hạn mức được tính
-theo chỉ số này; ở quy mô dưới 1 GB, thời gian chạy chủ yếu là chi phí khởi động job nên
-chênh lệch không đáng kể.
+Nhóm áp dụng bốn kỹ thuật tối ưu cho các truy vấn tốn nhiều nhất của dashboard. Các kỹ thuật
+được đặt sẵn trong luồng nạp kho, nên mỗi lần nạp lại đều được áp dụng.
+
+\begin{itemize}
+  \item \textbf{Phân vùng bảng tiến độ theo tuần (BigQuery).} Trang Cảnh báo chỉ cần dữ liệu của
+        tuần đang xét và tuần trước. Khi bảng được chia mỗi tuần một phân vùng, BigQuery chỉ đọc
+        hai phân vùng này thay vì cả bảng.
+  \item \textbf{Gom cụm bảng click theo đợt (BigQuery).} Bảng click được sắp theo mã môn và mã
+        kỳ, nên truy vấn của một đợt chỉ đọc khoảng 1/16 bảng.
+  \item \textbf{Bảng tổng hợp sẵn cho BR2 (BigQuery).} Số click theo tuần và loại học liệu được
+        tính sẵn một lần sau mỗi lần nạp kho; biểu đồ BR2 chỉ đọc bảng nhỏ này. Đổi lại, bảng phải
+        được dựng lại sau mỗi lần nạp.
+  \item \textbf{Chỉ mục B-tree (PostgreSQL).} Khóa chính có sẵn bắt đầu bằng mã sinh viên nên
+        không giúp truy vấn theo đợt. Nhóm thêm chỉ mục bắt đầu bằng mã môn, mã kỳ và kèm sẵn các
+        cột cần đọc, để truy vấn lấy dữ liệu thẳng từ chỉ mục mà không phải đọc bảng. Đổi lại, chỉ
+        mục chiếm 499 MB và làm chậm việc nạp.
+\end{itemize}
+
+Mỗi kỹ thuật được đo trên đúng truy vấn của dashboard, so với cùng bảng khi chưa tối ưu. Mỗi
+truy vấn chạy 5 lần, lấy trung vị, tắt bộ nhớ đệm kết quả của BigQuery; kết quả trước và sau tối
+ưu phải giống hệt nhau. Trên BigQuery, nhóm đo lượng dữ liệu quét vì chi phí được tính theo chỉ
+số này; với dữ liệu dưới 1 GB, thời gian chạy chủ yếu là thời gian khởi động job nên ít khác biệt.
+Bảng~\ref{tab:toi-uu} cho thấy cả bốn kỹ thuật đều giảm đáng kể chi phí của truy vấn.
 
 \begin{table}[htbp]
 \centering
@@ -211,63 +231,38 @@ chênh lệch không đáng kể.
 \begin{tabularx}{\textwidth}{|p{3.6cm}|X|l|r|r|r|}
 \hline
 \textbf{Kỹ thuật} & \textbf{Truy vấn} & \textbf{Chỉ số} & \textbf{Trước} & \textbf{Sau} & \textbf{Giảm} \\ \hline
-Phân vùng bảng tiến độ theo tuần (BigQuery) & Danh sách cảnh báo BR4 tuần 4 & dữ liệu quét & 79,2 MB & 4,7 MB & 16,8$\times$ \\ \hline
-Gom cụm bảng click theo đợt (BigQuery) & Click theo tuần và loại học liệu của một đợt & dữ liệu quét & 304,6 MB & 19,2 MB & 15,9$\times$ \\ \hline
-Bảng tổng hợp sẵn BR2 (BigQuery) & Biểu đồ BR2 của một đợt & dữ liệu quét & 381,6 MB & 1,2 MB & 330$\times$ \\ \hline
-Chỉ mục B-tree (PostgreSQL) & Như kỹ thuật gom cụm & thời gian & 200,5 ms & 37,6 ms & 5,3$\times$ \\ \hline
+Phân vùng bảng tiến độ theo tuần (BigQuery) & Danh sách cảnh báo BR4 tuần 4 & dữ liệu quét & 79,2 MB & 4,7 MB & 16,8 lần \\ \hline
+Gom cụm bảng click theo đợt (BigQuery) & Click theo tuần và loại học liệu của một đợt & dữ liệu quét & 304,6 MB & 19,2 MB & 15,9 lần \\ \hline
+Bảng tổng hợp sẵn BR2 (BigQuery) & Biểu đồ BR2 của một đợt & dữ liệu quét & 381,6 MB & 1,2 MB & 330 lần \\ \hline
+Chỉ mục B-tree (PostgreSQL) & Như kỹ thuật gom cụm & thời gian & 200,5 ms & 37,6 ms & 5,3 lần \\ \hline
 \end{tabularx}
 \caption{Kết quả các kỹ thuật tối ưu truy vấn}
 \label{tab:toi-uu}
 \end{table}
 
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|l|X|r|r|}
-\hline
-\textbf{Bảng} & \textbf{Điều kiện lọc tuần trước (phía \texttt{p})} & \textbf{Dữ liệu quét} & \textbf{Dòng đọc từ bảng} \\ \hline
-Bảng thường & qua phép nối: \texttt{p.week\_no = w.week\_no - 1} & 79,2 MB & 2.718.491 \\ \hline
-Bảng thường & thêm hằng số: \texttt{p.week\_no = 3} & 79,2 MB & 2.718.491 \\ \hline
-Phân vùng & qua phép nối: \texttt{p.week\_no = w.week\_no - 1} & 79,2 MB & 1.408.135 \\ \hline
-Phân vùng & thêm hằng số: \texttt{p.week\_no = 3} & 4,7 MB & 97.779 \\ \hline
-\end{tabularx}
-\caption{Danh sách cảnh báo BR4 tuần 4 trên BigQuery: phân vùng chỉ có tác dụng khi truy vấn
-lọc cột phân vùng bằng hằng số; kết quả của cả bốn trường hợp giống hệt nhau}
-\label{tab:dieu-kien-hang-so}
-\end{table}
-
-Các phép đo cho thấy mỗi kỹ thuật chỉ có tác dụng trong điều kiện nhất định. Phân vùng chỉ
-giảm dữ liệu quét khi truy vấn lọc cột phân vùng bằng một hằng số
-(Bảng~\ref{tab:dieu-kien-hang-so}): truy vấn BR4 nối bảng với
-chính nó qua điều kiện tuần trước bằng tuần hiện tại trừ một, và BigQuery không dùng được
-điều kiện này để bỏ qua phân vùng. Trên bảng phân vùng, phía tuần hiện tại đã chỉ đọc tuần 4
-nên số dòng đọc giảm gần một nửa, nhưng phía tuần trước vẫn đọc cả bảng nên dữ liệu quét không
-đổi; chỉ khi thêm điều kiện hằng số tương đương thì dữ liệu quét
-mới giảm từ 79,2 MB xuống 4,7 MB. Trên bảng thường, thêm điều kiện đó không giảm được gì vì
-BigQuery vẫn phải đọc cả cột. Truy vấn của trang Cảnh báo trên BigQuery vì vậy được thêm
-điều kiện này dưới dạng tham số tuần, nên mỗi lần mở trang chỉ quét 4,7 MB. Gom cụm phù hợp với các cột chuỗi hay được lọc như mã môn
-và mã kỳ, khi đó truy vấn một đợt chỉ đọc khoảng 1/16 bảng. Bảng tổng hợp sẵn đổi chi phí của
-mỗi lần mở trang lấy chi phí dựng bảng một lần, nhưng phải được dựng lại sau mỗi lần nạp kho.
-Chỉ mục trên PostgreSQL phải bắt đầu bằng cột được lọc: khóa chính có sẵn bắt đầu bằng mã
-sinh viên nên không giúp được truy vấn theo đợt; chỉ mục mới kèm các cột cần đọc cho phép
-truy vấn chỉ đọc chỉ mục mà không mở bảng, đổi lại chỉ mục chiếm 499 MB và làm chậm việc nạp.
+Khi đo, nhóm phát hiện phân vùng chỉ có tác dụng nếu truy vấn lọc cột tuần bằng một giá trị cụ
+thể. Truy vấn BR4 ban đầu lấy tuần trước qua phép nối (\texttt{p.week\_no = w.week\_no - 1});
+BigQuery không dùng được điều kiện này để bỏ qua phân vùng, nên vẫn quét 79,2 MB như bảng thường.
+Nhóm thêm điều kiện tuần trước dưới dạng tham số (\texttt{p.week\_no = @week\_no - 1}), và dữ liệu
+quét mới giảm xuống 4,7 MB.
 
 % ------------------------------------------------------------
 \subsection{Chỉ mục và hiệu năng truy vấn}
 \label{sec:chi-muc}
 
-Mục này bám theo bài ``Indexing and Query Performance'' của môn học: tìm truy vấn phải quét
-toàn bộ một bảng lớn, thêm cấu trúc truy cập trên các cột hay được lọc, đo trước và sau, rồi
-cân nhắc chi phí khi ghi. Đối tượng là bảng tiến độ theo tuần \texttt{fact\_student\_week}
-(1.342.949 dòng, mỗi dòng là một sinh viên trong một đợt tại một tuần), nguồn dữ liệu của
-trang Cảnh báo (BR4) và trang Sinh viên (BR7). Kho chính trên BigQuery và kho đối chứng trên
-PostgreSQL dùng chung bảng này; app đọc từ BigQuery. Số đo chi tiết và kế hoạch truy vấn đầy
-đủ nằm trong \texttt{docs/indexing.md}.
+Mục này trình bày cách nhóm tăng tốc truy vấn trên bảng tiến độ theo tuần
+\texttt{fact\_student\_week} (1.342.949 dòng, mỗi dòng là một sinh viên trong một đợt tại một
+tuần), nguồn dữ liệu của trang Cảnh báo (BR4) và trang Sinh viên (BR7).
 
-\paragraph{Các truy vấn cần phục vụ.} Bảng~\ref{tab:truy-van-fsw} liệt kê các truy vấn của hai
-trang trên \texttt{fact\_student\_week}. Cột \texttt{week\_no} được lọc trong mọi truy vấn của
-trang Cảnh báo; cặp mã môn, mã kỳ được lọc trong bốn trên năm truy vấn; mã sinh viên được lọc
-trong một truy vấn và là khóa của phép nối với tuần trước.
+\textbf{Vấn đề.} Bảng~\ref{tab:truy-van-fsw} liệt kê các truy vấn của hai trang trên bảng này.
+Cột \texttt{week\_no} được lọc trong mọi truy vấn của trang Cảnh báo; cặp mã môn, mã kỳ được lọc
+trong bốn trên năm truy vấn. Khi bảng được lưu ở dạng thường, mọi truy vấn đều phải đọc toàn
+bảng. Truy vấn đại diện ``tuần 4 có những sinh viên nào có nguy cơ'' (\texttt{br4\_at\_risk\_all})
+chỉ cần dữ liệu của tuần 4 và tuần 3, tức 2 trong 43 tuần, nhưng BigQuery vẫn quét 79,2 MB.
+PostgreSQL thì quét tuần tự cả 22.016 trang của bảng, vì khóa chính bắt đầu bằng mã sinh viên
+nên không dùng được cho điều kiện theo tuần.
+
+\newpage
 
 \begin{table}[htbp]
 \centering
@@ -285,52 +280,35 @@ Thứ hạng phân vị (trong trang) & Sinh viên & \texttt{week\_no}, \texttt{
 \label{tab:truy-van-fsw}
 \end{table}
 
-\paragraph{Vấn đề.} Nếu chỉ lưu bảng ở dạng thường, mọi truy vấn trên đều quét toàn bảng. Câu
-hỏi đại diện ``tuần 4 có những sinh viên nào nguy cơ'' (\texttt{br4\_at\_risk\_all}) chỉ cần
-dữ liệu của tuần 4 và tuần 3, tức 2 trong 43 tuần, nhưng trên BigQuery vẫn quét 79,2 MB. Trên
-PostgreSQL, khóa chính bắt đầu bằng mã sinh viên nên không dùng được cho điều kiện theo tuần;
-bộ tối ưu chọn quét tuần tự (\texttt{Seq Scan}) cả 22.016 trang của bảng, một lần cho tuần 4 và
-một lần cho tuần 3.
-
-\paragraph{Giải pháp trên từng hệ.} Bảng~\ref{tab:giai-phap-chi-muc} đặt các khái niệm của bài
-giảng cạnh cách hiện thực trên hai hệ. BigQuery không có chỉ mục B+-tree: dữ liệu được lưu theo
-cột trong các khối có kèm thống kê giá trị nhỏ nhất, lớn nhất, và truy vấn tăng tốc bằng cách
-bỏ qua các khối không thể chứa dòng cần tìm. Phân vùng và gom cụm là hai cách tổ chức các khối
-đó, nên đóng vai trò của chỉ mục. Gom cụm sắp các dòng trong mỗi phân vùng theo cột gom cụm,
-để các dòng cùng một đợt nằm trong các khối liền nhau; đây chính là ý tưởng clustering index
-(slide 35): bản ghi cùng giá trị được gom vào cụm khối riêng, truy vấn chỉ đọc đúng cụm cần.
+\textbf{Giải pháp.} BigQuery không có chỉ mục B-tree: dữ liệu được lưu thành các khối, mỗi khối
+ghi kèm giá trị nhỏ nhất và lớn nhất của từng cột, và truy vấn được tăng tốc bằng cách bỏ qua
+các khối không chứa dòng cần tìm. Vì vậy trên BigQuery, nhóm chia bảng mỗi tuần một phân vùng và
+gom cụm các dòng cùng đợt vào các khối liền nhau. Trên PostgreSQL, nhóm tạo chỉ mục B-tree rồi
+dùng \texttt{CLUSTER} để xếp lại bảng theo thứ tự của chỉ mục (Bảng~\ref{tab:giai-phap-chi-muc}).
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.6cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.0cm}|X|X|}
 \hline
-\textbf{Khái niệm (bài giảng)} & \textbf{BigQuery} & \textbf{PostgreSQL} \\ \hline
-Phân vùng ngang trong hệ tập trung (slide 100) & \texttt{PARTITION BY RANGE\_BUCKET(week\_no, GENERATE\_ARRAY(-4, 39, 1))}: 43 phân vùng, mỗi tuần một phân vùng & Không dùng \\ \hline
-Chỉ mục trên cột hay lọc, loại B+-tree (slide 101) & Không có & \texttt{CREATE INDEX ix\_fact\_student\_week\_week ON fact\_student\_week (week\_no, code\_module, code\_presentation)} \\ \hline
-Clustering index (slide 35) & \texttt{CLUSTER BY code\_module, code\_presentation, id\_student} trong mỗi phân vùng & \texttt{CLUSTER fact\_student\_week USING ix\_fact\_student\_week\_week}: xếp lại bảng theo chỉ mục \\ \hline
+\textbf{Kỹ thuật} & \textbf{BigQuery} & \textbf{PostgreSQL} \\ \hline
+Phân vùng theo tuần & \texttt{PARTITION BY RANGE\_BUCKET(week\_no, GENERATE\_ARRAY(-4, 39, 1))}: 43 phân vùng, mỗi tuần một phân vùng & Không dùng \\ \hline
+Chỉ mục B-tree & Không có & \texttt{CREATE INDEX ix\_fact\_student\_week\_week ON fact\_student\_week (week\_no, code\_module, code\_presentation)} \\ \hline
+Xếp các dòng liền nhau theo cột hay lọc & \texttt{CLUSTER BY code\_module, code\_presentation, id\_student} trong mỗi phân vùng & \texttt{CLUSTER fact\_student\_week USING ix\_fact\_student\_week\_week} \\ \hline
 \end{tabularx}
 \caption{Phân vùng, chỉ mục và gom cụm cho bảng tiến độ theo tuần}
 \label{tab:giai-phap-chi-muc}
 \end{table}
 
-Thứ tự cột được chọn theo Bảng~\ref{tab:truy-van-fsw}. Trên BigQuery, \texttt{week\_no} đã là
-cột phân vùng, nên gom cụm dùng các cột hay lọc kèm theo: mã môn và mã kỳ (bốn truy vấn), rồi mã
-sinh viên (một truy vấn và khóa nối); tối đa bốn cột nhưng chỉ cần ba. Cột \texttt{is\_enrolled}
-được lọc nhiều nhất nhưng không được chọn: 77,7\% số dòng có giá trị đúng, nên lọc theo cột này
-bỏ được nhiều nhất 22\% dữ liệu, và nếu đặt lên đầu thì dòng của mỗi đợt bị tách làm hai đoạn.
-Trên PostgreSQL, chỉ mục B+-tree chỉ dùng được theo tiền tố, nên \texttt{week\_no} được đặt đầu
-vì câu hỏi đại diện chỉ lọc theo tuần; hai cột sau phục vụ truy vấn một đợt và thứ hạng phân
-vị. Truy vấn một sinh viên đã dùng được khóa chính (bắt đầu bằng mã sinh viên). Truy vấn phân
-vị theo đợt không có chỉ mục riêng, để tránh thêm chỉ mục và chi phí ghi cho một truy vấn ít
-dùng. Cả hai cách lưu được đặt sẵn trong luồng nạp (\texttt{etl/04\_load\_bq.py},
-\texttt{etl/05\_load\_pg.py}) giống các kỹ thuật ở mục~\ref{sec:toi-uu}.
+Thứ tự cột được chọn theo tần suất lọc ở Bảng~\ref{tab:truy-van-fsw}. Cột \texttt{week\_no} đứng
+đầu chỉ mục PostgreSQL và là cột phân vùng trên BigQuery; mã môn, mã kỳ đứng tiếp theo; mã sinh
+viên được thêm vào gom cụm trên BigQuery vì là khóa của phép nối với tuần trước. Cột
+\texttt{is\_enrolled} được lọc nhiều nhưng không được chọn: 77,7\% số dòng có giá trị đúng, nên lọc
+theo cột này bỏ được nhiều nhất 22\% dữ liệu.
 
-\paragraph{Bằng chứng.} Các mức được đo trên bảng thử chép từ kho thật, tạo lúc đo rồi xóa. Truy
-vấn BigQuery là đúng các file SQL app đang dùng, chỉ đổi tên bảng, với tuần 4, đợt BBB 2014J;
-truy vấn PostgreSQL là bản chuyển cú pháp của \texttt{br4\_at\_risk\_all} cho tuần 4. Mỗi truy
-vấn chạy 5 lần, lấy trung vị, bộ nhớ đệm kết quả của BigQuery được tắt; ở mọi truy vấn, kết
-quả của các mức giống hệt nhau.
+\textbf{Kết quả.} Nhóm đo trên bản sao của bảng thật, dùng đúng các truy vấn của app với tuần 4,
+đợt BBB 2014J. Mỗi truy vấn chạy 5 lần, lấy trung vị, tắt bộ nhớ đệm kết quả của BigQuery; ở mọi
+truy vấn, kết quả của các mức lưu trữ giống hệt nhau.
 
 \begin{table}[htbp]
 \centering
@@ -338,9 +316,8 @@ quả của các mức giống hệt nhau.
 \begin{tabularx}{\textwidth}{|X|r|r|r|}
 \hline
 \textbf{Truy vấn (BigQuery, 1$\times$)} & \textbf{Bảng thường} & \textbf{Phân vùng} & \textbf{Phân vùng + gom cụm} \\ \hline
-BR4 tuần 4, toàn trường (câu hỏi đại diện) & 79,2 MB & 4,7 MB & 4,7 MB \\ \hline
+BR4 tuần 4, toàn trường (truy vấn đại diện) & 79,2 MB & 4,7 MB & 4,7 MB \\ \hline
 \quad bytes tính tiền & 79,7 MB & 21,0 MB & 21,0 MB \\ \hline
-\quad slot time & 1.168 ms & 598 ms & 342 ms \\ \hline
 BR4 tuần 4, một đợt & 79,2 MB & 4,7 MB & 4,7 MB \\ \hline
 BR7 phân vị theo tuần, một đợt & 46,0 MB & 46,0 MB & 46,0 MB \\ \hline
 BR7 tiến trình một sinh viên & 79,2 MB & 79,2 MB & 77,1 MB \\ \hline
@@ -348,6 +325,8 @@ BR7 tiến trình một sinh viên & 79,2 MB & 79,2 MB & 77,1 MB \\ \hline
 \caption{Dữ liệu quét trên BigQuery ở ba mức lưu trữ của bảng tiến độ theo tuần}
 \label{tab:chi-muc-bq}
 \end{table}
+
+\newpage
 
 \begin{table}[htbp]
 \centering
@@ -360,177 +339,159 @@ Chỉ khóa chính: \texttt{Parallel Seq Scan} & 125,2 ms & 22.016 & 558,0 ms & 
 + chỉ mục: \texttt{Bitmap Index Scan} rồi \texttt{Bitmap Heap Scan} & 172,3 ms & 22.047 & 386,8 ms & 34.868 \\ \hline
 + \texttt{CLUSTER} theo chỉ mục: như trên & 73,9 ms & 567 & 274,5 ms & 2.817 \\ \hline
 \end{tabularx}
-\caption{Câu hỏi đại diện trên PostgreSQL ở ba mức; thời gian là \texttt{Execution Time} của
+\caption{Truy vấn đại diện trên PostgreSQL ở ba mức; thời gian là \texttt{Execution Time} của
 \texttt{EXPLAIN ANALYZE}, trang đọc là số trang của bước quét bảng phía tuần 4}
 \label{tab:chi-muc-pg}
 \end{table}
 
-\paragraph{Đọc kết quả.} Trên BigQuery (Bảng~\ref{tab:chi-muc-bq}), phân vùng giảm dữ liệu quét của
-trang Cảnh báo 16,8 lần, vì truy vấn chỉ đọc phân vùng tuần 4 và tuần 3. Phân vùng không giúp
-hai truy vấn BR7 vì chúng không lọc theo tuần. Gom cụm gần như không giảm thêm: mỗi phân vùng
-tuần chỉ khoảng 3 MB, nhỏ hơn đơn vị khối mà BigQuery dùng để bỏ qua dữ liệu, nên mỗi phân vùng
-chỉ có một vài khối và gần như không có khối nào bị bỏ; chỉ truy vấn một sinh viên giảm được
-2,7\%. Đối chiếu với bảng click 304,6 MB ở mục~\ref{sec:toi-uu}, cùng cách gom cụm theo đợt
-giảm được 15,9 lần, nên lợi ích của gom cụm phụ thuộc vào kích thước dữ liệu trong mỗi phân
-vùng. Slot time chỉ để tham khảo vì dao động giữa các lần chạy.
+Trên BigQuery (Bảng~\ref{tab:chi-muc-bq}), phân vùng giảm dữ liệu quét của trang Cảnh báo 16,8
+lần vì truy vấn chỉ đọc phân vùng tuần 4 và tuần 3. Hai truy vấn BR7 không lọc theo tuần nên không
+được lợi từ phân vùng. Gom cụm gần như không giảm thêm, vì mỗi phân vùng tuần chỉ khoảng 3 MB,
+nhỏ hơn đơn vị khối mà BigQuery dùng để bỏ qua dữ liệu; với bảng click 304,6 MB, cùng cách gom
+cụm giảm được 15,9 lần (mục~\ref{sec:toi-uu}).
 
-Trên PostgreSQL (Bảng~\ref{tab:chi-muc-pg}), chỉ thêm chỉ mục B+-tree thì truy vấn ở quy mô 1$\times$
-còn chậm hơn quét tuần tự. Kế hoạch truy vấn đã chuyển từ \texttt{Seq Scan} sang tra chỉ mục,
-nhưng các dòng của tuần 4 nằm rải khắp bảng (hệ số tương quan giữa \texttt{week\_no} và vị trí
-dòng trên đĩa là 0,02), nên các dòng cần đọc rơi vào gần như mọi trang: vẫn đọc 22.047 trang,
-thêm chi phí tra chỉ mục. Đây là khác biệt giữa chỉ mục thường và clustering index ở slide 35.
-Sau khi xếp lại bảng theo chỉ mục bằng \texttt{CLUSTER}, hệ số tương quan thành 1, các dòng cùng
-tuần nằm liền nhau, nên mỗi phía chỉ đọc 567 trang (2,6\% bảng) và truy vấn nhanh hơn quét tuần
-tự 1,7 lần ở 1$\times$, 2,0 lần ở 5$\times$. Số trang giảm 39 lần nhưng thời gian giảm ít hơn,
-vì phần còn lại của truy vấn (tính phân vị, nối với bảng đăng ký, trả 27.250 dòng) không đổi.
+Trên PostgreSQL (Bảng~\ref{tab:chi-muc-pg}), chỉ thêm chỉ mục thì truy vấn ở quy mô 1$\times$ còn
+chậm hơn quét tuần tự: các dòng của tuần 4 nằm rải khắp bảng, nên dù tra qua chỉ mục vẫn phải đọc
+gần như mọi trang. Sau khi xếp lại bảng bằng \texttt{CLUSTER}, các dòng cùng tuần nằm liền nhau,
+số trang đọc giảm từ 22.016 xuống 567 và truy vấn nhanh hơn quét tuần tự 1,7 lần ở quy mô
+1$\times$, 2,0 lần ở quy mô 5$\times$.
 
-\paragraph{Chi phí khi ghi (slide 101).} Mỗi chỉ mục phải được cập nhật khi ghi. Chèn toàn bộ
-1,34 triệu dòng vào bảng rỗng mất 2,36 s khi chỉ có khóa chính và 4,52 s khi có thêm chỉ mục
-(chậm hơn 91\%); chỉ mục chiếm thêm 9,9 MB ở 1$\times$ và 48,2 MB ở 5$\times$. PostgreSQL không
-giữ thứ tự của \texttt{CLUSTER} cho dòng ghi sau đó, nên phải chạy lại sau mỗi lần nạp; vì kho
-được nạp lại toàn bộ mỗi lần, luồng nạp chạy \texttt{CLUSTER} ngay sau khi tạo chỉ mục, mất
-khoảng 4 s ở 1$\times$ và 13 s ở 5$\times$. Trên BigQuery, gom cụm được thực hiện khi load job
-ghi bảng nên không có bước riêng.
-
-\paragraph{Lưu ý.} Bảng hiện chỉ có 1,34 triệu dòng, và BigQuery tính tiền tối thiểu 10 MB cho
-mỗi bảng trong một truy vấn, nên bytes tính tiền của câu hỏi đại diện chỉ giảm từ 79,7 MB xuống
-21,0 MB, dù dữ liệu quét giảm từ 79,2 MB xuống 4,7 MB; mức tiết kiệm hiện tại vì vậy nhỏ. Lợi ích
-rõ hơn khi dữ liệu tăng qua nhiều đợt: với bảng thường, dữ liệu quét tăng theo cả bảng, còn với
-bảng phân vùng chỉ tăng theo dữ liệu của một tuần, và mỗi phân vùng lớn lên thì gom cụm mới bắt
-đầu bỏ qua được khối. Mức 5$\times$ chưa đo được trên BigQuery vì các bản sao thử vượt hạn mức
-lưu trữ 10 GB của gói Sandbox. Cuối cùng, phân vùng chỉ có tác dụng khi truy vấn lọc trực tiếp
-cột \texttt{week\_no} bằng hằng số hoặc tham số: điều kiện qua phép nối
-(\texttt{p.week\_no = w.week\_no - 1}) không giúp BigQuery bỏ phân vùng, nên truy vấn của trang
-Cảnh báo có thêm điều kiện \texttt{p.week\_no = @week\_no - 1} (mục~\ref{sec:toi-uu}).
+\textbf{Chi phí.} Chỉ mục làm việc nạp chậm hơn: chèn 1,34 triệu dòng mất 4,52 s thay vì 2,36 s,
+và chỉ mục chiếm thêm 9,9 MB ở quy mô 1$\times$, 48,2 MB ở quy mô 5$\times$. PostgreSQL không giữ
+thứ tự của \texttt{CLUSTER} cho dữ liệu ghi sau, nên luồng nạp chạy lại \texttt{CLUSTER} sau mỗi
+lần nạp, mất khoảng 4 s ở 1$\times$ và 13 s ở 5$\times$. Trên BigQuery, gom cụm được thực hiện
+ngay khi nạp nên không tốn bước riêng. Ở kích thước hiện tại, BigQuery tính tiền tối thiểu 10 MB
+cho mỗi bảng trong một truy vấn, nên bytes tính tiền chỉ giảm từ 79,7 MB xuống 21,0 MB. Lợi ích sẽ
+rõ hơn khi dữ liệu tăng, vì dữ liệu quét của bảng phân vùng chỉ tăng theo dữ liệu của một tuần.
+Mức 5$\times$ chưa đo được trên BigQuery vì vượt giới hạn 10 GB của gói Sandbox.
 
 % ------------------------------------------------------------
 \subsection{So sánh các cách tổ chức dữ liệu}
 \label{sec:benchmark}
 
-Ba cách tổ chức dữ liệu được so sánh: dimensional model (star) của kho chính, lược đồ 3NF
-(mục~\ref{sec:chuan-hoa}) và bảng phi chuẩn hóa toàn phần (wide table), trong đó mỗi bảng fact
-được nối sẵn mọi thuộc tính của dimension. Bốn truy vấn đại diện được chọn từ các câu hỏi mẫu:
-BR1 (câu 7), BR2 (câu 9), BR4 (câu 14) và BR6 (câu 18). Mỗi tổ hợp truy vấn, hệ quản trị
-(PostgreSQL, BigQuery) và quy mô (1$\times$, 5$\times$) được chạy 5 lần, lấy trung vị. Có 44
-trên 48 tổ hợp được đo; bốn tổ hợp wide table 5$\times$ trên BigQuery bị loại vì vượt giới hạn
-10 GB của gói Sandbox. Trước khi đo, kết quả của mọi tổ hợp cùng truy vấn và quy mô được so
-khớp với nhau và với đáp án chuẩn; lần đo chỉ được ghi nhận khi tất cả trùng nhau. Số liệu dưới đây
-là của lần đo ngày 07/11/2026 (thư mục \texttt{bench/results/20261107T165028Z\_55925b1a}). Với
-BigQuery, bảng dùng thời gian chạy phía server; thời gian phía client cộng thêm khoảng 1,5 giây
-để lên lịch job, như nhau ở mọi tổ hợp.
+Để kiểm chứng lựa chọn star cho kho chính, nhóm so sánh ba cách tổ chức cùng một dữ liệu:
+
+\begin{itemize}
+  \item \textbf{Star}: kho chính, gồm các bảng fact và các bảng dimension.
+  \item \textbf{3NF}: lược đồ chuẩn hóa ở mục~\ref{sec:chuan-hoa}.
+  \item \textbf{Wide table} (còn gọi là One Big Table): mỗi bảng fact được nối sẵn mọi thuộc tính
+        của dimension, nên truy vấn không cần phép nối.
+\end{itemize}
+
+Nhóm chọn bốn câu hỏi mẫu làm truy vấn so sánh, mỗi câu đọc một bảng fact khác nhau
+(Bảng~\ref{tab:bench-truy-van}). Mỗi truy vấn được chạy trên
+PostgreSQL và BigQuery, ở quy mô 1$\times$ và 5$\times$, mỗi lần đo chạy 5 lần, lấy trung vị. Trước
+khi đo, kết quả của ba cách tổ chức được so khớp với nhau và với đáp án chuẩn. Nhóm đo được 44 trên
+48 tổ hợp; 4 tổ hợp còn lại là wide table quy mô 5$\times$ trên BigQuery, không dựng được vì vượt
+giới hạn 10 GB của gói Sandbox.
 
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular}{|l|l|r|r|r|}
+\begin{tabularx}{\textwidth}{|p{2.2cm}|X|p{4.4cm}|}
 \hline
-\textbf{Truy vấn} & \textbf{Hệ, quy mô} & \textbf{Star (s)} & \textbf{3NF} & \textbf{Wide table} \\ \hline
-BR1 (câu 7) & PostgreSQL 5$\times$ & 0,060 & 0,89$\times$ & 2,02$\times$ \\ \hline
-BR2 (câu 9) & PostgreSQL 5$\times$ & 3,068 & 1,01$\times$ & 1,16$\times$ \\ \hline
-BR4 (câu 14) & PostgreSQL 5$\times$ & 1,095 & 0,90$\times$ & 0,93$\times$ \\ \hline
-BR6 (câu 18) & PostgreSQL 5$\times$ & 0,032 & 0,95$\times$ & 0,61$\times$ \\ \hline
-BR2 (câu 9) & BigQuery 5$\times$ & 1,567 & 0,34$\times$ & -- \\ \hline
-BR4 (câu 14) & BigQuery 5$\times$ & 1,955 & 0,46$\times$ & -- \\ \hline
+\textbf{Truy vấn} & \textbf{Câu hỏi} & \textbf{Bảng fact chính (quy mô 5$\times$)} \\ \hline
+BR1 (câu 7) & Tỷ lệ nộp trễ chung của mọi bài TMA là bao nhiêu? & Bảng nộp bài, 0,87 triệu dòng \\ \hline
+BR2 (câu 9) & Loại học liệu nào được click nhiều nhất? & Bảng click, 42,3 triệu dòng \\ \hline
+BR4 (câu 14) & Tuần 4 có bao nhiêu sinh viên bị cảnh báo, và bao nhiêu phần trăm trong số đó thực sự rớt hoặc rút? & Bảng tiến độ theo tuần, 6,71 triệu dòng \\ \hline
+BR6 (câu 18) & Kỳ 2014J, khu vực ít khó khăn nhất có tỷ lệ đạt cao hơn khu vực khó khăn nhất bao nhiêu điểm phần trăm? & Bảng đăng ký, 0,16 triệu dòng \\ \hline
+\end{tabularx}
+\caption{Bốn truy vấn dùng để so sánh các cách tổ chức dữ liệu}
+\label{tab:bench-truy-van}
+\end{table}
+
+\newpage
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{|l|r|r|r|r|r|}
+\hline
+& \multicolumn{3}{c|}{\textbf{PostgreSQL}} & \multicolumn{2}{c|}{\textbf{BigQuery}} \\ \cline{2-6}
+\textbf{Truy vấn} & \textbf{Star} & \textbf{3NF} & \textbf{Wide table} & \textbf{Star} & \textbf{3NF} \\ \hline
+BR1 (câu 7)  & 0,060 & 0,053 & 0,121 & 0,178 & 0,175 \\ \hline
+BR2 (câu 9)  & 3,068 & 3,107 & 3,547 & 1,567 & 0,535 \\ \hline
+BR4 (câu 14) & 1,095 & 0,987 & 1,020 & 1,955 & 0,897 \\ \hline
+BR6 (câu 18) & 0,032 & 0,031 & 0,020 & 0,211 & 0,207 \\ \hline
 \end{tabular}
-\caption{Thời gian trung vị của star và tỷ lệ so với star (lớn hơn 1 là chậm hơn), một số tổ hợp tiêu biểu}
+\caption{Thời gian chạy (giây, trung vị 5 lần) của bốn truy vấn ở quy mô 5$\times$. Với BigQuery là
+thời gian chạy phía máy chủ; wide table quy mô 5$\times$ không dựng được trên BigQuery}
 \label{tab:benchmark}
 \end{table}
 
-Trên PostgreSQL, hệ lưu trữ theo dòng, star và 3NF gần như ngang nhau: chênh không quá 11\% ở
-cả hai quy mô, vì các bảng dimension nhỏ nên phép nối thêm để khôi phục mã đợt rất rẻ. Wide table
-chậm hơn ở các truy vấn đọc bảng fact lớn (BR1 chậm 2,02 lần, BR2 chậm 1,16 lần ở 5$\times$), vì
-mỗi dòng mang theo mọi thuộc tính của dimension và đọc bảng là đọc cả dòng, kể cả các cột không
-dùng. Ngược lại, wide table nhanh hơn ở truy vấn nhỏ có phép nối như BR6, vì không phải nối. Các
-truy vấn chỉ mất vài chục mili giây nên tỷ lệ của chúng dao động nhiều giữa các lần đo; kết luận
-dựa chủ yếu vào BR2 và BR4.
+\textbf{Trên PostgreSQL} (lưu theo dòng), star và 3NF gần như ngang nhau, chênh không quá 11\%, vì
+các bảng dimension nhỏ nên phép nối rẻ. Wide table chậm hơn ở BR1 (2,02 lần) và BR2 (1,16 lần),
+hai truy vấn tổng hợp trên toàn bộ một bảng fact, vì mỗi dòng của wide table mang theo mọi cột của
+dimension nên đọc bảng tốn hơn. Ngược lại, wide table nhanh hơn ở BR6 vì không phải nối, dù truy vấn
+này chỉ mất vài chục mili giây nên chênh lệch dao động giữa các lần đo.
 
-Trên BigQuery, hệ lưu trữ theo cột, star và 3NF quét đúng cùng một lượng dữ liệu ở cả bốn truy
-vấn (ví dụ 645,5 MiB cho BR2 ở 5$\times$), vì truy vấn chỉ đọc các cột cần thiết và các cột dư
-thừa của star không bị đọc. Tuy nhiên, star chậm hơn 3NF về thời gian dù quét cùng dữ liệu: ở quy
-mô 5$\times$ chậm 2,9 lần (BR2) và 2,2 lần (BR4), ở quy mô 1$\times$ chậm 1,7 và 1,5 lần. Lần
-đo ngày 26/10/2026 cũng cho cùng chiều chênh lệch. Khác biệt duy nhất giữa hai trường hợp là cách tạo bảng: kho star được nạp bằng load
-job từ file Parquet, còn bảng 3NF được tạo bằng câu lệnh SQL chạy phân tán. Đây là giải thích
-hợp lý nhất nhưng chưa được kiểm chứng trực tiếp, vì BigQuery không cho xem cách bảng được chia
-khối lưu trữ.
+\textbf{Trên BigQuery} (lưu theo cột), star và 3NF quét cùng một lượng dữ liệu, vì BigQuery chỉ đọc
+các cột mà truy vấn cần. Tuy vậy, star chậm hơn 3NF từ 2,2 đến 2,9 lần ở quy mô 5$\times$. Khác biệt
+duy nhất giữa hai bên là cách tạo bảng: star được nạp từ file Parquet, còn 3NF được tạo bằng câu
+lệnh SQL. Đây là giải thích hợp lý nhất nhưng nhóm chưa kiểm chứng được.
 
-Không cách tổ chức nào nhanh nhất ở mọi tổ hợp. Nhóm giữ star làm kho chính vì star dễ viết
-truy vấn nhất, ngang 3NF trên PostgreSQL, nhanh hơn wide table ở các truy vấn đọc bảng fact
-lớn, và quét cùng lượng dữ liệu với 3NF trên BigQuery. Việc
-tăng tốc cho từng trang dashboard được thực hiện bằng phân vùng, gom cụm, chỉ mục và bảng tổng
-hợp sẵn (mục~\ref{sec:toi-uu}) thay vì thay đổi cả cách tổ chức.
+\textbf{Kết luận.} Không cách tổ chức nào nhanh nhất ở mọi trường hợp. Nhóm giữ star làm kho chính
+vì star dễ viết truy vấn, ngang 3NF trên PostgreSQL, nhanh hơn wide table ở các truy vấn tổng hợp
+trên toàn bảng fact, và quét cùng lượng dữ liệu với 3NF trên BigQuery. Tốc độ của dashboard được cải thiện bằng các
+kỹ thuật tối ưu ở mục~\ref{sec:toi-uu}, không cần đổi cách tổ chức.
 
 % ------------------------------------------------------------
 \subsection{Đánh giá công nghệ}
 \label{sec:danh-gia-cong-nghe}
 
-Mỗi công nghệ trong hệ thống được xét theo bốn tiêu chí. \emph{Độ đúng}: kết quả của công nghệ
-có khớp với đáp án chuẩn hoặc với một hệ khác hay không. \emph{Hiệu năng và chi phí}: số đo trên
-truy vấn hoặc công việc thật của project, và chi phí phải trả. \emph{Mở rộng và vận hành}: chạy
-được ở quy mô 5$\times$ hay trên cụm không, và cần bao nhiêu công sức để chạy lại. \emph{Giới hạn
-gặp phải}: những gì công nghệ chưa làm được hoặc làm nhóm phải đổi cách làm. Mọi số liệu trong
-Bảng~\ref{tab:danh-gia-cong-nghe} lấy từ các mục trước của báo cáo.
+Nhóm đánh giá sáu công nghệ đã dùng theo bốn tiêu chí, bằng số đo của chính project:
+
+\begin{itemize}
+  \item \textbf{Độ chính xác:} kết quả do công nghệ tạo ra có khớp với đáp án chuẩn hoặc với một hệ
+        khác hay không.
+  \item \textbf{Hiệu năng và chi phí:} số đo trên truy vấn hoặc công việc thật của project, và chi
+        phí phải trả.
+  \item \textbf{Mở rộng và vận hành:} chạy được ở quy mô 5$\times$ hay trên cụm không, và cần bao
+        nhiêu công sức để chạy lại.
+  \item \textbf{Giới hạn gặp phải:} những gì công nghệ chưa làm được hoặc buộc nhóm phải đổi cách làm.
+\end{itemize}
+
+Kết quả ở Bảng~\ref{tab:danh-gia-cong-nghe}; mọi số liệu trong bảng lấy từ các mục trước của báo cáo.
 
 \begin{table}[htbp]
 \centering
-\footnotesize
-\begin{tabularx}{\textwidth}{|p{2.0cm}|X|X|X|X|}
+\small
+\begin{tabularx}{\textwidth}{|p{2.2cm}|X|X|X|X|}
 \hline
-\textbf{Công nghệ} & \textbf{Độ đúng} & \textbf{Hiệu năng và chi phí} & \textbf{Mở rộng và vận hành} & \textbf{Giới hạn gặp phải} \\ \hline
-Spark (ETL batch) & Gộp 10,6 triệu dòng click còn 8,46 triệu, tổng click giữ nguyên; số dòng mọi bảng đúng hợp đồng dữ liệu & Dựng lại toàn bộ kho trong 303 giây; mã nguồn mở, không tốn phí & Dựng được kho 5$\times$ với 42,3 triệu dòng click; lên cụm chỉ đổi cấu hình; một lệnh \texttt{make all} & Chỉ chạy chế độ local trên một máy, chưa thử trên cụm thật \\ \hline
-BigQuery (kho chính) & 20 câu hỏi mẫu trùng đáp án chuẩn; đối chiếu với DuckDB phát hiện và sửa lỗi phân vị xấp xỉ & 7/8 trang tải trong khoảng 2,5 giây; tối ưu giảm dữ liệu quét 15,9 đến 330 lần; một lượt mở 8 trang quét khoảng 273 MB & Không phải quản trị máy chủ; nạp kho 5$\times$ được, trừ bảng rộng & Sandbox: 10 GB, bảng tự xóa sau 60 ngày, không có \texttt{INSERT}/\texttt{UPDATE} nên phải nạp lại toàn bộ; star chậm hơn 3NF dù quét cùng dữ liệu, chưa rõ nguyên nhân \\ \hline
-PostgreSQL (kho đối chứng) & Số dòng 9 bảng và 20 đáp án khớp với BigQuery và Parquet & Chỉ mục B-tree nhanh hơn 5,3 lần; \texttt{CLUSTER} giảm số trang đọc từ 22.016 xuống 567 & Chạy được cả ba cách tổ chức ở 5$\times$, kể cả bảng rộng; phải tự quản trị chỉ mục và thống kê & Chỉ mục chiếm chỗ (499 MB) và làm chậm việc ghi (thêm 91\%) \\ \hline
-Kafka và Structured Streaming & Kết quả stream lệch 0 dòng so với batch trên 1.342.949 dòng; chạy lại một micro-batch không sinh dòng trùng & Watermark giữ trạng thái lớn nhất 65 nghìn khóa thay vì 627 nghìn; dashboard chậm hơn stream 5 đến 10 giây & Dừng rồi chạy lại đọc tiếp đúng offset nhờ checkpoint; cùng engine và cách viết với batch & Một broker, không có bản sao; nguồn là phát lại dữ liệu lịch sử; Sandbox chỉ cho nạp bằng load job \\ \hline
-Airflow (điều phối) & Cổng chất lượng chạy trước khi nạp; lỗi thì BigQuery giữ bản cũ & DAG chạy 223 giây so với 303 giây chạy tay, vì hai bước nạp chạy song song & Lập lịch, chờ dữ liệu, chạy lại khi lỗi, báo lỗi qua log và webhook; mỗi task gọi lại đúng một lệnh \texttt{make} & \texttt{LocalExecutor} trên một máy; tốn thêm bộ nhớ nên chỉ bật khi cần \\ \hline
-Streamlit (dashboard) & Cả 20 câu hỏi mẫu tìm được đáp án trên giao diện & Kết quả lưu tạm 1 đến 6 giờ nên mở lại không quét thêm & Viết hoàn toàn bằng Python, đổi nơi đọc dữ liệu bằng một biến môi trường & Một tiến trình trên một máy; trang thời gian thực quét khoảng 48 MB mỗi lần tự tải lại \\ \hline
+\textbf{Công nghệ} & \textbf{Độ chính xác} & \textbf{Hiệu năng và chi phí} & \textbf{Mở rộng và vận hành} & \textbf{Giới hạn gặp phải} \\ \hline
+Spark (ETL) & Số dòng mọi bảng đúng hợp đồng dữ liệu & Dựng lại toàn bộ kho trong 303 giây; miễn phí & Dựng được kho 5$\times$ (42,3 triệu dòng click); chạy bằng một lệnh & Mới chạy trên một máy \\ \hline
+BigQuery (kho chính) & 20/20 câu hỏi mẫu đúng đáp án & 7/8 trang tải trong khoảng 2,5 giây; tối ưu giảm dữ liệu quét 15,9 đến 330 lần & Không phải quản trị máy chủ & Gói miễn phí: tối đa 10 GB, bảng tự xóa sau 60 ngày, không sửa dữ liệu được \\ \hline
+PostgreSQL (kho đối chứng) & Số dòng và 20 đáp án khớp với BigQuery & Chỉ mục giúp truy vấn nhanh hơn 5,3 lần & Chạy được cả ba cách tổ chức ở quy mô 5$\times$ & Chỉ mục tốn thêm chỗ và làm nạp chậm hơn \\ \hline
+Kafka và Spark Streaming & Kết quả stream khớp hoàn toàn với batch & Watermark giảm bộ nhớ khoảng 10 lần; dashboard cập nhật sau 5 đến 10 giây & Dừng rồi chạy lại vẫn đọc tiếp đúng chỗ & Một broker; nguồn là phát lại dữ liệu cũ \\ \hline
+Airflow (điều phối) & Kiểm tra chất lượng trước khi nạp; lỗi thì giữ dữ liệu cũ & Chạy toàn bộ trong 223 giây, nhanh hơn chạy tay (303 giây) & Tự chạy theo lịch, tự chạy lại và báo khi lỗi & Chạy trên một máy, tốn thêm bộ nhớ \\ \hline
+Streamlit (dashboard) & Tìm được đáp án của 20/20 câu hỏi mẫu & Lưu tạm kết quả 1 đến 6 giờ, mở lại không quét thêm & Viết hoàn toàn bằng Python & Một tiến trình trên một máy \\ \hline
 \end{tabularx}
 \caption{Đánh giá các công nghệ đã sử dụng theo bốn tiêu chí}
 \label{tab:danh-gia-cong-nghe}
 \end{table}
 
-Nhìn chung, mỗi công nghệ đáp ứng được vai trò của nó trong project, và phần lớn giới hạn đến
-từ hạ tầng miễn phí (gói Sandbox, một máy, một broker) chứ không phải từ cách thiết kế. Các giới
-hạn này được tổng hợp ở mục~\ref{sec:han-che}, cùng hướng khắc phục ở chương Tổng kết.
-
-% ------------------------------------------------------------
-\subsection{Đối chiếu với yêu cầu môn học}
-\label{sec:doi-chieu}
-
-Bảng~\ref{tab:tu-danh-gia} tóm tắt nội dung của project ứng với từng chuẩn đầu ra của môn học.
-
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3.0cm}|X|X|l|}
-\hline
-\textbf{Chuẩn đầu ra} & \textbf{Nội dung trong project} & \textbf{Con số tiêu biểu} & \textbf{Mục} \\ \hline
-1.1 Thiết kế CSDL ở 3 mức & Thiết kế ý niệm, luận lý, vật lý; kiểm chứng phụ thuộc hàm trên dữ liệu & 8 thực thể $\rightarrow$ 5 dimension và 4 fact; 11 phụ thuộc hàm được kiểm thử & \ref{sec:thiet-ke} \\ \hline
-1.2 Mô hình hóa từ quan hệ đến phi quan hệ & 7 mô hình dữ liệu, có số đo so sánh & Dạng lồng (nested) quét ít hơn 33\%; mô hình tài liệu (JSONB) nhỏ hơn 7,4$\times$ & \ref{sec:phi-quan-he} \\ \hline
-2.1 Kiến trúc quản lý dữ liệu từ nhiều nguồn & 4 tầng dữ liệu, 3 hệ lưu trữ, điều phối bằng Airflow; nhánh stream song song với batch & Dựng lại toàn bộ kho trong 303 giây; stream khớp batch trên 1.342.949 dòng & \ref{sec:kien-truc}, \ref{sec:hien-thuc} \\ \hline
-2.2 Thiết kế kho dữ liệu & Lược đồ constellation, bảng ảnh chụp theo tuần, so sánh 3 cách tổ chức & 1.342.949 dòng ảnh chụp; 44 tổ hợp đo hiệu năng & \ref{sec:luan-ly}, \ref{sec:benchmark} \\ \hline
-3.1 Quản lý dữ liệu phức tạp & Gộp dòng trùng, cờ chất lượng, chống rò rỉ nhãn, đối soát ba hệ & 3.810.465 dòng trùng được gộp; 290 bài kiểm thử & \ref{sec:etl}, \ref{sec:kiem-thu} \\ \hline
-3.2 Xử lý dữ liệu theo kiểu mẫu hiện đại & Xử lý phân tán (Spark), kho đám mây (BigQuery), điều phối (Airflow), xử lý stream từ Kafka có watermark, tối ưu có số đo & Giảm 5,3$\times$ đến 330$\times$; watermark giảm bộ nhớ stream khoảng 10$\times$ & \ref{sec:hien-thuc}, \ref{sec:stream}, \ref{sec:toi-uu}, \ref{sec:chi-muc} \\ \hline
-\end{tabularx}
-\caption{Nội dung project ứng với chuẩn đầu ra của môn học}
-\label{tab:tu-danh-gia}
-\end{table}
+Phần lớn giới hạn ở cột cuối đến từ hạ tầng miễn phí (gói Sandbox, một máy, một broker) chứ không
+từ cách thiết kế, nên có thể khắc phục khi chuyển sang hạ tầng trả phí.
 
 % ------------------------------------------------------------
 \subsection{Hạn chế}
 \label{sec:han-che}
 
-Hệ thống còn một số hạn chế. Về dữ liệu, 7 nguồn đều thuộc cùng một bộ dữ liệu tĩnh, nên bài
-toán tích hợp nhiều nguồn mới thể hiện ở sự khác biệt về khóa, chất lượng và quy ước ngày giữa
-các file, chưa có các nguồn thuộc hệ thống khác nhau. Bản mở rộng quy mô 5$\times$ được tạo
-bằng cách nhân bản, nên chỉ phù hợp để đo tải, không bổ sung sự đa dạng thật của dữ liệu.
+Bảng~\ref{tab:han-che} tóm tắt các hạn chế chưa được giải quyết của project.
 
-Về hạ tầng, gói Sandbox của BigQuery tự xóa bảng sau 60 ngày và không cho dùng các lệnh sửa
-dữ liệu, nên kho được nạp lại toàn bộ mỗi lần thay vì nạp tăng dần, và hệ thống chưa có cơ chế
-bắt thay đổi dữ liệu (CDC). Cũng vì giới hạn dung lượng 10 GB, wide table ở quy mô 5$\times$
-không dựng được trên BigQuery.
-
-Về hiện thực, phân vùng và gom cụm làm phép so sánh các cách tổ chức dữ liệu không còn cùng
-điều kiện, nên trước mỗi lần đo benchmark phải nạp lại kho chính ở dạng bảng thường rồi bật lại
-tối ưu sau đó; quên bước này thì bộ chạy benchmark từ chối chạy trên PostgreSQL, nhưng trên
-BigQuery thì không tự phát hiện được. Cuối cùng, kết quả so sánh star với
-3NF trên BigQuery ở quy mô 5$\times$ còn một điểm chưa giải thích được bằng thực nghiệm
-(mục~\ref{sec:benchmark}).
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.3cm}|X|X|}
+\hline
+\textbf{Nhóm} & \textbf{Hạn chế} & \textbf{Nguyên nhân} \\ \hline
+Dữ liệu & Mới tích hợp 7 file của cùng một bộ dữ liệu, chưa có nguồn từ các hệ thống khác nhau & Đề tài dùng bộ dữ liệu tĩnh OULAD \\ \hline
+Dữ liệu & Bản 5$\times$ chỉ dùng để đo tải, không thêm sự đa dạng của dữ liệu & Được tạo bằng cách nhân bản dữ liệu gốc \\ \hline
+Nạp dữ liệu & Kho được nạp lại toàn bộ mỗi lần, chưa nạp tăng dần & Gói Sandbox của BigQuery không cho dùng lệnh sửa dữ liệu \\ \hline
+Đo hiệu năng & Chưa đo được wide table và chỉ mục ở quy mô 5$\times$ trên BigQuery & Giới hạn lưu trữ 10 GB của gói Sandbox \\ \hline
+Đo hiệu năng & Khi so sánh star, 3NF và wide table, kho chính phải tạm bỏ phân vùng và gom cụm để ba cách cùng điều kiện; đo xong phải bật lại bằng tay, nếu quên thì dashboard chạy chậm hơn mà hệ thống không báo & Bộ chạy so sánh chưa tự bật lại tối ưu sau khi đo \\ \hline
+Đo hiệu năng & Trên BigQuery, star chậm hơn 3NF khoảng 2 đến 3 lần dù đọc cùng lượng dữ liệu; nhóm chưa xác định được nguyên nhân & BigQuery không cho xem dữ liệu được lưu bên trong như thế nào, nên chưa kiểm chứng được giả thuyết \\ \hline
+\end{tabularx}
+\caption{Các hạn chế chưa được giải quyết của project}
+\label{tab:han-che}
+\end{table}

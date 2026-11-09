@@ -1,7 +1,7 @@
 # Chạy TRONG container:  docker compose exec app make <lệnh>
 # (Máy Windows không có make thì gõ thẳng lệnh ở dòng bên dưới mỗi mục)
 
-.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg load-plain tune marts stream scale optimize indexing models test bench app stream-kafka lock test-dag
+.PHONY: all all-local check bq-test staging dims facts student-week load-bq load-pg load-plain tune marts stream scale optimize indexing dashboard-load models test bench app stream-kafka lock test-dag
 
 all:          ## 1.13 chạy hết: staging -> dims -> facts -> student-week -> BigQuery -> PostgreSQL -> test
 	python scripts/run_all.py
@@ -69,6 +69,9 @@ optimize:     ## 1.11 đo 4 kỹ thuật tối ưu của kho chính so với b�
 
 indexing:     ## đo chỉ mục cho fact_student_week (BigQuery: phân vùng, gom cụm; PostgreSQL: B+-tree, CLUSTER) trên bảng thử, ghi docs/indexing.md; chạy sau make all scale
 	python scripts/index_student_week.py
+
+dashboard-load: ## đo dữ liệu quét và thời gian tải từng trang dashboard trên BigQuery (lần mở đầu), ghi docs/dashboard_load.md; chạy sau make all
+	python scripts/dashboard_load.py
 
 models:       ## mô hình phi quan hệ (BigQuery dạng lồng, PostgreSQL JSONB) so với bảng phẳng, ghi docs/data_models.md
 	python scripts/data_models.py

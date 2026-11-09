@@ -39,9 +39,7 @@ kiểm tra và học liệu; bốn file sau ghi lại sinh viên và hoạt đ�
 \end{table}
 
 Đây là bản xuất tĩnh, không thay đổi sau khi công bố, nên nhóm không dựng một cơ sở dữ liệu
-vận hành (OLTP) để mô phỏng nguồn mà đọc thẳng các file CSV vào pipeline. Nếu nguồn là một
-hệ thống đang chạy và dữ liệu thay đổi liên tục, kho sẽ cần nạp tăng dần theo các thay đổi
-(CDC); hướng này được bàn ở mục~\ref{sec:huong-phat-trien}. Dù cùng thuộc một bộ dữ liệu,
+vận hành (OLTP) để mô phỏng nguồn mà đọc thẳng các file CSV vào pipeline. Dù cùng thuộc một bộ dữ liệu,
 7 file vẫn khác nhau về khóa, mức độ sạch và cách ghi ngày, nên việc hợp nhất chúng vào kho
 cũng gặp các vấn đề như khi tích hợp nhiều nguồn (mục~\ref{sec:van-de-du-lieu}).
 
@@ -105,37 +103,26 @@ Chi tiết từng yêu cầu:
         xem một đợt.
   \item \textbf{BR3 -- Hoạt động trước bài TMA đầu tiên và điểm bài đó.} Với mỗi sinh viên, hệ thống lấy tổng click trước hạn của bài TMA đầu tiên có trọng số và
         điểm của bài đó, rồi tính hệ số tương quan hạng Spearman ($\rho$) riêng cho từng đợt, kèm
-        khoảng tin cậy 95\%. Chỉ có 19/22 đợt vì môn GGG không có TMA nào có trọng số. Đây là
-        tương quan, không phải quan hệ nhân quả.
-  \item \textbf{BR4 -- Danh sách sinh viên có nguy cơ, cập nhật theo tuần.} Mỗi tuần, sinh viên còn học được xét 4 dấu hiệu: tổng click thuộc nhóm 25\% thấp nhất của
+        khoảng tin cậy 95\%. Chỉ có 19/22 đợt vì môn GGG không có TMA nào có trọng số.
+  \item \textbf{BR4 -- Danh sách sinh viên có nguy cơ rớt hoặc bỏ môn, được cập nhật theo tuần.} Mỗi tuần, sinh viên còn học được xét 4 dấu hiệu: tổng click thuộc nhóm 25\% thấp nhất của
         đợt; không click trong 2 tuần gần nhất; có TMA đã qua hạn mà chưa nộp; điểm trung bình
-        dưới 40. Sinh viên có từ 2 dấu hiệu trở lên vào danh sách. Danh sách tuần $w$ chỉ dùng dữ
-        liệu đến hết tuần $w$ và không dùng kết quả cuối kỳ. Kết quả cuối kỳ chỉ dùng sau khi đợt
-        kết thúc, để đo độ chính xác và độ bao phủ của quy tắc.
-  \item \textbf{BR5 -- Đường cong rút lui.} Hệ thống vẽ phần trăm lượt đăng ký đã rút tính đến cuối mỗi tuần, từ 4 tuần trước khai giảng đến hết đợt, có thể chồng nhiều đợt để so,
-        kèm ngày rút trung vị và tỷ lệ rút trước khai giảng. ``Rút'' ở đây là rút khỏi một môn,
-        không phải bỏ học cả trường.
+        dưới 40. Sinh viên có từ 2 dấu hiệu trở lên sẽ được đưa vào danh sách. Danh sách tuần $w$ chỉ dùng dữ liệu đến hết tuần $w$; kết quả cuối kỳ (đạt, trượt, rút) không được dùng, vì lúc lập danh sách chưa ai biết kết quả này. Sau khi đợt học kết thúc, kết quả cuối kỳ mới được dùng để chấm quy tắc: trong số sinh viên bị cảnh báo có bao nhiêu phần trăm thật sự trượt hoặc rút (độ chính xác), và trong số sinh viên trượt hoặc rút có bao nhiêu phần trăm đã được cảnh báo (độ bao phủ).
+  \item \textbf{BR5 -- Đường cong rút lui.} Hệ thống vẽ đường cong rút lui: trục ngang là tuần, từ 4 tuần trước khai giảng đến hết đợt; trục dọc là phần trăm lượt đăng ký đã rút tính đến cuối tuần đó. Người dùng có thể chọn nhiều đợt để vẽ trên cùng một biểu đồ, mỗi đợt một đường, và so đợt nào sinh viên rút sớm hơn hoặc nhiều hơn. Kèm theo đó là hai giá trị: ngày rút trung vị (một nửa số sinh viên rút trước ngày này) và tỷ lệ rút trước khai giảng. ``Rút'' ở đây là rút khỏi một môn, không phải bỏ học ở trường.
   \item \textbf{BR6 -- Khoảng cách tỷ lệ đạt giữa các nhóm IMD.} Hệ thống so tỷ lệ đạt và tỷ lệ Distinction của nhóm IMD 0--10\% với nhóm 90--100\%, tính
-        khoảng cách bằng điểm phần trăm qua 4 kỳ. Chỉ dùng 3 môn có đủ 4 kỳ (BBB, DDD, FFF) để xu
-        hướng không bị lệch do mỗi kỳ mở môn khác nhau. Kết quả chỉ báo ở mức nhóm.
+        khoảng cách bằng điểm phần trăm qua 4 kỳ. Chỉ dùng 3 môn (BBB, DDD, FFF) mở đủ ở cả 4 kỳ, để kỳ nào cũng so trên cùng các môn; nếu lấy cả 7 môn thì mỗi kỳ có một tổ hợp môn khác nhau, và xu hướng có thể chỉ do đổi môn chứ không phải do khoảng cách thay đổi. Kết quả chỉ báo tỷ lệ của cả nhóm, không hiện sinh viên nào thuộc nhóm IMD nào, và nhóm dưới 30 sinh viên thì không hiện tỷ lệ.
   \item \textbf{BR7 -- Tiến độ tuần của sinh viên so với các bạn cùng đợt.} Sinh viên xem 4 chỉ số của mình tính đến tuần đang chọn (click trong tuần, tổng click,
         số bài đã nộp, điểm trung bình) và vị trí của mình so với phân vị 25\%, 50\%, 75\% của các
         bạn cùng đợt còn học. Nhóm dưới 30 sinh viên thì không hiện phân vị, để tránh đoán ra số
         của người khác.
-  \item \textbf{BR8 -- So hoạt động của mình với nhóm đã đạt.} Với mỗi loại học liệu, sinh viên thấy số click của mình trong tuần đặt trên dải 25\%--75\%
-        click của các bạn đã đạt môn. Trên OULAD, nhóm đạt lấy cùng đợt vì mọi đợt đã kết thúc;
-        khi dùng thật thì lấy đợt trước của cùng môn, vì đợt đang học chưa có kết quả.
+  \item \textbf{BR8 -- Sinh viên so hoạt động của mình với nhóm đã đạt.} Với mỗi loại học liệu, sinh viên thấy số click của mình trong tuần đặt trên dải 25\%--75\%
+        click của các bạn đã đạt môn. Trên OULAD, nhóm đạt lấy cùng đợt vì mọi đợt đã kết thúc. Khi triển khai thực tế, đợt đang học chưa có ai đạt hay trượt, nên cần phải thay đổi lấy dữ liệu từ các sinh viên đã đạt ở đợt trước của cùng môn.
 \end{itemize}
 
-Đi kèm 8 yêu cầu là một bộ 20 câu hỏi mẫu, mỗi yêu cầu có ít nhất một câu, ví dụ ``tỷ lệ
-nộp trễ chung của mọi bài TMA là bao nhiêu''. Đáp án của từng câu được tính thẳng từ 7 file
-CSV gốc, không đi qua kho, nên bộ câu hỏi này dùng được để kiểm tra kho trả lời đúng. Kết quả
-kiểm tra được trình bày ở chương~\ref{sec:danh-gia}.
+Đi kèm 8 yêu cầu là một bộ 20 câu hỏi mẫu, mỗi yêu cầu có ít nhất một câu. Đáp án của từng câu được tính thẳng từ 7 file CSV gốc, không đi qua kho, nên nhóm dùng bộ câu hỏi này để kiểm tra kho dữ liệu có trả lời đúng hay không. Kết quả kiểm tra được trình bày ở chương~\ref{sec:danh-gia}.
 
-\subsection{Các vấn đề của dữ liệu nguồn}
+\subsection{Các vấn đề của bộ dữ liệu nguồn}
 \label{sec:van-de-du-lieu}
-Dữ liệu OULAD có một số vấn đề khiến nó không thể nạp thẳng vào kho; cách xử lý được
-trình bày ở mục~\ref{sec:etl}.
+Dữ liệu OULAD có một số vấn đề khiến nó không thể nạp thẳng vào kho; cách xử lý dữ liệu của nhóm được trình bày ở mục~\ref{sec:etl}.
 
 File click \texttt{studentVle} không có khóa: cùng một sinh viên, học liệu và ngày có thể
 nằm trên nhiều dòng, tổng cộng 3.810.465 trên 10.655.280 dòng. Giá trị thiếu được ghi bằng
@@ -152,8 +139,5 @@ lượt đăng ký có kết quả cuối kỳ không khớp với ngày rút.
 Riêng file \texttt{studentInfo} có vấn đề về cấu trúc bảng chứ không phải về giá trị. Mỗi
 dòng là một sinh viên trong một đợt, nhưng file chứa cả đặc điểm của sinh viên (giới tính,
 vùng, trình độ, nhóm IMD) lẫn thông tin của lượt đăng ký (nhóm tuổi, số lần học lại, kết
-quả cuối kỳ). Đặc điểm sinh viên chỉ phụ thuộc vào mã sinh viên, không phụ thuộc vào đợt,
-nên bị lặp lại ở mỗi đợt sinh viên đó học; bảng vi phạm dạng chuẩn 2 (2NF). Khi tách bảng
-cũng phải xét kỹ từng cột: nhóm tuổi trông giống đặc điểm sinh viên nhưng thay đổi giữa các
-lần đăng ký ở 72 sinh viên, nên thuộc về lượt đăng ký. Việc tách bảng theo phụ thuộc hàm
-được trình bày ở mục~\ref{sec:chuan-hoa}.
+quả cuối kỳ). Đặc điểm sinh viên chỉ phụ thuộc vào mã sinh viên, không phụ thuộc vào đợt học, nên bị lặp lại ở mỗi đợt sinh viên đó học; vì thế bảng vi phạm dạng chuẩn 2 (2NF). Khi tách bảng
+cũng phải xét kỹ từng cột: nhóm tuổi trông giống đặc điểm sinh viên nhưng thay đổi giữa các lần đăng ký ở 72 sinh viên, nên thuộc về lượt đăng ký. Việc tách bảng theo phụ thuộc hàm được nhóm trình bày ở mục~\ref{sec:chuan-hoa}.
