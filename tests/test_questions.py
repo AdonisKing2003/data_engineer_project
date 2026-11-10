@@ -17,25 +17,54 @@ TABLES = ["dim_presentation", "dim_student", "dim_assessment", "dim_vle_site", "
 
 # câu -> hàm nhận danh sách dòng kết quả, trả về True nếu đúng đáp án
 EXPECTED = {
+    # --- Chung ---
+    # Q1: (số lượt đăng ký, số SV); 1 SV có thể đăng ký nhiều đợt
     1: lambda r: r[0] == (32593, 28785),
+    # Q2: (kết quả, % trên tổng lượt) theo thứ tự giảm dần
     2: lambda r: [(x[0], x[2]) for x in r] == [("Pass", 37.9), ("Withdrawn", 31.2), ("Fail", 21.6), ("Distinction", 9.3)],
+    # Q3: đợt đông nhất (môn, kỳ, số lượt)
     3: lambda r: r[0] == ("CCC", "2014J", 2498),
+    # Q4: (số lượt không click VLE nào, %)
     4: lambda r: r[0] == (3365, 10.3),
+    # --- BR1: nộp bài ---
+    # Q5: bài 1752 AAA 2013J: (mẫu số = SV còn học tại hạn, bỏ bài chuyển điểm; số đã nộp; %)
     5: lambda r: r[0] == (372, 359, 96.5),
+    # Q6: TMA BBB 2014J trễ nhiều nhất: (id bài, ngày hạn, % trễ)
     6: lambda r: r[0] == (15023, 152, 22.1),
+    # Q7: mọi TMA: (số bài trễ, % trễ)
     7: lambda r: r[0] == (16320, 16.8),
+    # Q8: điểm TMA trung bình theo môn: dòng đầu cao nhất, dòng cuối thấp nhất
     8: lambda r: r[0] == ("EEE", 81.2) and r[-1] == ("GGG", 68.5),
+    # --- BR2: hoạt động VLE ---
+    # Q9: loại học liệu nhiều click nhất: (loại, click của loại, tổng click, %)
     9: lambda r: r[0] == ("oucontent", 11206803, 39605099, 28.3),
+    # Q10: (tuần cao điểm, tổng click tuần đó) gộp mọi đợt
     10: lambda r: r[0] == (2, 2307080),
+    # Q11: FFF 2014J tuần 0: (môn, kỳ, tuần, SV còn học, tổng click, click/SV ≈ 119,2)
     11: lambda r: r[0][:5] == ("FFF", "2014J", 0, 2140, 255054) and round(r[0][5], 1) == 119.2,
+    # --- BR3: click trước hạn và điểm ---
+    # Q12: (số kỳ có TMA đầu tiên có trọng số, số kỳ không có, danh sách kỳ thiếu): 19 + 3 = 22
     12: lambda r: r[0] == (19, 3, "GGG 2013J, GGG 2014B, GGG 2014J"),
+    # Q13: AAA 2013J: cột 3 = n lượt nộp hợp lệ, cột 4 = Spearman rho ≈ 0,37
     13: lambda r: r[0][2] == 358 and round(r[0][3], 2) == 0.37,
+    # --- BR4: cảnh báo sớm ---
+    # Q14: tuần 4: (SV còn học, số vào danh sách, % thật sự Fail/Withdrawn, tỷ lệ nền)
     14: lambda r: r[0] == (27250, 3958, 80.6, 43.5),
+    # --- BR5: rút học ---
+    # Q15: (số rút từ ngày 0 trở về trước, tổng Withdrawn, %)
     15: lambda r: r[0] == (3089, 10156, 30.4),
+    # Q16: cột 2 = ngày rút trung vị (ngày 27)
     16: lambda r: r[0][1] == 27,
+    # Q17: đợt có tỷ lệ Withdrawn cao nhất (môn, kỳ, %)
     17: lambda r: r[0] == ("CCC", "2014B", 46.4),
+    # --- BR6: IMD ---
+    # Q18: BBB/DDD/FFF 2014J: (% đạt IMD 0–10, % đạt IMD 90–100, chênh lệch điểm %)
     18: lambda r: r[0][2:] == (41.1, 63.3, 22.2),
+    # --- BR7: so với cùng đợt ---
+    # Q19: AAA 2014J tuần 10: (SV còn học, trung vị click cộng dồn)
     19: lambda r: r[0] == (336, 593),
+    # --- BR8: diễn đàn ---
+    # Q20: BBB 2013J, SV Pass/Distinction, click forumng tuần 5 (tính cả SV 0 click): (n, Q1, trung vị, Q3)
     20: lambda r: r[0] == (1072, 0, 5, 22),
 }
 

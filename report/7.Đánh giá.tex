@@ -21,7 +21,7 @@ tiêu chí của đề bài:
         thuật tối ưu (phân vùng, gom cụm, bảng tổng hợp sẵn, chỉ mục), và so sánh ba cách tổ chức
         dữ liệu (star, 3NF, wide table) ở hai quy mô: quy mô 1$\times$ là dữ liệu gốc, quy mô
         5$\times$ là bản nhân bản dữ liệu gốc thành 5 lần (bảng click 42,3 triệu dòng) để đo tải.
-        Kết quả: dựng lại toàn bộ kho trong 303 giây, còn 223 giây khi chạy qua Airflow; dữ liệu
+        Kết quả: dựng lại toàn bộ kho trong 329 giây, còn 230 giây khi chạy qua Airflow; dữ liệu
         quét trên BigQuery giảm 15,9 đến 330 lần; truy vấn trên PostgreSQL nhanh hơn 5,3 lần. Phép
         so sánh đo được 44 trên 48 tổ hợp; 4 tổ hợp còn lại là wide table quy mô 5$\times$ trên
         BigQuery, không dựng được vì vượt giới hạn lưu trữ 10 GB của gói BigQuery Sandbox.
@@ -459,11 +459,11 @@ Kết quả ở Bảng~\ref{tab:danh-gia-cong-nghe}; mọi số liệu trong b�
 \begin{tabularx}{\textwidth}{|p{2.2cm}|X|X|X|X|}
 \hline
 \textbf{Công nghệ} & \textbf{Độ chính xác} & \textbf{Hiệu năng và chi phí} & \textbf{Mở rộng và vận hành} & \textbf{Giới hạn gặp phải} \\ \hline
-Spark (ETL) & Số dòng mọi bảng đúng hợp đồng dữ liệu & Dựng lại toàn bộ kho trong 303 giây; miễn phí & Dựng được kho 5$\times$ (42,3 triệu dòng click); chạy bằng một lệnh & Mới chạy trên một máy \\ \hline
+Spark (ETL) & Số dòng mọi bảng đúng hợp đồng dữ liệu & Dựng lại toàn bộ kho trong 329 giây; miễn phí & Dựng được kho 5$\times$ (42,3 triệu dòng click); chạy bằng một lệnh & Mới chạy trên một máy \\ \hline
 BigQuery (kho chính) & 20/20 câu hỏi mẫu đúng đáp án & 7/8 trang tải trong khoảng 2,5 giây; tối ưu giảm dữ liệu quét 15,9 đến 330 lần & Không phải quản trị máy chủ & Gói miễn phí: tối đa 10 GB, bảng tự xóa sau 60 ngày, không sửa dữ liệu được \\ \hline
 PostgreSQL (kho đối chứng) & Số dòng và 20 đáp án khớp với BigQuery & Chỉ mục giúp truy vấn nhanh hơn 5,3 lần & Chạy được cả ba cách tổ chức ở quy mô 5$\times$ & Chỉ mục tốn thêm chỗ và làm nạp chậm hơn \\ \hline
 Kafka và Spark Streaming & Kết quả stream khớp hoàn toàn với batch & Watermark giảm bộ nhớ khoảng 10 lần; dashboard cập nhật sau 5 đến 10 giây & Dừng rồi chạy lại vẫn đọc tiếp đúng chỗ & Một broker; nguồn là phát lại dữ liệu cũ \\ \hline
-Airflow (điều phối) & Kiểm tra chất lượng trước khi nạp; lỗi thì giữ dữ liệu cũ & Chạy toàn bộ trong 223 giây, nhanh hơn chạy tay (303 giây) & Tự chạy theo lịch, tự chạy lại và báo khi lỗi & Chạy trên một máy, tốn thêm bộ nhớ \\ \hline
+Airflow (điều phối) & Kiểm tra chất lượng trước khi nạp; lỗi thì giữ dữ liệu cũ & Chạy toàn bộ trong 230 giây, nhanh hơn chạy tay (329 giây) & Tự chạy theo lịch, tự chạy lại và báo khi lỗi & Chạy trên một máy, tốn thêm bộ nhớ \\ \hline
 Streamlit (dashboard) & Tìm được đáp án của 20/20 câu hỏi mẫu & Lưu tạm kết quả 1 đến 6 giờ, mở lại không quét thêm & Viết hoàn toàn bằng Python & Một tiến trình trên một máy \\ \hline
 \end{tabularx}
 \caption{Đánh giá các công nghệ đã sử dụng theo bốn tiêu chí}
